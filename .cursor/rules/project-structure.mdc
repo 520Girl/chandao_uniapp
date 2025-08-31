@@ -1,0 +1,23 @@
+---
+alwaysApply: true
+---
+# 项目结构与入口约定
+
+- 入口与运行：
+  - Web/H5 入口为 [index.html](mdc:index.html)，应用入口脚本为 [src/main.ts](mdc:src/main.ts)
+  - Vue 根组件位于 [src/App.vue](mdc:src/App.vue)
+  - uni-app 平台相关配置在 [src/manifest.json](mdc:src/manifest.json) 与 [src/pages.json](mdc:src/pages.json)
+
+- 页面：
+  - 示例首页位于 [src/pages/index/index.vue](mdc:src/pages/index/index.vue)
+
+- 构建与工具：
+  - Vite 配置：[vite.config.ts](mdc:vite.config.ts)
+  - Tailwind 配置：[tailwind.config.js](mdc:tailwind.config.js)
+  - TypeScript 配置：[tsconfig.json](mdc:tsconfig.json)
+
+- 静态与样式：
+  - 公共样式与 SCSS 基础在 [src/assets/styles](mdc:src/assets/styles)
+  - 别名：`@` → `src`，`@assets` → `src/assets`
+
+使用习惯：新增页面置于 `src/pages/`，通用组件/样式放至 `src/components/` 与 `src/assets/styles/`。

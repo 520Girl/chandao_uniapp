@@ -1,0 +1,31 @@
+---
+globs: *.vue,*.scss,*.css,tailwind.config.js
+description: 样式体系、Tailwind 与 SCSS 约定
+---
+# 样式与 Tailwind 使用规范
+
+- Tailwind 版本：v3（通过 PostCSS 在 Vite 中启用）
+- 在全局（App.vue 或入口）使用 `@tailwind base; @tailwind components; @tailwind utilities;` 或在 [src/style.css](mdc:src/style.css) 中导入并在 [src/main.ts](mdc:src/main.ts) 引入。
+- H5 平台使用标准 Tailwind；小程序平台避免启用 `weapp-tailwindcss` 插件以免冲突。
+
+## SCSS 体系
+- 全局注入（Vite additionalData）：
+  - 变量：[src/assets/styles/variable.scss](mdc:src/assets/styles/variable.scss)
+  - 混入：[src/assets/styles/mixin.scss](mdc:src/assets/styles/mixin.scss)
+  - BEM 辅助：[src/assets/styles/bem.scss](mdc:src/assets/styles/bem.scss)
+  - 公共样式（可选按需引入）：[src/assets/styles/common.scss](mdc:src/assets/styles/common.scss)
+
+示例（组件内）：
+```scss
+<style scoped lang="scss">
+.card {
+  @include responsive(750px) {
+    padding: $spacing-md;
+  }
+}
+</style>
+```
+
+## BEM 命名
+- 使用 `block__element--modifier`，或借助已注入的 BEM mixin 生成。
+

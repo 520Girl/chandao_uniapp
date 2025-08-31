@@ -1,0 +1,21 @@
+---
+globs: vite.config.ts
+description: Vite 插件顺序、别名、PostCSS 与 SCSS 注入
+---
+# Vite 配置约定
+
+- 主要插件顺序：
+  1) weapp-tailwindcss（如需小程序适配再启用）
+  2) unplugin-auto-import
+  3) @dcloudio/vite-plugin-uni
+
+- 别名：
+  - `@` → `src`
+  - `@assets` → `src/assets`
+
+- CSS 处理：
+  - PostCSS 启用 `tailwindcss` 与 `autoprefixer`
+  - SCSS 通过 `css.preprocessorOptions.scss.additionalData` 全局注入基础样式模块
+
+注意：如使用运行时动态写入 viewport，请同时保留一个静态 `<meta name="viewport">` 以满足静态检查。
+

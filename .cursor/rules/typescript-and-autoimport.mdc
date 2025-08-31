@@ -1,0 +1,16 @@
+---
+globs: *.ts,*.vue,tsconfig.json
+description: TypeScript、自动导入与类型定义约定
+---
+# TypeScript 与自动导入
+
+- tsconfig 关键项：
+  - `paths`: `@/*` → `src/*`，`@assets/*` → `src/assets/*`
+  - `types`: 包含 `@dcloudio/types` 与 `unplugin-auto-import/types`
+  - 兼容项：`skipLibCheck`, `esModuleInterop`, `allowSyntheticDefaultImports`
+  - 为兼容 TS 5：使用 `verbatimModuleSyntax: true`，并移除旧的 `importsNotUsedAsValues`、`preserveValueImports`
+
+- 自动导入：
+  - 在 Vite 中通过 `unplugin-auto-import` 生成 `src/types/auto-imports.d.ts`
+  - 按需引入 `vue` 组合式 API 与 `uni-app` 生命周期函数、`uni` 常用 API
+

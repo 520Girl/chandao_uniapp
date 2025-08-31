@@ -1,0 +1,52 @@
+/* 以 Sass 变量为唯一信息源，输出可运行时切换的 CSS 变量 */
+@use "./variable" as *;
+
+:root[data-theme="light"] {
+  --color-bg: #{$background-light};
+  // --color-text: #{$text-color};
+  // --color-muted: #{$text-color-gray};
+  // --color-primary: #{$primary-color};
+  // --color-on-primary: #{$text-color-light};
+  // --card-bg: #{$background-light};
+  // --border: rgba(0, 0, 0, 0.08);
+}
+
+:root[data-theme="dark"] {
+  --color-bg: #{$background-dark};
+  // --color-text: #{$text-color-light};
+  // --color-muted: #{$text-color-gray};
+  // /* 深色下主色做一点提亮，若有独立 $primary-color-dark 可直接替换 */
+  // --color-primary: #{mix($primary-color, #ffffff, 20%)};
+  // --color-on-primary: #0b1020;
+  // --card-bg: #{mix($background-dark, #000000, 20%)};
+  // --border: rgba(255, 255, 255, 0.12);
+}
+
+page, body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  transition: background-color .25s ease, color .25s ease;
+}
+
+.theme-bg {
+  background-color: var(--color-bg);
+}
+
+.theme-text {
+  color: var(--color-text);
+}
+
+.card-surface {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12rpx;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  border-radius: 12rpx;
+  padding: 16rpx 24rpx;
+}
+
+

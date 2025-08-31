@@ -1,0 +1,33 @@
+//使用bem method命名方式，可以有效避免命名冲突，提高代码可读性
+$namespace: 'amx' !default; //命名空间
+$block-sel: '-' !default; //块选择器分隔符
+$element-sel: '__' !default; //元素选择器分隔符
+$modifier-sel: '--' !default; //修饰符选择器分隔符
+
+// 块
+@mixin b($block, $tag: '.') {
+  $B: $namespace + $block-sel + $block;
+  #{$tag}#{$B} {
+    @content;
+  }
+}
+
+// 元素
+@mixin e($element, $tag: '.') {
+  $selectorFat: &; //
+  @at-root {
+    #{$selectorFat}#{$element-sel}#{$element} {
+      @content;
+    }
+  }
+}
+
+// 修饰符
+@mixin m($modifier, $tag: '.') {
+  $selectorFat: &; //
+  @at-root {
+    #{$selectorFat}#{$modifier-sel}#{$modifier} {
+      @content;
+    }
+  }
+}

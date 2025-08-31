@@ -1,0 +1,10 @@
+@use "./variable" as *;
+@use "./mixin" as *;
+@use "./bem" as *;
+
+// Reset minimal (keep Tailwind preflight disabled if using it)
+.background-color{
+    background-color: red;
+}
+
+

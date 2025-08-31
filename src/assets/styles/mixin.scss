@@ -1,0 +1,19 @@
+// 混合器
+
+// 过渡动画
+@mixin transition($property: all, $duration: 0.3s, $timing-function: ease-in-out) {
+    transition: $property $duration $timing-function;
+  }
+  
+  // 响应式布局
+  @mixin responsive($width) {
+    @media screen and (max-width: $width) {
+      @content;
+    }
+  }
+  
+  // 背景颜色
+  @mixin background-rgba($color: $amx-theme-color, $opacity: 0.5) {
+    background-color: $color;
+  }
+  

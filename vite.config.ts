@@ -12,9 +12,10 @@ const isApp = process.env.UNI_PLATFORM === "app";
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
+    uni(),
     uvwt({
       rem2rpx: true, // 是否将 rem 转换为 rpx，默认为 true 默认图纸为750px，1rpx = 0.01rem
-      disabled: false, // 所有平台都启用转换 当disabled: ish5 || isApp, // 不转化的
+      disabled: ish5 || isApp, // 所有平台都启用转换 当disabled: ish5 || isApp, // 不转化的
     }),
     AutoImport({
       imports: [
@@ -23,7 +24,6 @@ export default defineConfig({
       dts: "src/types/auto-imports.d.ts",
       eslintrc: { enabled: false },
     }),
-    uni(),
   ],
   resolve: {
     alias: {
@@ -36,6 +36,10 @@ export default defineConfig({
       scss: {
         additionalData: `@use "@assets/styles/variable" as *; @use "@assets/styles/mixin" as *; @use "@assets/styles/bem" as *; @use "@assets/styles/common" as *;`,
       },
+    },
+    devSourcemap: true, // 开发环境是否启用 sourcemap
+    modules: {
+      localsConvention: 'camelCase',
     },
     postcss: {
       plugins: [

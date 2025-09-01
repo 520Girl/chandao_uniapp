@@ -1,39 +1,75 @@
 /* 以 Sass 变量为唯一信息源，输出可运行时切换的 CSS 变量 */
 @use "./variable" as *;
+@use "sass:color";
 
+// H5 端主题变量
 :root[data-theme="light"] {
   --color-bg: #{$background-light};
-  // --color-text: #{$text-color};
-  // --color-muted: #{$text-color-gray};
-  // --color-primary: #{$primary-color};
-  // --color-on-primary: #{$text-color-light};
-  // --card-bg: #{$background-light};
-  // --border: rgba(0, 0, 0, 0.08);
+  --color-text: #{$text-color};
+  --color-muted: #{$text-color-gray};
+  --color-primary: #{$primary-color};
+  --color-on-primary: #{$text-color-light};
+  --card-bg: #{$background-light};
+  --border: rgba(0, 0, 0, 0.08);
+  --tabbar-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
 
 :root[data-theme="dark"] {
   --color-bg: #{$background-dark};
-  // --color-text: #{$text-color-light};
-  // --color-muted: #{$text-color-gray};
-  // /* 深色下主色做一点提亮，若有独立 $primary-color-dark 可直接替换 */
-  // --color-primary: #{mix($primary-color, #ffffff, 20%)};
-  // --color-on-primary: #0b1020;
-  // --card-bg: #{mix($background-dark, #000000, 20%)};
-  // --border: rgba(255, 255, 255, 0.12);
+  --color-text: #{$text-color-light};
+  --color-muted: #{$text-color-gray};
+  --color-primary: #{color.mix($primary-color, #ffffff, 20%)};
+  --color-on-primary: #0b1020;
+  --card-bg: #{color.mix($background-dark, #000000, 20%)};
+  --border: rgba(255, 255, 255, 0.12);
+  --tabbar-bg: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  --header-bg: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
 }
 
+// App 端主题类
+.app-theme-light {
+  --color-bg: #{$background-light};
+  --color-text: #{$text-color};
+  --color-muted: #{$text-color-gray};
+  --color-primary: #{$primary-color};
+  --color-on-primary: #{$text-color-light};
+  --card-bg: #{$background-light};
+  --border: rgba(0, 0, 0, 0.08);
+  --tabbar-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.app-theme-dark {
+  --color-bg: #{$background-dark};
+  --color-text: #{$text-color-light};
+  --color-muted: #{$text-color-gray};
+  --color-primary: #{color.mix($primary-color, #ffffff, 20%)};
+  --color-on-primary: #0b1020;
+  --card-bg: #{color.mix($background-dark, #000000, 20%)};
+  --border: rgba(255, 255, 255, 0.12);
+  --tabbar-bg: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+  --header-bg: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+}
+
+// 全局主题应用
 page, body {
   background-color: var(--color-bg);
   color: var(--color-text);
   transition: background-color .25s ease, color .25s ease;
 }
 
+// 主题工具类
 .theme-bg {
   background-color: var(--color-bg);
 }
 
 .theme-text {
   color: var(--color-text);
+}
+
+.theme-muted {
+  color: var(--color-muted);
 }
 
 .card-surface {
@@ -47,6 +83,44 @@ page, body {
   color: var(--color-on-primary);
   border-radius: 12rpx;
   padding: 16rpx 24rpx;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    opacity: 0.9;
+    transform: translateY(-2rpx);
+  }
+}
+
+// 主题切换按钮样式
+.theme-toggle-btn {
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  border: 2rpx solid var(--border);
+  border-radius: 20rpx;
+  padding: 20rpx 40rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-2rpx);
+    box-shadow: 0 8rpx 25rpx rgba(0, 0, 0, 0.15);
+  }
+}
+
+// 主题指示器
+.theme-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 10rpx;
+  padding: 10rpx 20rpx;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 15rpx;
+  font-size: 24rpx;
+  color: var(--color-muted);
 }
 
 

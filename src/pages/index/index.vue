@@ -1,13 +1,18 @@
 <template>
-  <view class="amx-index">
+  <view class="amx-index" :class="appThemeClass">
+    <HeaderBar :headerHeight="headerHeight" :titleHeight="titleHeight" />
+    
     <!-- 页面内容区域 -->
-    <view class="content">
-      <image class="logo" src="/static/logo.png" />
+    <view class="content" :style="{ paddingTop: headerHeight, paddingBottom: (120 + safeBottomHeight) + 'rpx' }">
+      顶部元素占位
+      <ImageBox  class="logo" :imgurl="'/static/logo.png'" />
+      {{headerHeight}}
+      
       <view class="text-area">
-        <text class="title bg-blue-500 text-white px-4 py-2 rounded-lg shadow-lg">{{ title }}</text>
+        <text class="title theme-toggle-btn">{{ title }}</text>
       </view>
-      <view class="mt-8 p-4 bg-gray-100 rounded-lg">
-        <text class="text-lg font-bold text-gray-800">Tailwind CSS 测试</text>
+      <view class="mt-8 p-4 card-surface">
+        <text class="text-lg font-bold theme-text">Tailwind CSS 测试</text>
         <view class="mt-2 flex space-x-2">
           <view class="w-4 h-4 bg-red-500 rounded"></view>
           <view class="w-4 h-4 bg-green-500 rounded"></view>
@@ -15,23 +20,31 @@
         </view>
       </view>
       <view class="mt-8">
-        <button class="btn-primary" @click="onToggle">切换主题（当前：{{ theme }}）</button>
+        <button class="theme-toggle-btn" @click="onToggle">
+          切换主题（当前：{{ themeDisplayName }}）
+        </button>
       </view>
 
       <!-- 页面切换区域 -->
       <view class="page-content mt-8">
-        <view v-if="currentTab === 0" class="home-content">
-          <text class="text-lg">首页内容</text>
+        <view v-if="currentTab === 0" class="home-content card-surface">
+          <text class="text-lg theme-text">首页内容</text>
         </view>
-        <view v-else-if="currentTab === 1" class="question-content">
-          <text class="text-lg">问题页面内容</text>
+        <view v-else-if="currentTab === 1" class="question-content card-surface">
+          <text class="text-lg theme-text">问题页面内容</text>
         </view>
-        <view v-else-if="currentTab === 2" class="answer-content">
-          <text class="text-lg">回答页面内容</text>
+        <view v-else-if="currentTab === 2" class="answer-content card-surface">
+          <text class="text-lg theme-text">回答页面内容</text>
         </view>
-        <view v-else-if="currentTab === 3" class="mine-content">
-          <text class="text-lg">我的页面内容</text>
+        <view v-else-if="currentTab === 3" class="mine-content card-surface">
+          <text class="text-lg theme-text">我的页面内容</text>
         </view>
+      </view>
+
+      <!-- 主题指示器 -->
+      <view class="mt-8 theme-indicator">
+        <text>当前主题：{{ themeDisplayName }}</text>
+        <text v-if="theme === 'auto'" class="theme-muted">（跟随系统）</text>
       </view>
     </view>
 
@@ -41,16 +54,78 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
-import { toggleTheme, getTheme } from "@/composables/useTheme";
+import { ref, onMounted, onUnmounted, computed } from "vue";
+import { toggleTheme, getTheme, getActualTheme, watchSystemTheme } from "@/composables/useTheme";
 import TabBar from "@/components/TabBar.vue";
+import HeaderBar from "@/components/HeaderBar.vue";
+import ImageBox from "@/components/Image-box.vue";
+import { getStatusBarHeight, getTitleBarHeight, getSafeBottomHeight } from "@/utils/system";
 
 const title = ref("Hello");
 const theme = ref(getTheme());
 const currentTab = ref(0);
+const headerHeight = ref<string>('0rpx');
+const titleHeight = ref<number>(88);
+const safeBottomHeight = ref(0);
+
+// 计算 App 端主题类名
+const appThemeClass = computed(() => {
+  const actualTheme = getActualTheme();
+  return `app-theme-${actualTheme}`;
+});
+
+// 主题显示名称
+const themeDisplayName = computed(() => {
+  switch (theme.value) {
+    case 'light': return '浅色';
+    case 'dark': return '深色';
+    case 'auto': return '自动';
+    default: return '浅色';
+  }
+});
+
+onMounted(() => {
+  // 计算头部总高度：状态栏 + 标题栏
+  headerHeight.value = getStatusBarHeight() + titleHeight.value + 'rpx'
+  console.log('headerHeight', headerHeight.value,getStatusBarHeight(),titleHeight.value)
+  // 获取底部安全区域高度
+  safeBottomHeight.value = getSafeBottomHeight();
+
+  // 监听系统主题变化（仅 H5）
+  const unwatch = watchSystemTheme((newTheme) => {
+    if (theme.value === 'auto') {
+      // 如果当前是自动模式，系统主题变化时更新界面
+      console.log('系统主题变化:', newTheme);
+    }
+  });
+
+  // 监听主题变化事件（App 端）
+  // #ifdef APP-PLUS
+  uni.$on('themeChanged', (newTheme: string) => {
+    console.log('App 端主题变化:', newTheme);
+    // 强制更新计算属性
+    theme.value = getTheme();
+  });
+  // #endif
+
+  // 清理监听器
+  if (unwatch) {
+    onUnmounted(unwatch);
+  }
+});
+
+onUnmounted(() => {
+  // #ifdef APP-PLUS
+  uni.$off('themeChanged');
+  // #endif
+});
 
 function onToggle() {
   theme.value = toggleTheme();
+  uni.showToast({
+    title: '主题变化' + theme.value,
+    icon: 'none'
+  });
 }
 
 function handleTabChange(index: number, path: string) {
@@ -61,19 +136,20 @@ function handleTabChange(index: number, path: string) {
 
 <style scoped lang="scss">
 @include b(index) {
-  min-height: 100vh;
+  height: 100vh;
   position: relative;
+
+  .content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    height: 100vh;
+    box-sizing: border-box;
+  }
 }
 
-.content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  min-height: 100vh;
-  padding-bottom: 120rpx; // 为底部导航栏留出空间
-  box-sizing: border-box;
-}
+
 
 .logo {
   height: 200rpx;
@@ -91,23 +167,20 @@ function handleTabChange(index: number, path: string) {
 
 .title {
   font-size: 36rpx;
-  color: #8f8f94;
+  height: 150rpx;
 }
 
 .page-content {
   width: 100%;
   padding: 0 40rpx;
-  background-color: $primary-color;
+
   .home-content,
   .question-content,
   .answer-content,
   .mine-content {
-    background: rgba(255, 255, 255, 0.9);
-    background-color: $primary-color;
     padding: 40rpx;
     border-radius: 20rpx;
     text-align: center;
-    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.1);
   }
 }
 </style>

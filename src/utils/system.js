@@ -11,7 +11,7 @@ export function getTitleBarHeight() {
     if (uni.getMenuButtonBoundingClientRect) {
         let { top, height } = uni.getMenuButtonBoundingClientRect() // 获取胶囊按钮位置信息
         //使标题 和 胶囊按钮上线居中 胶囊按钮顶部高度-状态栏高度*2+胶囊高度
-        let navbarHeight = (top - getStatusBarHeight()) * 2 + height
+        let navbarHeight = (top - getStatusBarHeight()) * 2 + height    
         return navbarHeight // 得到的是标题栏高度 标题和胶囊按钮上下居中（上下边距相等）
     } else {
         return 70;//没有胶囊按钮默认高度

@@ -3,6 +3,7 @@
         <view class="header">
             <text class="title">我的</text>
         </view>
+        
         <view class="content">
             <text class="placeholder">我的页面内容</text>
         </view>

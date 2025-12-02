@@ -5,8 +5,7 @@ import uviewPlus from 'uview-plus';
 
 // 导入 Tailwind CSS
 import "./style.css";
-// 导入主题样式
-import "./assets/styles/theme.scss";
+
 // 导入主题系统
 import { initTheme } from "./composables/useTheme";
 

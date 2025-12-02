@@ -34,10 +34,12 @@ export default defineConfig({
   css: {
     preprocessorOptions: {
       scss: {
-        additionalData: `@import "@assets/styles/variable"; 
-        @import "@assets/styles/mixin"; 
-        @import "@assets/styles/bem"; 
-        @import "@assets/styles/common";`,
+        additionalData: `
+        @import "@assets/styles/variable.scss";
+        @import "@assets/styles/mixin.scss";
+        @import "@assets/styles/bem.scss";
+        @import "@assets/styles/common.scss";`,
+        silenceDeprecations: ['legacy-js-api', 'color-functions', 'import'],  
       },
     },
     devSourcemap: true, // 开发环境是否启用 sourcemap

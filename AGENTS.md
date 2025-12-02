@@ -40,3 +40,7 @@
 ## command line tools
 - pnpm
 - apply_patch
+
+## language
+- 中文
+- zh-CN

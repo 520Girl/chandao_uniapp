@@ -1,3 +1,4 @@
+@use "sass:color" as color;
 @import "./variable.scss";
 
 /* 以 Sass 变量为唯一信息源，输出可运行时切换的 CSS 变量 */
@@ -18,9 +19,9 @@
   --color-bg: #{$background-dark};
   --color-text: #{$text-color-light};
   --color-muted: #{$text-color-gray};
-  --color-primary: #{mix($primary-color, #ffffff, 20%)};
+  --color-primary: #{color.mix($primary-color, #ffffff, 20%)};
   --color-on-primary: #0b1020;
-  --card-bg: #{mix($background-dark, #000000, 20%)};
+  --card-bg: #{color.mix($background-dark, #000000, 20%)};
   --border: rgba(255, 255, 255, 0.12);
   --tabbar-bg: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
   --header-bg: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
@@ -43,9 +44,9 @@
   --color-bg: #{$background-dark};
   --color-text: #{$text-color-light};
   --color-muted: #{$text-color-gray};
-  --color-primary: #{mix($primary-color, #ffffff, 20%)};
+  --color-primary: #{color.mix($primary-color, #ffffff, 20%)};
   --color-on-primary: #0b1020;
-  --card-bg: #{mix($background-dark, #000000, 20%)};
+  
   --border: rgba(255, 255, 255, 0.12);
   --tabbar-bg: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
   --header-bg: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);

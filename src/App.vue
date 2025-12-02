@@ -14,5 +14,5 @@ onHide(() => {
 });
 </script>
 <style lang="scss">
-@use "@/assets/styles/theme.scss" as *;
+@import "@/assets/styles/theme.scss";
 </style>

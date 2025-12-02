@@ -34,7 +34,10 @@ export default defineConfig({
   css: {
     preprocessorOptions: {
       scss: {
-        additionalData: `@use "@assets/styles/variable" as *; @use "@assets/styles/mixin" as *; @use "@assets/styles/bem" as *; @use "@assets/styles/common" as *;`,
+        additionalData: `@import "@assets/styles/variable"; 
+        @import "@assets/styles/mixin"; 
+        @import "@assets/styles/bem"; 
+        @import "@assets/styles/common";`,
       },
     },
     devSourcemap: true, // 开发环境是否启用 sourcemap

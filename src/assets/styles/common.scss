@@ -1,6 +1,7 @@
-@use "./variable" as *;
-@use "./mixin" as *;
-@use "./bem" as *;
+@import "./variable" ;
+@import "./mixin";
+@import "./bem" ;
+
 
 // Reset minimal (keep Tailwind preflight disabled if using it)
 .background-color{

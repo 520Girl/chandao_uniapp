@@ -18,6 +18,7 @@
           <view class="w-4 h-4 bg-green-500 rounded"></view>
           <view class="w-4 h-4 bg-blue-500 rounded"></view>
         </view>
+        <u-icon class="mt-4" size="280rpx" name="search"></u-icon>
       </view>
       <view class="mt-8">
         <button class="theme-toggle-btn" @click="onToggle">

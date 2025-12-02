@@ -2,7 +2,7 @@
     <view class="amx-headerBar" :style="{ height: headerHeight, paddingTop: statusBarHeight + 'rpx' }"
         :class="appThemeClass">
         <view class="header-content">
-            <text class="title">标题{{ statusBarHeight }}</text>
+            <text class="title">标题{{ statusBarHeight }}{{ user?.username }}</text>
         </view>
     </view>
 </template>
@@ -11,6 +11,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { getStatusBarHeight, getTitleBarHeight } from '@/utils/system'
 import { getActualTheme } from '@/composables/useTheme'
+import { useUserStore } from '@/stores/user';
 
 const props = withDefaults(defineProps<{
     headerHeight: string
@@ -19,7 +20,8 @@ const props = withDefaults(defineProps<{
     headerHeight: '0rpx',
     titleHeight: 0
 })
-
+const userStore = useUserStore()
+const user = computed(() => userStore.currentUser)
 const statusBarHeight = ref(0)
 
 

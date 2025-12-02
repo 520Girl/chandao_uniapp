@@ -19,5 +19,6 @@ dist
 *.njsproj
 *.sln
 *.sw?
-
-static/
+# Ignore all files in src/static/ folder
+src/static/*
+ui/

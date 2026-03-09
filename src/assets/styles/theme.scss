@@ -46,6 +46,7 @@
   --color-muted: #{$text-color-gray};
   --color-primary: #{color.mix($primary-color, #ffffff, 20%)};
   --color-on-primary: #0b1020;
+  --card-bg: #{color.mix($background-dark, #000000, 20%)};
   
   --border: rgba(255, 255, 255, 0.12);
   --tabbar-bg: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);

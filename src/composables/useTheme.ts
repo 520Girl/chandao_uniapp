@@ -1,6 +1,8 @@
 export type ThemeMode = "light" | "dark" | "auto";
 
 const THEME_KEY = "__app_theme__";
+const ACTUAL_THEME_KEY = "__app_actual_theme__";
+let hasNativeThemeListener = false;
 
 // 获取根元素（支持 H5 和 App）
 function getRootEl(): HTMLElement | null {
@@ -24,14 +26,33 @@ function getSystemTheme(): "light" | "dark" {
     }
     // #endif
 
-    // #ifdef APP-PLUS
+    // #ifdef APP-PLUS || MP
     try {
-        // App 端尝试获取系统主题
-        const systemInfo = uni.getSystemInfoSync();
-        // 这里可以根据系统信息判断，暂时返回默认值
-        return "light";
+        const systemInfo = uni.getSystemInfoSync() as { theme?: string };
+        return systemInfo.theme === "dark" ? "dark" : "light";
     } catch (e) {
         return "light";
+    }
+    // #endif
+
+    return "light";
+}
+
+function ensureNativeThemeListener(): void {
+    // #ifdef APP-PLUS || MP
+    if (hasNativeThemeListener) return;
+    try {
+        uni.onThemeChange((e: any) => {
+            const currentMode = getTheme();
+            if (currentMode !== "auto") return;
+
+            const newTheme = e?.theme === "dark" ? "dark" : "light";
+            uni.setStorageSync(ACTUAL_THEME_KEY, newTheme);
+            uni.$emit("themeChanged", newTheme);
+        });
+        hasNativeThemeListener = true;
+    } catch (error) {
+        console.log("当前端不支持 onThemeChange");
     }
     // #endif
 }
@@ -71,35 +92,22 @@ export function setTheme(mode: ThemeMode): void {
     }
     // #endif
 
-    // #ifdef APP-PLUS
-    // App 端通过 CSS 变量和类名实现
+    // #ifdef APP-PLUS || MP
+    // 原生端（App/小程序）通过类名和事件更新页面主题
     const actualTheme = mode === "auto" ? getSystemTheme() : mode;
-    // 设置全局 CSS 变量
-    uni.setStorageSync('__app_actual_theme__', actualTheme);
+    uni.setStorageSync(ACTUAL_THEME_KEY, actualTheme);
     // 触发主题更新事件
-    uni.$emit('themeChanged', actualTheme);
+    uni.$emit("themeChanged", actualTheme);
 
     // 显示主题切换提示
     uni.showToast({
-        title: '主题已切换为: ' + (actualTheme === 'light' ? '浅色' : '深色'),
-        icon: 'none',
+        title: "主题已切换为: " + (actualTheme === "light" ? "浅色" : "深色"),
+        icon: "none",
         duration: 2000
     });
 
-    // 监听系统主题变化（App 端）
-    try {
-        uni.onThemeChange(function (e: any) {
-            console.log('App 系统主题变化:', e.theme);
-            if (mode === 'auto') {
-                // 如果是自动模式，系统主题变化时更新
-                const newTheme = e.theme === 'dark' ? 'dark' : 'light';
-                uni.setStorageSync('__app_actual_theme__', newTheme);
-                uni.$emit('themeChanged', newTheme);
-            }
-        });
-    } catch (error) {
-        console.log('App 端不支持 onThemeChange');
-    }
+    // 注册一次系统主题监听：auto 模式下跟随系统变化
+    ensureNativeThemeListener();
     // #endif
 
     if (typeof uni !== "undefined") {
@@ -113,8 +121,13 @@ export function setTheme(mode: ThemeMode): void {
     // #endif
 }
 
+/**
+ * 切换主题
+ * @returns 当前主题模式
+ */
 export function toggleTheme(): ThemeMode {
     const current = getTheme();
+    console.log("当前主题:", current);
     let next: ThemeMode;
 
     if (current === "light") {

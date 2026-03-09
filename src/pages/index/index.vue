@@ -8,7 +8,7 @@
       <ImageBox  class="logo" :imgurl="'/static/logo.png'" />
       {{headerHeight}}
       
-      <view class="text-area">
+      <view class="text-area" >
         <text class="title theme-toggle-btn">{{ title }}</text>
       </view>
       <view class="mt-8 p-4 card-surface">
@@ -45,7 +45,7 @@
       <!-- 主题指示器 -->
       <view class="mt-8 theme-indicator">
         <text>当前主题：{{ themeDisplayName }}</text>
-        <text v-if="theme === 'auto'" class="theme-muted">（跟随系统）</text>
+        <text v-if="theme === 'auto'" class="theme-muted">（跟随系统，当前为{{ actualThemeDisplayName }}）</text>
       </view>
     </view>
 
@@ -64,6 +64,7 @@ import { getStatusBarHeight, getTitleBarHeight, getSafeBottomHeight } from "@/ut
 
 const title = ref("Hello");
 const theme = ref(getTheme());
+const actualTheme = ref<"light" | "dark">(getActualTheme());
 const currentTab = ref(0);
 const headerHeight = ref<string>('0rpx');
 const titleHeight = ref<number>(88);
@@ -71,8 +72,16 @@ const safeBottomHeight = ref(0);
 
 // 计算 App 端主题类名
 const appThemeClass = computed(() => {
-  const actualTheme = getActualTheme();
-  return `app-theme-${actualTheme}`;
+  return `app-theme-${actualTheme.value}`;
+});
+
+function syncThemeState(nextActualTheme?: "light" | "dark") {
+  theme.value = getTheme();
+  actualTheme.value = nextActualTheme ?? getActualTheme();
+}
+
+const actualThemeDisplayName = computed(() => {
+  return actualTheme.value === 'dark' ? '深色' : '浅色';
 });
 
 // 主题显示名称
@@ -80,7 +89,7 @@ const themeDisplayName = computed(() => {
   switch (theme.value) {
     case 'light': return '浅色';
     case 'dark': return '深色';
-    case 'auto': return '自动';
+    case 'auto': return `自动(${actualThemeDisplayName.value})`;
     default: return '浅色';
   }
 });
@@ -92,20 +101,22 @@ onMounted(() => {
   // 获取底部安全区域高度
   safeBottomHeight.value = getSafeBottomHeight();
 
+  syncThemeState();
+
   // 监听系统主题变化（仅 H5）
   const unwatch = watchSystemTheme((newTheme) => {
     if (theme.value === 'auto') {
       // 如果当前是自动模式，系统主题变化时更新界面
       console.log('系统主题变化:', newTheme);
+      actualTheme.value = newTheme;
     }
   });
 
-  // 监听主题变化事件（App 端）
-  // #ifdef APP-PLUS
+  // 监听主题变化事件（App/小程序）
+  // #ifdef APP-PLUS || MP
   uni.$on('themeChanged', (newTheme: string) => {
-    console.log('App 端主题变化:', newTheme);
-    // 强制更新计算属性
-    theme.value = getTheme();
+    console.log('原生端主题变化:', newTheme);
+    syncThemeState(newTheme === 'dark' ? 'dark' : 'light');
   });
   // #endif
 
@@ -116,13 +127,14 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  // #ifdef APP-PLUS
+  // #ifdef APP-PLUS || MP
   uni.$off('themeChanged');
   // #endif
 });
 
 function onToggle() {
-  theme.value = toggleTheme();
+  toggleTheme();
+  syncThemeState();
   uni.showToast({
     title: '主题变化' + theme.value,
     icon: 'none'
@@ -184,4 +196,5 @@ function handleTabChange(index: number, path: string) {
     text-align: center;
   }
 }
+
 </style>

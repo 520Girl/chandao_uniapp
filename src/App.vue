@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { onHide, onLaunch, onShow } from "@dcloudio/uni-app";
 import { initTheme } from "./composables/useTheme";
-
+import { getDeviceType } from "./utils/system";
 onLaunch(() => {
-  console.log("App Launch");
+  console.log("Device Type:", getDeviceType(),initTheme());
+  console.log("System Info:", getDeviceType());
   initTheme();
 });
 onShow(() => {

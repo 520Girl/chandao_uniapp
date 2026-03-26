@@ -1,32 +1,47 @@
 // 颜色主题
-$background-light: #8957e5;
+$background-light: #d4af35;
 $background-dark: #1a1a1a;
 
-// 颜色变量
-$primary-color: #8957e5;
-$text-color: #333;
-$text-color-light: #fff;
-$text-color-gray: #999;
-$background-dark: #1a1a1a;
-$background-light: #fff;
+// 字体颜色变量
+$color-theme-1: #d4af35; //主题色
+$color-theme-2: #DABB53; //主题色浅一号
+$color-theme-3: #F0E8CF; //主题色浅二号
+$color-theme-4: #EADCAE; //主题色浅三号
+$color-theme-5: #1A170F; //主题色深一号
+$color-theme-6: #1a170f99; //主题色深二号
+$color-theme-7: #5A5445; //主题色深三号
+$color-theme-8: #918355; //主题色深四号
+$color-theme-9: #F0E8CF; //主题色浅五号
+$color-theme-10: rgba(212, 175, 53, 0.1); //主题色浅一号
+$color-theme-11: #f8f7f6; //背景色
+$color-theme-12: #d4af3566; //背景色
+$color-theme-13: #d4af351a; //背景色
+
+$color-theme-1-dark: #d4af35; //主题色
+$color-theme-2-dark: #DABB53; //主题色浅一号
+$color-theme-3-dark: #F0E8CF; //主题色浅二号
+$color-theme-4-dark: #EADCAE; //主题色浅三号
+$color-theme-5-dark: #1A170F; //主题色深一号
+$color-theme-6-dark: #1a170f99; //主题色深二号
+$color-theme-7-dark: #5A5445; //主题色深三号
+$color-theme-8-dark: #918355; //主题色深四号
+$color-theme-9-dark: #F0E8CF; //主题色浅五号
+$color-theme-10-dark: rgba(212, 175, 53, 0.1); //主题色浅一号
+$color-theme-11-dark: #f8f7f6; //背景色
+$color-theme-12-dark: #d4af3566; //背景色
+$color-theme-13-dark: #d4af351a; //背景色
 
 // 字体大小
 $font-size-xs: 24rpx;
-$font-size-sm: 26rpx;
-$font-size-md: 28rpx;
-$font-size-lg: 32rpx;
-$font-size-xl: 36rpx;
+
 
 // 间距
 $spacing-xs: 10rpx;
-$spacing-sm: 20rpx;
-$spacing-md: 30rpx;
-$spacing-lg: 40rpx;
+
 
 // 圆角
 $border-radius-sm: 8rpx;
-$border-radius-md: 16rpx;
-$border-radius-lg: 30rpx;
+
 
 // 阴影
 $box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.1);

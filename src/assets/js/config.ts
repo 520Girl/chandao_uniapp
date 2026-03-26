@@ -57,6 +57,7 @@ function getConfig(): AppConfig {
         apiVersion,
         timeout,
         uploadURL,
+        mode,
         title,
         debug: isDev,
         domainWhitelist,
@@ -84,7 +85,7 @@ export const env = {
     uploadURL: config.uploadURL,
     timeout: config.timeout,
     title: config.title,
-    debug: config.debug,
+    debug: config.debug, // 区分开发环境和生产环境的标志
     domainWhitelist: config.domainWhitelist
 };
 
@@ -107,7 +108,10 @@ export function isApiDomainAllowed(url: string): boolean {
     try {
         const parsed = new URL(url);
         const host = parsed.hostname.toLowerCase();
-        return config.domainWhitelist.includes(host);
+        return config.domainWhitelist.some((allowedHost) => {
+            const normalized = allowedHost.toLowerCase();
+            return host === normalized || host.endsWith(`.${normalized}`);
+        });
     } catch (error) {
         return false;
     }

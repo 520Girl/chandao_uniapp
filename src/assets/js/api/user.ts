@@ -1,4 +1,5 @@
 import { post, get, put } from '../request'
+import { config } from '../config'
 
 // Token存储键名
 export const TOKEN_KEY = 'auth_token'
@@ -8,6 +9,20 @@ export const AUTO_FACE_KEY = 'auto_face'
 // 用户登录
 export const login = (data: { phone: string; password: string; }) => {
     return post('/login', data)
+}
+
+// 微信小程序登录测试
+export const miniProgramLogin = (data: {
+    code: string;
+    iv?: string;
+    encryptedData?: string;
+    rawData?: string;
+    signature?: string;
+    userInfo?: any;
+}) => {
+    return post('/app/user/login/mini', data, {
+        encrypt: false
+    })
 }
 
 // 用户登出
@@ -126,3 +141,75 @@ export const clearAuth = (): void => {
     removeUserInfo()
     setAutoFace(false)
 } 
+
+
+export interface UploadImageParams {
+    filePath: string
+    name?: string
+    formData?: Record<string, any>
+    header?: Record<string, string>
+}
+
+export const uploadImage = (params: UploadImageParams) => {
+    const token = getToken()
+    const uploadUrl = `${config.uploadURL}${config.apiVersion}/upload`
+
+    return new Promise<any>((resolve, reject) => {
+        uni.uploadFile({
+            url: uploadUrl,
+            filePath: params.filePath,
+            name: params.name || 'file',
+            formData: params.formData || {},
+            header: {
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                ...(params.header || {})
+            },
+            success: (res) => {
+                if (res.statusCode < 200 || res.statusCode >= 300) {
+                    reject(new Error(`上传失败: HTTP ${res.statusCode}`))
+                    return
+                }
+
+                try {
+                    const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
+                    resolve(data)
+                } catch (error) {
+                    reject(new Error('上传成功但响应解析失败'))
+                }
+            },
+            fail: (error) => {
+                reject(error)
+            }
+        })
+    })
+}
+
+/** 音乐列表分页（字段名与后端约定一致时可调整） */
+export interface GetMusicListParams {
+    page?: number
+    pageSize?: number
+}
+
+// 获取音乐列表
+export const getMusicList = (params?: GetMusicListParams) => {
+    return get("/music/list", params)
+}
+
+export interface GetMeditationRealtimeParams {
+    sessionId?: string
+}
+
+/** 冥想进行中的实时生理指标 */
+export const getMeditationRealtime = (params?: GetMeditationRealtimeParams) => {
+    return get("/meditation/realtime", params)
+}
+
+export interface GetRankListParams {
+    page?: number
+    pageSize?: number
+}
+
+/** 排行榜分页（业务结构在页面内解析） */
+export const getRankList = (params?: GetRankListParams) => {
+    return get("/rank/list", params)
+}

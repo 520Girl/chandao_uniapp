@@ -7,7 +7,7 @@ export function getStatusBarHeight(): number {
   return SYSTEM_INFO.statusBarHeight || 0;
 }
 
-// 获取胶囊按钮高度
+// 获取的是状态栏底部距离胶囊按钮的高度 * 2 + 胶囊按钮的高度，确保标题栏与胶囊按钮上下边距一致
 export function getTitleBarHeight(): number {
   if (uni.getMenuButtonBoundingClientRect) {
     const { top, height } = uni.getMenuButtonBoundingClientRect();
@@ -19,10 +19,23 @@ export function getTitleBarHeight(): number {
 }
 
 /**
- * 获取状态栏和胶囊按钮总高度
+ * 获取状态栏 + 上面的 距离 * 2 + 胶囊按钮总高度
  */
 export const getNavbarHeight = (): number => getStatusBarHeight() + getTitleBarHeight();
 
+/**
+ * 需要考虑胶囊按钮的宽度和左右边距，确保标题栏内容不会被遮挡
+ * @returns 返回胶囊按钮的总宽度
+ */
+export const getMenuButtonWidth = (): number => {
+    if (uni.getMenuButtonBoundingClientRect) {
+      const { width , left ,right} = uni.getMenuButtonBoundingClientRect();
+      console.log("胶囊按钮宽度:", uni.getMenuButtonBoundingClientRect(),SYSTEM_INFO.screenWidth);
+      const screenWidth = SYSTEM_INFO.screenWidth;
+      return width + (screenWidth - right) * 2  // 胶囊按钮宽度 + 距离右边的距离 * 2（确保左右边距一致）
+    }
+    return 0;
+} 
 /**
  * 抖音小程序下 title 左侧 logo 占位
  */

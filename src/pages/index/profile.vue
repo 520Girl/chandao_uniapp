@@ -1,0 +1,156 @@
+<template>
+  <view class="flex flex-col min-h-screen pb-[32rpx] theme-bg">
+    <HomeBar :title="'账号设置'" description="云息自我" :titleIcon="'icon-yonghu'" :leftIcon="'icon-shopping-bag'"  :handleClick="onGoToShop" />
+   
+    <view class="mobile-container">
+    <!-- Profile view -->
+    <view class="flex-1 px-4 space-y-10">
+      <!-- Avatar & Info -->
+      <view class="flex flex-col items-center pt-4">
+        <view class="relative group">
+          <view class="w-24 h-24 rounded-full overflow-hidden mb-6 shadow-sm border border-outline-gold" @click="onGoToManage('accountManage')">
+            <img alt="头像" class="w-full h-full object-cover"
+              src="/static/770-800x600.jpg" />
+          </view>
+          <view @click="onGoToManage('accountManage')" class="absolute bottom-6 right-0 bg-white p-1.5 rounded-full shadow-sm border border-outline-gold" >
+            <text class="iconfont icon-beizhu text-primary text-sm" data-icon="edit"></text>
+          </view>
+        </view>
+        <view class="text-center space-y-1">
+          <h2 class="font-headline text-3xl font-light italic text-primary tracking-tight" >Elena Vance</h2>
+          <p class="font-label text-xs uppercase tracking-[0.2em] text-secondary opacity-80" >修行始于 2022年</p>
+        </view>
+      </view>
+      <!-- Settings Group: Essential -->
+      <view class="space-y-4">
+        <view class="font-bold text-[20rpx] uppercase tracking-[0.25rem] text-primary/70 px-2">基础设置</view>
+        <view class="space-y-1">
+          <view @click="onGoToManage('accountManage')"
+            class="flex bg-theme-13 items-center justify-between p-4 bg-accent-light/30 border border-outline-gold/20 rounded-2xl hover:bg-accent-light/50 transition-colors cursor-pointer group">
+            <view class="flex items-center gap-4">
+              <text class="icon-zhanghaoguanli iconfont text-[40rpx] theme-color-1" data-icon="mail"></text>
+              <text class="font-body text-[28rpx] theme-color-5">账户管理</text>
+            </view>
+            <view class="flex items-center gap-2">
+              <text class="theme-color-7 text-[24rpx]">elena@example</text>
+              <text class="iconfont icon-jinru text-[30rpx] theme-color-12 group-hover:translate-x-1 transition-transform"
+                data-icon="chevron_right"></text>
+            </view>
+          </view>
+          <view @click="onGoToManage('deviceManage')"
+            class="flex bg-theme-13 items-center justify-between p-4 bg-accent-light/30 border border-outline-gold/20 rounded-2xl hover:bg-accent-light/50 transition-colors cursor-pointer group">
+            <view class="flex items-center gap-4">
+              <text class="iconfont icon-shebei text-[40rpx] theme-color-1" data-icon="lock"></text>
+              <text class="font-body text-[28rpx] theme-color-5">设备管理</text>
+            </view>
+            <text class="iconfont icon-jinru text-[30rpx] theme-color-12 group-hover:translate-x-1 transition-transform"
+              data-icon="chevron_right"></text>
+          </view>
+          <view @click="onGoToManage('postManage')"
+            class="flex bg-theme-13 items-center justify-between p-4 bg-accent-light/30 border border-outline-gold/20 rounded-2xl hover:bg-accent-light/50 transition-colors cursor-pointer group">
+            <view class="flex items-center gap-4">
+              <text class="iconfont icon-shequn1 text-[40rpx] theme-color-1" data-icon="lock"></text>
+              <text class="font-body text-[28rpx] theme-color-5">社群管理</text>
+            </view>
+            <text class="iconfont icon-jinru text-[30rpx] theme-color-12 group-hover:translate-x-1 transition-transform"
+              data-icon="chevron_right"></text>
+          </view>
+          <view @click="onGoToManage('medal')"
+            class="flex bg-theme-13 items-center justify-between p-4 bg-accent-light/30 border border-outline-gold/20 rounded-2xl hover:bg-accent-light/50 transition-colors cursor-pointer group">
+            <view class="flex items-center gap-4">
+              <text class="iconfont icon-xunzhang text-[40rpx] theme-color-1" data-icon="lock"></text>
+              <text class="font-body text-[28rpx] theme-color-5">勋章管理</text>
+            </view>
+            <text class="iconfont icon-jinru text-[30rpx] theme-color-12 group-hover:translate-x-1 transition-transform"
+              data-icon="chevron_right"></text>
+          </view>
+        </view>
+      </view>
+      <!-- Settings Group: Legal -->
+      <view class="space-y-4  ">
+        <view class="flex justify-between items-center px-[16rpx]">
+          <view class="font-bold text-[20rpx] uppercase tracking-[0.25rem] text-primary/70">法律与透明度</view>
+        </view>
+        <view class="space-y-px overflow-hidden rounded-2xl bg-outline-gold/20 shadow-sm">
+          <!-- Privacy Policy -->
+          <view @click="onGoToManage('privacyPolicy')"
+            class="flex bg-theme-13  items-center justify-between p-4 bg-accent-light/20 hover:bg-accent-light/40 transition-colors cursor-pointer group">
+            <view class="flex items-center gap-4">
+              <text class="iconfont icon-yinsizhengce text-[40rpx] theme-color-1" data-icon="policy"></text>
+              <text class="font-body text-[28rpx] theme-color-5">隐私协议</text>
+            </view>
+            <text class="iconfont icon-jinru text-[30rpx] theme-color-12 text-outline-gold group-hover:translate-x-1 transition-transform"
+              data-icon="chevron_right"></text>
+          </view>
+          <!-- User Agreement -->
+          <view @click="onGoToManage('userAgent')"
+            class="flex  bg-theme-13  items-center justify-between p-4 bg-accent-light/20 hover:bg-accent-light/40 transition-colors cursor-pointer group border-t border-outline-gold/30">
+            <view class="flex items-center gap-4">
+              <text class="iconfont icon-gavel text-[40rpx] theme-color-1" data-icon="gavel"></text>
+              <text class="font-body text-[28rpx] theme-color-5">用户协议</text>
+            </view>
+            <text class="iconfont icon-jinru text-[30rpx] theme-color-12 text-outline-gold group-hover:translate-x-1 transition-transform"
+              data-icon="chevron_right"></text>
+          </view>
+          <!-- Disclaimer -->
+          <view @click="onGoToManage('disclaimer')"
+            class="flex bg-theme-13  items-center justify-between p-4 bg-accent-light/20 hover:bg-accent-light/40 transition-colors cursor-pointer group border-t border-outline-gold/30">
+            <view class="flex items-center gap-4">
+              <text class="iconfont icon-info text-[40rpx] theme-color-1" data-icon="info"></text>
+              <text class="font-body text-[28rpx] theme-color-5">免责声明</text>
+            </view>
+            <text class="iconfont icon-jinru text-[30rpx] theme-color-12 text-outline-gold group-hover:translate-x-1 transition-transform"
+              data-icon="chevron_right"></text>
+          </view>
+        </view>
+      </view>
+      <!-- Logout Button -->
+      <view
+        class="w-full py-[30rpx] shadow-sm rounded-full bg-theme-13 border border-outline-gold/50 hover:bg-red-50 hover:border-red-200 transition-all duration-300 group">
+        <view class="flex items-center justify-center gap-3">
+          <text class="iconfont icon-tuichu text-[40rpx] theme-color-1 group-hover:text-red-500 transition-colors"
+            data-icon="logout"></text>
+          <text
+            class="font-label text-[30rpx] theme-color-5 uppercase tracking-[0.25rem] text-primary group-hover:text-red-500 transition-colors">退出登录</text>
+        </view>
+      </view>
+      <!-- Version Info -->
+      <view class="text-center pt-4">
+        <p class="font-label text-[18rpx] uppercase tracking-[0.3rem] text-primary/70">坐观其心 v2.4.1</p>
+      </view>
+    </view>
+  </view>
+  </view>
+</template>
+
+<script setup lang="ts">
+import {  } from 'lucide-vue-next';
+import { navigateTo } from '@/utils/navigation';
+import HomeBar from '@/components/homeBar.vue';
+
+const nickname = ref<string>("Yunxi User");
+const onNavigate = (screen: string) => {
+  navigateTo(screen);
+};
+
+// 前往商城
+const onGoToShop = () => {
+  uni.navigateTo({
+    url: '/pages/shop/index'
+  })
+}
+//前往管理页面
+const onGoToManage = (target: string) => {
+  if (target === 'postManage') {
+    uni.navigateTo({
+      url: '/pages/community/manage'
+    })
+  } else {
+    uni.navigateTo({
+      url: `/pages/profile/${target}`
+    })
+  }
+}
+
+</script>
+

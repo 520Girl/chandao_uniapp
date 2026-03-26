@@ -7,6 +7,7 @@ export interface AppConfig {
   uploadURL: string;
   title: string;
   debug: boolean;
+  mode: string;
   domainWhitelist: string[];
   security: SecurityRuntimeConfig;
 }

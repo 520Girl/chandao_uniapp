@@ -38,6 +38,7 @@ export default defineConfig({
         @import "@assets/styles/variable.scss";
         @import "@assets/styles/mixin.scss";
         @import "@assets/styles/bem.scss";
+        @import "@assets/styles/animation.scss";
         @import "@assets/styles/common.scss";`,
         silenceDeprecations: ['legacy-js-api', 'color-functions', 'import'],  
       },
@@ -47,6 +48,7 @@ export default defineConfig({
       localsConvention: 'camelCase',
     },
     postcss: {
+      
       plugins: [
         require('tailwindcss')({}),
         require('autoprefixer')({})

@@ -2,6 +2,7 @@ import { config, HTTP_STATUS, BUSINESS_CODE, isApiDomainAllowed } from './config
 import { getToken, removeToken, refreshToken } from './api/user'
 import { decryptPayload, encryptPayload, shouldEncryptRequest } from './crypto'
 
+const isAbsoluteUrl = (url: string) => /^https?:\/\//i.test(url)
 // 请求拦截器
 const requestInterceptor = (config: any) => {
   const token = getToken()
@@ -102,9 +103,12 @@ const errorHandler = async (error: any) => {
 // 封装uni.request
 export const request = (options: any): Promise<any> => {
   return new Promise((resolve, reject) => {
-    const fullUrl = `${config.baseURL}${config.apiVersion}${options.url}`
-    if (!isApiDomainAllowed(fullUrl)) {
-      reject(new Error(`请求域名不在白名单中: ${fullUrl}`))
+    const requestUrl = isAbsoluteUrl(options.url)
+      ? options.url
+      : `${config.baseURL}${config.apiVersion}${options.url}`
+
+    if (!isApiDomainAllowed(requestUrl)) {
+      reject(new Error(`请求域名不在白名单中: ${requestUrl}`))
       return
     }
 
@@ -112,7 +116,7 @@ export const request = (options: any): Promise<any> => {
     const interceptedOptions = requestInterceptor({
       ...options,
       security: config.security,
-      url: fullUrl,
+      url: requestUrl,
       header: {
         'Content-Type': 'application/json',
         ...options.header

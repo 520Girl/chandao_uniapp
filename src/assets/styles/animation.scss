@@ -1,0 +1,61 @@
+@keyframes meditation-glow {
+    0%,
+    100% {
+      opacity: 0.45;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+      opacity: 0.75;
+      transform: translate(-50%, -50%) scale(1.08);
+    }
+  }
+  
+  @keyframes meditation-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-10rpx);
+    }
+  }
+  
+  @keyframes label-shimmer {
+    0%,
+    100% {
+      opacity: 0.85;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+  
+  @keyframes thumb-pulse {
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 var(--meditation-glow);
+    }
+    50% {
+      box-shadow: 0 0 0 8rpx transparent;
+    }
+  }
+  
+  @keyframes ring-border-pulse {
+    0%,
+    100% {
+      border-color: rgba(212, 175, 53, 0.15);
+    }
+    50% {
+      border-color: rgba(212, 175, 53, 0.35);
+    }
+  }
+  
+  @keyframes music-bob {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-4rpx);
+    }
+  }

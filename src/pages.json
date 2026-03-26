@@ -1,64 +1,199 @@
 {
   "pages": [
-    //pages数组中第一项表示应用启动页，参考：https://uniapp.dcloud.io/collocation/pages
-    {
-      "path": "pages/index/index",
+     {
+      "path": "pages/index/home",
       "style": {
         "navigationBarTitleText": "首页",
         "navigationStyle": "custom"
       }
     },
     {
-      "path": "pages/index/question",
+      "path": "pages/login/index",
       "style": {
-        "navigationBarTitleText": "问题"
+        "navigationBarTitleText": "登录",
+        "navigationStyle": "custom"
+      }
+    },
+   
+    {
+      "path": "pages/shop/index",
+      "style": {
+        "navigationBarTitleText": "商城",
+        "navigationStyle": "custom"
       }
     },
     {
-      "path": "pages/index/answer",
+      "path": "pages/index/community",
       "style": {
-        "navigationBarTitleText": "回答"
+        "navigationBarTitleText": "社区",
+        "navigationStyle": "custom"
       }
     },
     {
-      "path": "pages/index/mine",
+      "path": "pages/index/profile",
       "style": {
-        "navigationBarTitleText": "我的"
+        "navigationBarTitleText": "个人中心",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/post/edit-post",
+      "style": {
+        "navigationBarTitleText": "发布动态",
+        "navigationStyle":"custom"
+      }
+    },
+    {
+      "path": "pages/community/manage",
+      "style": {
+        "navigationBarTitleText": "社群管理",
+        "navigationStyle":"custom"
+      }
+    },
+    {
+      "path": "pages/shop/confirm-order",
+      "style": {
+        "navigationBarTitleText": "确认订单",
+        "navigationStyle":"custom"
+      }
+    },
+    {
+      "path": "pages/shop/edit-address",
+      "style": {
+        "navigationBarTitleText": "编辑地址",
+        "navigationStyle":"custom"
+      }
+    },
+    {
+      "path": "pages/shop/list-address",
+      "style": {
+        "navigationBarTitleText": "收货地址",
+        "navigationStyle":"custom"
+      }
+    },
+    {
+      "path": "pages/launch/index",
+      "style": {
+        "navigationBarTitleText": "启动页"
+      }
+    },
+    {
+      "path": "pages/leaderboard/index",
+      "style": {
+        "navigationBarTitleText": "排行榜"
+      }
+    },
+    {
+      "path": "pages/index/meditation",
+      "style": {
+        "navigationBarTitleText": "冥想",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/meditation/startMeditaiton",
+      "style": {
+        "navigationBarTitleText": "开始冥想",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/meditation/report",
+      "style": {
+        "navigationBarTitleText": "冥想报告",
+        "navigationStyle": "custom",
+        "enableShareAppMessage": true,
+        "enableShareTimeline": true
+      }
+    },
+    {
+      "path": "pages/post/detail",
+      "style": {
+        "navigationBarTitleText": "动态详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/profile/accountManage",
+      "style": {
+        "navigationBarTitleText": "账户管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/profile/deviceManage",
+      "style": {
+        "navigationBarTitleText": "设备管理",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/profile/userAgent",
+      "style": {
+        "navigationBarTitleText": "用户协议",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/profile/privacyPolicy",
+      "style": {
+        "navigationBarTitleText": "隐私政策",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/profile/disclaimer",
+      "style": {
+        "navigationBarTitleText": "免责声明",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/profile/rank",
+      "style": {
+        "navigationBarTitleText": "排行榜",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/profile/medal",
+      "style": {
+        "navigationBarTitleText": "勋章",
+        "navigationStyle": "custom"
       }
     }
   ],
-  // "tabBar": {
-  //   "color": "#999",
-  //   "selectedColor": "#007AFF",
-  //   "backgroundImage": "static/v2/t-1.png",
-  //   "borderStyle": "black",
-  //   "list": [
-  //     {
-  //       "pagePath": "pages/index/index",
-  //       "text": "首页",
-  //       "iconPath": "static/icon.png",
-  //       "selectedIconPath": "static/icon.png"
-  //     },
-  //     {
-  //       "pagePath": "pages/index/question",
-  //       "text": "问题",
-  //       "iconPath": "static/icon.png",
-  //       "selectedIconPath": "static/icon.png"
-  //     },
-  //     {
-  //       "pagePath": "pages/index/answer",
-  //       "text": "回答",
-  //       "iconPath": "static/icon.png",
-  //       "selectedIconPath": "static/icon.png"
-  //     },
-  //     {
-  //       "pagePath": "pages/index/mine",
-  //       "text": "我的",
-  //       "iconPath": "static/icon.png",
-  //       "selectedIconPath": "static/icon.png"
-  //     }
-  //   ]
-  // },
+  "tabBar": {
+    "color": "#918355",
+    "selectedColor": "#D4AF35",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/home",
+        "text": "首页",
+        "iconPath": "static/nav/wind.png",
+        "selectedIconPath": "static/nav/windsle.png"
+      },
+      {
+        "pagePath": "pages/index/meditation",
+        "text": "冥想",
+        "iconPath": "static/nav/chaye.png",
+        "selectedIconPath": "static/nav/chayesle.png"
+      },
+      {
+        "pagePath": "pages/index/community",
+        "text": "社区",
+        "iconPath": "static/nav/shequn.png",
+        "selectedIconPath": "static/nav/shequnsle.png"
+      },
+      {
+        "pagePath": "pages/index/profile",
+        "text": "我的",
+        "iconPath": "static/nav/user.png",
+        "selectedIconPath": "static/nav/usersle.png"
+      }
+    ]
+  },
   "easycom": {
     "autoscan": true,
     "custom": {

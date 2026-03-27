@@ -12,7 +12,7 @@
                         </view>
                         <view>
                             <view class="text-xl font-bold tracking-tight flex items-center gap-2">
-                                <text class="iconfont  theme-color-1 text-[40rpx]" :class="titleIcon"></text>
+                                <text class="iconfont theme-color-1 text-[40rpx]" :class="titleIcon"></text>
                                 {{ title }}
                             </view>
                             <view class="text-[20rpx] uppercase tracking-[0.2em] theme-color-8">{{ description }}</view>

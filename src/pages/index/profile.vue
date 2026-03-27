@@ -26,7 +26,7 @@
         <view class="font-bold text-[20rpx] uppercase tracking-[0.25rem] text-primary/70 px-2">基础设置</view>
         <view class="space-y-1">
           <view @click="onGoToManage('accountManage')"
-            class="flex bg-theme-13 items-center justify-between p-4 bg-accent-light/30 border border-outline-gold/20 rounded-2xl hover:bg-accent-light/50 transition-colors cursor-pointer group">
+            class="flex bg-theme-13 items-center justify-between p-4 bg-accent-light/30 border bg-primary/20 rounded-2xl hover:bg-accent-light/50 transition-colors cursor-pointer group">
             <view class="flex items-center gap-4">
               <text class="icon-zhanghaoguanli iconfont text-[40rpx] theme-color-1" data-icon="mail"></text>
               <text class="font-body text-[28rpx] theme-color-5">账户管理</text>
@@ -47,7 +47,7 @@
               data-icon="chevron_right"></text>
           </view>
           <view @click="onGoToManage('postManage')"
-            class="flex bg-theme-13 items-center justify-between p-4 bg-accent-light/30 border border-outline-gold/20 rounded-2xl hover:bg-accent-light/50 transition-colors cursor-pointer group">
+            class="flex bg-theme-13 items-center justify-between p-4 bg-accent-light/30 border bg-primary/20 rounded-2xl hover:bg-accent-light/50 transition-colors cursor-pointer group">
             <view class="flex items-center gap-4">
               <text class="iconfont icon-shequn1 text-[40rpx] theme-color-1" data-icon="lock"></text>
               <text class="font-body text-[28rpx] theme-color-5">社群管理</text>
@@ -56,7 +56,7 @@
               data-icon="chevron_right"></text>
           </view>
           <view @click="onGoToManage('medal')"
-            class="flex bg-theme-13 items-center justify-between p-4 bg-accent-light/30 border border-outline-gold/20 rounded-2xl hover:bg-accent-light/50 transition-colors cursor-pointer group">
+            class="flex bg-theme-13 items-center justify-between p-4 bg-accent-light/30 border bg-primary/20 rounded-2xl hover:bg-accent-light/50 transition-colors cursor-pointer group">
             <view class="flex items-center gap-4">
               <text class="iconfont icon-xunzhang text-[40rpx] theme-color-1" data-icon="lock"></text>
               <text class="font-body text-[28rpx] theme-color-5">勋章管理</text>
@@ -71,7 +71,7 @@
         <view class="flex justify-between items-center px-[16rpx]">
           <view class="font-bold text-[20rpx] uppercase tracking-[0.25rem] text-primary/70">法律与透明度</view>
         </view>
-        <view class="space-y-px overflow-hidden rounded-2xl bg-outline-gold/20 shadow-sm">
+        <view class="space-y-px overflow-hidden rounded-2xl bg-primary/20 shadow-sm">
           <!-- Privacy Policy -->
           <view @click="onGoToManage('privacyPolicy')"
             class="flex bg-theme-13  items-center justify-between p-4 bg-accent-light/20 hover:bg-accent-light/40 transition-colors cursor-pointer group">

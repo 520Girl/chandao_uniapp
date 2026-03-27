@@ -1,10 +1,10 @@
 <template>
-    <view class="custom-nav-bar">
-        <view class="navbar theme-bg">
+    <view class="custom-nav-bar ">
+        <view class="navbar theme-bg ethereal-blur">
             <view class="statusBar" :style="{ height: getStatusBarHeight() + 'px' }"></view>
             <view class="titleBar" :style="{ height: getTitleBarHeight() + 'px', marginLeft: getTitleLogo() + 'rpx' }">
                 <view
-                    class="flex items-center justify-between bg-[#f8f7f6] border-b border-[#d4af35]/5" :style="{ width: 'calc(100vw - ' + getMenuButtonWidth() + 'px)' }">
+                    class="flex items-center justify-between border-b border-[#d4af35]/5" :style="{ width: 'calc(100vw - ' + getMenuButtonWidth() + 'px)' }">
                     <view class="left-actions" v-if="type !== 'back'">
                         <view @click="onBack" class="left-btn">
                             <text class="iconfont icon-fanhui1 left-icon"></text>

@@ -6,6 +6,83 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "6556747",
+      "name": "朋友圈",
+      "font_class": "pengyouquan",
+      "unicode": "e616",
+      "unicode_decimal": 58902
+    },
+    {
+      "icon_id": "10268538",
+      "name": "活动",
+      "font_class": "huodong",
+      "unicode": "e67a",
+      "unicode_decimal": 59002
+    },
+    {
+      "icon_id": "16372346",
+      "name": "云历史",
+      "font_class": "yunlishi",
+      "unicode": "e665",
+      "unicode_decimal": 58981
+    },
+    {
+      "icon_id": "44580020",
+      "name": "监测-在线监测-历史异常",
+      "font_class": "lishidianjihou",
+      "unicode": "e64c",
+      "unicode_decimal": 58956
+    },
+    {
+      "icon_id": "490368",
+      "name": "more_vert",
+      "font_class": "morevert",
+      "unicode": "ec48",
+      "unicode_decimal": 60488
+    },
+    {
+      "icon_id": "4765721",
+      "name": "check-circle",
+      "font_class": "check-circle",
+      "unicode": "e77d",
+      "unicode_decimal": 59261
+    },
+    {
+      "icon_id": "5127478",
+      "name": "reply",
+      "font_class": "reply",
+      "unicode": "e7fd",
+      "unicode_decimal": 59389
+    },
+    {
+      "icon_id": "15286988",
+      "name": "notifications_active",
+      "font_class": "notifications_active",
+      "unicode": "e7f4",
+      "unicode_decimal": 59380
+    },
+    {
+      "icon_id": "36201252",
+      "name": "auto_awesome",
+      "font_class": "auto_awesome1",
+      "unicode": "e631",
+      "unicode_decimal": 58929
+    },
+    {
+      "icon_id": "44063242",
+      "name": "flag",
+      "font_class": "flag",
+      "unicode": "e9ee",
+      "unicode_decimal": 59886
+    },
+    {
+      "icon_id": "44045131",
+      "name": "close",
+      "font_class": "close",
+      "unicode": "e6b6",
+      "unicode_decimal": 59062
+    },
+    {
       "icon_id": "141782",
       "name": "lock-open",
       "font_class": "lockopen",

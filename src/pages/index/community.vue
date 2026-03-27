@@ -1,7 +1,6 @@
 <template>
   <view class="flex flex-col min-h-screen theme-bg">
     <HomeBar :title="'云息社区'" description="安定共修"  :leftIcon="'icon-shopping-bag'" :handleClick="gotoShop" />
-
     <view class="flex-1 px-4 py-6 space-y-8">
       <view class="text-center">
         <view class="text-[48rpx] font-bold mb-6">今日照见：________</view>
@@ -43,26 +42,33 @@
               class="w-[90rpx] h-[90rpx] rounded-full border-2 border-theme-3" mode="aspectFill" />
             <view>
               <view class="text-sm font-bold">{{ item.nickname }}</view>
-              <text class="text-[20rpx] theme-color-8 font-medium uppercase tracking-wider block">{{ item.desc }}</text>
+              <view class="flex items-center gap-1">
+                <text class="text-[20rpx] theme-color-8 font-medium uppercase tracking-wider block">{{ item.desc }}</text>
+                <text class="text-[30rpx] theme-color-2  iconfont italic" :class="item.type === 'active' ? 'icon-huodong text-[#53a7dadb]' : 'icon-pengyouquan text-[#e7302a]'"></text>
+              </view>
+            
             </view>
             <text class="iconfont text-[28rpx] theme-color-1 ml-auto" 
               :class="'icon-' + item.Mood"
             ></text>
+          
           </view>
           <text
-            class="theme-color-7 leading-relaxed mb-[64rpx] italic text-[36rpx] px-[16rpx] block"  @click="onNavigate(item)">“今日照见：<text class="theme-color-1">躁动</text>的情绪如云掠过静止的湖面，未曾触及水面分毫。”</text>
-          <view class="flex items-center justify-between border-t border-[#d4af35]/5 pt-5">
+            class="theme-color-7 leading-relaxed mb-[32rpx] italic text-[30rpx] px-[16rpx] block"  @click="onNavigate(item)">“今日照见：<text class="theme-color-1">躁动</text>的情绪如云掠过静止的湖面，未曾触及水面分毫。”</text>
+          <view class="flex items-center justify-between border-t border-[#d4af35]/5 pt-1">
             <view class="flex items-center gap-6" >
               <view class="flex items-center gap-1 " :class="index %2 === 1 ? 'theme-color-1' : 'theme-color-12'" >
-                <text class="iconfont icon-heart-fill text-[48rpx] cloud-glow-active"></text>
-                <text class="text-xs font-bold ">42 点亮</text>
+                <text class="iconfont icon-heart-fill text-[35rpx] cloud-glow-active"></text>
+                <text class="text-[24rpx] font-bold ">42 点亮</text>
               </view>
               <view class="flex items-center gap-1 theme-color-8" >
-                <text class="iconfont icon-chat-bubble-1 text-[40rpx]"></text>
-                <text class="text-xs font-medium">8 回响</text>
+                <text class="iconfont icon-chat-bubble-1 text-[35rpx]"></text>
+                <text class="text-[24rpx] font-medium">8 回响</text>
               </view>
             </view>
-            <text class="text-[10px] text-[#d4af35]/40">2m ago</text>
+            <view class="flex flex-col items-center gap-1">
+              <text class="text-[20rpx] text-[#d4af35]/40">2m ago</text>
+            </view>
           </view>
         </view>
       </view>
@@ -87,9 +93,9 @@ const rankList = ref([
           { name: '朱利安', score: 88, imgUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAP1_Aew993r9KgMuODx_O8uK7CsvTOufMCHUaCw_-62lDjzoQIq4zYkX59lRl7l-sMXhzNGrZq1qrt8KtWxKdVn2oiqlcm4c4XToU5LJpvD0U1zOEMP3Z5A7bB9FZ-oITvty5YR9jcdtZrJJCyC0hmLCq_bGxRKG_n0p4xv7kJr-3GTvmFkJK-FkvpPH8-ZiNtt5nkq1oDlPTuxjKL_22740LQh1NYEe2ZsfC2S-u5ID7ufpCfXOcQAqB3Wg2YLH46cXOXaramk4Mi' },
 ])
 const communityList = ref([
-  { name: '静心禅修',Mood:'Raining',nickname:"校长",desc:"静坐24分钟后", members: 1200,time: '2m ago',heart: 100,comment: 20, imgUrl: 'https://picsum.photos/seed/community1/200/200' },
-  { name: '晨间觉察',Mood:'Sunny',nickname:"副校长",desc:"晨间觉察10分钟后", members: 850,time: '2m ago',heart: 100,comment: 20, imgUrl: 'https://picsum.photos/seed/community2/200/200' },
-  { name: '夜晚反思',Mood:'Cloudy',nickname:"助理",desc:"夜晚反思15分钟后", members: 600,time: '2m ago',heart: 100,comment: 20, imgUrl: 'https://picsum.photos/seed/community3/200/200' },
+  { name: '静心禅修',Mood:'Raining',nickname:"校长",desc:"静坐24分钟后",type:'active', members: 1200,time: '2m ago',heart: 100,comment: 20, imgUrl: 'https://picsum.photos/seed/community1/200/200' },
+  { name: '晨间觉察',Mood:'Sunny',nickname:"副校长",desc:"晨间觉察10分钟后",type:'active', members: 850,time: '2m ago',heart: 100,comment: 20, imgUrl: 'https://picsum.photos/seed/community2/200/200' },
+  { name: '夜晚反思',Mood:'Cloudy',nickname:"助理",desc:"夜晚反思15分钟后",type:'post', members: 600,time: '2m ago',heart: 100,comment: 20, imgUrl: 'https://picsum.photos/seed/community3/200/200' },
 ]);
 const onNavigate = (item: any) => {
   uni.navigateTo({

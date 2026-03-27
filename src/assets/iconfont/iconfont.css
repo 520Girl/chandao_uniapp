@@ -1,8 +1,8 @@
 @font-face {
   font-family: "iconfont"; /* Project id 5133341 */
-  src: url('iconfont.woff2?t=1774521301678') format('woff2'),
-       url('iconfont.woff?t=1774521301678') format('woff'),
-       url('iconfont.ttf?t=1774521301678') format('truetype');
+  src: url('iconfont.woff2?t=1774604862940') format('woff2'),
+       url('iconfont.woff?t=1774604862940') format('woff'),
+       url('iconfont.ttf?t=1774604862940') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,50 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-pengyouquan:before {
+  content: "\e616";
+}
+
+.icon-huodong:before {
+  content: "\e67a";
+}
+
+.icon-yunlishi:before {
+  content: "\e665";
+}
+
+.icon-lishidianjihou:before {
+  content: "\e64c";
+}
+
+.icon-morevert:before {
+  content: "\ec48";
+}
+
+.icon-check-circle:before {
+  content: "\e77d";
+}
+
+.icon-reply:before {
+  content: "\e7fd";
+}
+
+.icon-notifications_active:before {
+  content: "\e7f4";
+}
+
+.icon-auto_awesome1:before {
+  content: "\e631";
+}
+
+.icon-flag:before {
+  content: "\e9ee";
+}
+
+.icon-close:before {
+  content: "\e6b6";
 }
 
 .icon-lockopen:before {

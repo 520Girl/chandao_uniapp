@@ -3,7 +3,7 @@
     <LcrBar :title="'社群管理'" :type="'all'" />
     <view
       class="sticky z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md"
-      :class="`top-${getNavbarHeight()}px`"
+      :style="{ top: getNavbarHeight() + 'px' }"
     >
       <view class="px-[32rpx] pb-[25rpx] pt-[12rpx]">
         <view class="flex p-[8rpx] items-center justify-center rounded-full bg-theme-13 gap-1">
@@ -68,17 +68,18 @@
                 <view class="text-[20rpx] theme-color-8 uppercase">{{ post.timeText }} · 已发布</view>
               </view>
             </view>
-            <view class="text-[28rpx] leading-relaxed mb-[32rpx] theme-color-5">{{ post.content }}</view>
+            <view v-if="post.images.length" class="text-[28rpx] leading-relaxed mb-[32rpx] theme-color-5">{{ post.content }}</view>
+            <view v-else class="text-[24rpx] leading-relaxed mb-[32rpx] text-[#4a4538] dark:text-primary/80 italic">{{ post.content }}</view>
             <view v-if="post.images.length" class="grid grid-cols-2 gap-2 mb-[32rpx]">
               <image v-for="img in post.images" :key="img" class="w-full h-[256rpx] object-cover rounded-[30rpx]" :src="img" />
             </view>
             <view class="flex items-center justify-between pt-[32rpx] border-t border-primary/5">
               <view class="flex gap-4">
                 <text class="flex items-center gap-1 text-[24rpx] theme-color-8">
-                  <text class="iconfont icon-heart-fill text-base align-middle"></text>{{ post.likes }}
+                  <text class="iconfont icon-heart-fill text-base align-middle"></text> {{ post.likes }}
                 </text>
                 <text class="flex items-center gap-1 text-[24rpx] theme-color-8">
-                  <text class="iconfont icon-chat-bubble-1 text-base align-middle"></text>{{ post.comments }}
+                  <text class="iconfont icon-chat-bubble-1 text-base align-middle "></text> {{ post.comments }}
                 </text>
               </view>
               <view class="flex gap-2">
@@ -128,7 +129,15 @@
                   <view class="text-[24rpx] theme-color-4">{{ member.subtitle }}</view>
                 </view>
               </view>
-              <button class="px-[32rpx] py-[12rpx] mr-0 rounded-full ring-1 ring-[#d4af35]/30 bg-theme-13 text-primary text-[24rpx] font-bold hover:bg-primary/5 transition-colors">管理</button>
+              <button
+              v-if="member.role === '管理员'"
+              class="w-[80rpx] h-[80rpx] flex mr-0 items-center justify-center rounded-full bg-theme-13  text-primary hover:bg-primary/20 transition-colors">
+              <text class="iconfont icon-person_search text-[48rpx]  theme-color-1 "></text>
+            </button>
+              <button v-else
+              class="px-[32rpx] py-[12rpx] mr-0 rounded-full ring-1 ring-[#d4af35]/30 bg-theme-13 text-primary text-[24rpx] font-bold hover:bg-primary/5 transition-colors">
+              管理
+            </button>
             </view>
           </view>
           <up-loadmore :status="memberState.loadStatus" line @loadmore="loadMoreMembers" />

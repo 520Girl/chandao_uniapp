@@ -44,6 +44,27 @@
       }
     },
     {
+      "path": "pages/community/manage1",
+      "style": {
+        "navigationBarTitleText": "社群管理",
+        "navigationStyle":"custom"
+      }
+    },
+    {
+      "path": "pages/community/allPost",
+      "style": {
+        "navigationBarTitleText": "全部动态",
+        "navigationStyle":"custom"
+      }
+    },
+    {
+      "path": "pages/community/allMember",
+      "style": {
+        "navigationBarTitleText": "成员管理",
+        "navigationStyle":"custom"
+      }
+    },
+    {
       "path": "pages/community/manage",
       "style": {
         "navigationBarTitleText": "社群管理",
@@ -75,12 +96,6 @@
       "path": "pages/launch/index",
       "style": {
         "navigationBarTitleText": "启动页"
-      }
-    },
-    {
-      "path": "pages/leaderboard/index",
-      "style": {
-        "navigationBarTitleText": "排行榜"
       }
     },
     {
@@ -145,6 +160,19 @@
       "path": "pages/profile/disclaimer",
       "style": {
         "navigationBarTitleText": "免责声明",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/message/index",
+      "style": {
+        "navigationBarTitleText": "消息中心",
+        "navigationStyle": "custom"
+      }
+    },{
+      "path": "pages/message/detail",
+      "style": {
+        "navigationBarTitleText": "消息详情",
         "navigationStyle": "custom"
       }
     },

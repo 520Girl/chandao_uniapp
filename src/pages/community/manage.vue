@@ -3,20 +3,6 @@
     <LcrBar :title="'社群管理'" :type="'all'" />
     <view
       class="sticky  z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md" :class="`top-${getNavbarHeight()}px`">
-      <view class="px-[32rpx] pb-[25rpx] pt-[12rpx]">
-        <view class="flex p-[8rpx] items-center justify-center rounded-full bg-theme-13 rounded-full gap-1">
-          <label
-            class="shadow-sm flex box-border cursor-pointer py-[16rpx] text-[28rpx] flex-1 items-center justify-center rounded-full transition-all font-semibold rounded-full bg-white theme-color-1 ">
-            <text>我的动态</text>
-            <input class="hidden" name="tab-select" type="radio" value="posts" />
-          </label>
-          <label
-            class="flex box-border cursor-pointer py-[16rpx] text-[28rpx] flex-1 items-center justify-center rounded-full transition-all  font-semibold rounded-full theme-color-12">
-            <text>成员管理</text>
-            <input class="hidden" name="tab-select" type="radio" value="members" />
-          </label>
-        </view>
-      </view>
     </view>
     <view class="flex-1 overflow-y-auto px-[32rpx] py-[32rpx] space-y-6">
       <!-- Search Bar -->
@@ -33,8 +19,8 @@
       <view class="space-y-4">
         <view class="flex items-center justify-between">
           <view class="text-[28rpx] font-bold theme-color-1">我的动态 (12)</view>
-          <view class="text-[24rpx] font-bold theme-color-1 flex items-center gap-1">
-            全部动态 <text class="iconfont icon-jinru text-[24rpx]"></text>
+          <view class="text-[24rpx] font-bold theme-color-1 flex items-center gap-1" @click="goAllPost()">
+            全部动态 <text class="iconfont icon-jinru text-[24rpx]" ></text>
           </view>
         </view>
         <!-- Post Card 1 -->
@@ -61,9 +47,9 @@
           <view class="flex items-center justify-between pt-[32rpx] border-t border-primary/5">
             <view class="flex gap-4">
               <text class="flex items-center gap-1 text-[24rpx] theme-color-8"><text
-                  class="iconfont icon-heart-fill text-base align-middl"></text> 24</text>
+                  class="iconfont icon-heart-fill text-base align-middle"></text> 24</text>
               <text class="flex items-center gap-1 text-[24rpx] theme-color-8"><text
-                  class="iconfont icon-chat-bubble-1 text-base align-middl"></text> 8</text>
+                  class="iconfont icon-chat-bubble-1 text-base align-middle "></text> 8</text>
             </view>
             <view class="flex gap-2">
               <button
@@ -114,7 +100,7 @@
       <view class="space-y-4">
         <view class="flex items-center justify-between">
           <view class="text-[28rpx] font-bold theme-color-1 uppercase tracking-widest">社群成员 (256)</view>
-          <view class="text-[24rpx] font-bold theme-color-1 flex items-center gap-1">
+          <view class="text-[24rpx] font-bold theme-color-1 flex items-center gap-1" @click="goAllMember()">
             管理全员 <text class="iconfont icon-setting text-[24rpx]"></text>
           </view>
         </view>
@@ -182,7 +168,7 @@
       <button
       @click="goEditPost()"
         class="flex items-center justify-center w-[112rpx] h-[112rpx] rounded-full  bg-theme-2 text-background-dark shadow-lg shadow-primary/20 active:scale-95 transition-transform">
-        <text class="iconfont icon-add text-[48rpx] text-white"></text>
+        <text class="iconfont icon-share text-[70rpx] text-white"></text>
       </button>
     </view>
 
@@ -236,6 +222,16 @@ const settings = [
 const goEditPost = () => {
   uni.navigateTo({
     url: '/pages/post/edit-post',
+  });
+};
+const goAllPost = () => {
+  uni.navigateTo({
+    url: '/pages/community/allPost',
+  });
+};
+const goAllMember = () => {
+  uni.navigateTo({
+    url: '/pages/community/allMember',
   });
 };
 </script>

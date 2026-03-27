@@ -173,7 +173,7 @@ defineProps<{
 // 跳转个人中心
 const goProfile = () => {
     uni.navigateTo({
-        url: '/pages/community/manage'
+        url: '/pages/message/index'
     })
 }
 const activeList = reactive([

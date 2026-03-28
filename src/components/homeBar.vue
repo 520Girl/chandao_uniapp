@@ -8,7 +8,7 @@
                         <view @click="callParentFn"
                             class=" relative w-12 h-12 rounded-full bg-white/50 flex items-center justify-center border border-[#d4af35]/10 shadow-sm">
                             <text class="iconfont  theme-color-1 text-[48rpx]" :class="leftIcon" />
-                            <view v-if="messageCount > 0" class="absolute top-2 right-2 w-2 h-2 bg-[#d4af35] rounded-full" />
+                            <view v-if="messageCount > 0" class="absolute top-2 right-2 w-2 h-2 bg-[#ff0000] rounded-full" />
                         </view>
                         <view>
                             <view class="text-xl font-bold tracking-tight flex items-center gap-2">

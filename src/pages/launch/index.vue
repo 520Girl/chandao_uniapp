@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { onMounted } from 'vue';
-import { Cloud } from 'lucide-vue-next';
 import { navigateTo } from '@/utils/navigation';
 
 onMounted(() => {
@@ -16,7 +15,7 @@ onMounted(() => {
   <view class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#f8f7f6] overflow-hidden">
     <view class="flex flex-col items-center gap-8">
       <view class="w-24 h-24 rounded-full border-2 border-[#d4af35] flex items-center justify-center relative">
-        <Cloud :size="48" class="text-[#d4af35]" :stroke-width="1" />
+        <text class="icon-yunduo iconfont text-[#d4af35] size-90 text-[100rpx]"></text>
         <view class="absolute inset-0 border border-[#d4af35]/20 rounded-full animate-ping" />
       </view>
       <view class="text-center">

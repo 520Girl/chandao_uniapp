@@ -1,6 +1,6 @@
 <template>
   <view class="flex flex-col min-h-screen theme-bg">
-    <HomeBar :title="'云息社区'" description="安定共修"  :leftIcon="'icon-shopping-bag'" :handleClick="gotoShop" />
+    <HomeBar :title="'云息社区'" description="安 定 共 修"  :leftIcon="'icon-shopping-bag'" :handleClick="gotoShop" />
     <view class="flex-1 px-4 py-6 space-y-8">
       <view class="text-center">
         <view class="text-[48rpx] font-bold mb-6">今日照见：________</view>
@@ -76,7 +76,6 @@
   </view>
 </template>
 <script setup lang="ts">
-import { Cloud, Bell, Send, Heart, MessageCircle } from 'lucide-vue-next';
 import { navigateTo } from '@/utils/navigation';
 import HomeBar from '@/components/homeBar.vue';
 
@@ -98,9 +97,16 @@ const communityList = ref([
   { name: '夜晚反思',Mood:'Cloudy',nickname:"助理",desc:"夜晚反思15分钟后",type:'post', members: 600,time: '2m ago',heart: 100,comment: 20, imgUrl: 'https://picsum.photos/seed/community3/200/200' },
 ]);
 const onNavigate = (item: any) => {
-  uni.navigateTo({
-    url: `/pages/post/edit-post?content=${content.value}&type=cindex`
+  if(item.type === 'active'){
+    uni.navigateTo({
+      url: '/pages/post/activity'
+    })
+  }else{
+    uni.navigateTo({
+    url: `/pages/post/detail?content=${content.value}&type=cindex`
   })
+  }
+  
 };
 
 const gotoShop = () => {

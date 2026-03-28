@@ -47,7 +47,6 @@
   </view>
 </template>
 <script setup lang="ts">
-import { ShoppingBag, Search } from 'lucide-vue-next';
 import { navigateTo } from '@/utils/navigation';
 import ShopBar from '@/components/shopBar.vue';
 

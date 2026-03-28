@@ -92,7 +92,22 @@
                     </view>
                 </view>
             </view>
-            
+        </view>
+        <view class="px-6 py-2">
+            <view class="bg-white/40 rounded-xl p-5 border border-primary/5">
+                <view class="text-[28rpx] font-bold tracking-[0.1em] text-primary/80 uppercase mb-4 text-center">
+                    身体节律趋势
+                </view>
+                <view class="w-full" style="height: 200px">
+                    <qiun-data-charts
+                        type="line"
+                        canvas-id="meditationTrendChart"
+                        :canvas2d="true"
+                        background="transparent"
+                        :chart-data="bodyTrendChartData"
+                        :opts="bodyTrendOpts" />
+                </view>
+            </view>
         </view>
         <view class="px-6 py-4">
                 <view class="bg-white/40 rounded-xl p-5 border border-primary/5">
@@ -159,6 +174,48 @@ const trackTitle = ref('');
 // “中道实践”进度（0~1），后续可替换为接口返回值
 const harmonyProgress = ref(0.5);
 const harmonyPercent = computed(() => Math.round(harmonyProgress.value * 100));
+const bodyTrendCategories = ['第1分', '第3分', '第6分', '第9分', '第12分', '结束'];
+const bodyTrendSeries = computed(() => {
+    const heartSeed = [avgHeart.value + 6, avgHeart.value + 3, avgHeart.value + 1, avgHeart.value - 1, avgHeart.value, avgHeart.value - 2];
+    const breathSeed = [avgBreath.value + 2, avgBreath.value + 1, avgBreath.value, avgBreath.value - 1, avgBreath.value, avgBreath.value];
+    return [
+        { name: '心率', data: heartSeed },
+        { name: '呼吸', data: breathSeed }
+    ];
+});
+const bodyTrendChartData = computed(() => ({
+    categories: bodyTrendCategories,
+    series: bodyTrendSeries.value
+}));
+const bodyTrendOpts = computed(() => ({
+    color: ['#705900', '#8ea4d2'],
+    legend: {
+        show: true,
+        position: 'top',
+        float: 'left',
+        fontSize: 10
+    },
+    padding: [15, 8, 0, 6],
+    xAxis: {
+        disableGrid: true,
+        fontSize: 10,
+        fontColor: '#7d7463'
+    },
+    yAxis: {
+        data: [{ min: 0, max: Math.max(120, maxHeart.value + 12), axisLine: false }],
+        gridType: 'dash',
+        dashLength: 3,
+        fontSize: 10,
+        fontColor: '#7d7463'
+    },
+    extra: {
+        line: {
+            type: 'curve',
+            width: 2,
+            activeType: 'hollow'
+        }
+    }
+}));
 
 const elapsedMin = computed(() => Math.floor(elapsedSec.value / 60));
 const elapsedRemainSec = computed(() => elapsedSec.value % 60);

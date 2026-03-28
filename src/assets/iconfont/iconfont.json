@@ -6,6 +6,48 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "12347953",
+      "name": "expand_more_24px_rounded",
+      "font_class": "expand_more_px_rounded",
+      "unicode": "ed9f",
+      "unicode_decimal": 60831
+    },
+    {
+      "icon_id": "2155120",
+      "name": "时间",
+      "font_class": "shijian",
+      "unicode": "e62f",
+      "unicode_decimal": 58927
+    },
+    {
+      "icon_id": "26876057",
+      "name": "评分项管理",
+      "font_class": "pingfenxiangguanli",
+      "unicode": "ea45",
+      "unicode_decimal": 59973
+    },
+    {
+      "icon_id": "7714916",
+      "name": "done-all",
+      "font_class": "done-all",
+      "unicode": "e62b",
+      "unicode_decimal": 58923
+    },
+    {
+      "icon_id": "12935348",
+      "name": "calendar-today",
+      "font_class": "calendar-today",
+      "unicode": "e8d8",
+      "unicode_decimal": 59608
+    },
+    {
+      "icon_id": "26136672",
+      "name": "event_repeat_black_24dp",
+      "font_class": "event_repeat_black_24dp",
+      "unicode": "e746",
+      "unicode_decimal": 59206
+    },
+    {
       "icon_id": "6556747",
       "name": "朋友圈",
       "font_class": "pengyouquan",

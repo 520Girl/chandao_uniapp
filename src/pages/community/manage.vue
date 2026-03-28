@@ -191,7 +191,6 @@
   </view>
 </template>
 <script setup lang="ts">
-import { ArrowLeft, Settings, Users, Shield, MessageSquare, Bell } from 'lucide-vue-next';
 import { navigateBack } from '@/utils/navigation';
 import LcrBar from '@/components/lcrBar.vue';
 import { getNavbarHeight } from '@/utils/system';
@@ -201,11 +200,7 @@ const onBack = () => {
   navigateBack();
 };
 const searchQuery = ref('');
-const stats = [
-  { label: '成员', value: '1,284', icon: Users },
-  { label: '动态', value: '452', icon: MessageSquare },
-  { label: '待审核', value: '12', icon: Shield },
-];
+
 const goPostDetail = (postId: string) => {
   // 跳转到动态详情页
   uni.navigateTo({
@@ -213,12 +208,7 @@ const goPostDetail = (postId: string) => {
   });
   console.log('跳转到动态详情页', postId);
 };
-const settings = [
-  { label: '社群公告', desc: '设置置顶公告', icon: Bell },
-  { label: '成员管理', desc: '禁言、踢出、权限设置', icon: Users },
-  { label: '内容审核', desc: '关键词过滤、举报处理', icon: Shield },
-  { label: '社群设置', desc: '名称、简介、头像修改', icon: Settings },
-];
+
 const goEditPost = () => {
   uni.navigateTo({
     url: '/pages/post/edit-post',

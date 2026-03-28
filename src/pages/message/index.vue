@@ -133,7 +133,6 @@
     </view>
 </template>
 <script setup lang="ts">
-import { ArrowLeft, MoreHorizontal } from 'lucide-vue-next';
 import { navigateBack } from '@/utils/navigation';
 import lcrBar from '@/components/lcrBar.vue';
 

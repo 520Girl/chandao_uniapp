@@ -99,9 +99,9 @@
       }
     },
     {
-      "path": "pages/index/meditation",
+      "path": "pages/index/report",
       "style": {
-        "navigationBarTitleText": "冥想",
+        "navigationBarTitleText": "报告",
         "navigationStyle": "custom"
       }
     },
@@ -125,6 +125,13 @@
       "path": "pages/post/detail",
       "style": {
         "navigationBarTitleText": "动态详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/post/activity",
+      "style": {
+        "navigationBarTitleText": "活动详情",
         "navigationStyle": "custom"
       }
     },
@@ -203,8 +210,8 @@
         "selectedIconPath": "static/nav/windsle.png"
       },
       {
-        "pagePath": "pages/index/meditation",
-        "text": "冥想",
+        "pagePath": "pages/index/report",
+        "text": "报告",
         "iconPath": "static/nav/chaye.png",
         "selectedIconPath": "static/nav/chayesle.png"
       },

@@ -14,7 +14,13 @@
         "navigationStyle": "custom"
       }
     },
-   
+    {
+      "path": "pages/login/inputLogin",
+      "style": {
+        "navigationBarTitleText": "账号登陆",
+        "navigationStyle": "custom"
+      }
+    },
     {
       "path": "pages/shop/index",
       "style": {

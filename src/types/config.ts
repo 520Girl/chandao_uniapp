@@ -1,6 +1,7 @@
 import type { SecurityRuntimeConfig } from "./security";
 
 export interface AppConfig {
+  appName?: string;
   baseURL: string;
   apiVersion: string;
   timeout: number;

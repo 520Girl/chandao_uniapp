@@ -2,14 +2,16 @@ import { config, HTTP_STATUS, BUSINESS_CODE, isApiDomainAllowed } from './config
 import { getToken, removeToken, refreshToken } from './api/user'
 import { decryptPayload, encryptPayload, shouldEncryptRequest } from './crypto'
 
+
 const isAbsoluteUrl = (url: string) => /^https?:\/\//i.test(url)
 // 请求拦截器
 const requestInterceptor = (config: any) => {
-  const token = getToken()
+  const { token } = storeToRefs(useUserStore())
+  console.log('请求拦截器 - 当前Token:', token.value)
   if (token) {
     config.header = {
       ...config.header,
-      'Authorization': `Bearer ${token}`
+      'Authorization': `SSS ${token.value}` // 添加Bearer前缀
     }
   }
 
@@ -44,12 +46,16 @@ const requestInterceptor = (config: any) => {
 // 响应拦截器
 const responseInterceptor = (response: any) => {
   const { statusCode, data } = response
-
+  console.log('响应拦截器 - 原始响应:', response)
   // HTTP状态码检查
-  if (statusCode !== HTTP_STATUS.SUCCESS && statusCode !== HTTP_STATUS.CREATED && statusCode !== HTTP_STATUS.UNAUTHORIZED) {
+  if (statusCode !== HTTP_STATUS.SUCCESS && statusCode !== HTTP_STATUS.CREATED) {
     throw new Error(`HTTP错误: ${statusCode}`)
   }
-  console.log(data)
+
+  //后端接口返回的状态，请求成功的前提下
+  if (data.code !== BUSINESS_CODE.SUCCESS) {
+    throw new Error(data.message || '请求失败')
+  }
 
   // 服务端返回加密包时自动解密
   const decrypted = decryptPayload(data, config.security)
@@ -76,18 +82,14 @@ const errorHandler = async (error: any) => {
       }
     } catch (refreshError) {
       // 刷新失败，清除token并跳转登录页
-      removeToken()
+      const { clearUser } = useUserStore()
+      clearUser()
       uni.showToast({
         title: '登录已过期，请重新登录',
         icon: 'none'
       })
 
-      // 跳转到登录页
-      setTimeout(() => {
-        uni.reLaunch({
-          url: '/pages/login/index'
-        })
-      }, 1500)
+
     }
   }
 
@@ -97,6 +99,12 @@ const errorHandler = async (error: any) => {
     icon: 'none'
   })
 
+  // 跳转到登录页
+  setTimeout(() => {
+    uni.reLaunch({
+      url: '/pages/login/index'
+    })
+  }, 1500)
   throw error
 }
 
@@ -107,7 +115,7 @@ export const request = (options: any): Promise<any> => {
       ? options.url
       : `${config.baseURL}${config.apiVersion}${options.url}`
 
-    if (!isApiDomainAllowed(requestUrl)) {
+    if (!isApiDomainAllowed(requestUrl) && isAbsoluteUrl(requestUrl)) {
       reject(new Error(`请求域名不在白名单中: ${requestUrl}`))
       return
     }

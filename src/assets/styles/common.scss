@@ -67,7 +67,7 @@
 .button-transition {
     transition: all 0.3s ease-in-out;
     &:hover {
-        @apply bg-[#918355]/80;
+        @apply bg-primary/80;
     }
     &:active {
         @apply scale-95;
@@ -84,14 +84,4 @@
 }
 :deep(.u-action-sheet__cancel .u-action-sheet__cancel-text) {
     color:var(--color-5);
-}
-
-//点击 动画效果
-.address-card {
-    transition: all 0.2s ease;
-}
-
-.address-card:active {
-    transform: scale(0.98);
-    background-color: rgba(212, 175, 53, 0.05);
 }

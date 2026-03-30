@@ -27,12 +27,16 @@
                     <view class="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                         <text class="iconfont icon-calendar-today text-[48rpx] theme-color-1"></text>
                     </view>
-                    <view>
+                    <view class="min-w-0 flex-1">
                         <view class="text-[#918355] text-xs font-medium tracking-wide">时光约定</view>
-                        <view class="text-[#1a170f] dark:text-[#fbfbf9] text-base">2023年10月20日 14:00</view>
+                        <view class="text-[#1a170f] dark:text-[#fbfbf9] text-base leading-relaxed break-words" v-html="activityTimeRangeDisplay">
+                            
+                        </view>
                     </view>
                 </view>
-                <view class="text-primary cursor-pointer hover:scale-110 transition-transform ">
+                <view
+                    class="text-primary active:opacity-80 transition-opacity"
+                    @tap="openActivityDatetime">
                     <text class="iconfont icon-lishidianjihou text-[48rpx] theme-color-1"></text>
                 </view>
             </view>
@@ -84,18 +88,100 @@
         <text class="mx-4 text-primary text-[10px] tracking-[0.5em] uppercase">Poetic Life</text>
         <view class="inline-block w-12 h-[1px] bg-primary align-middle"></view>
     </view>
+    <!-- 联动：先选开始，确认后再选结束（结束时间 minDate = 开始时间） -->
+    <up-datetime-picker
+        v-model="activityTimeStart"
+        :show="showActivityTimeStart"
+        mode="datetime"
+        title="选择开始时间"
+        :closeOnClickOverlay="true"
+        confirmColor='#d4af35'
+        cancelColor='#d4af35'
+        @confirm="onActivityTimeStartConfirm"
+        @cancel="onActivityTimeStartDismiss"
+        @close="onActivityTimeStartDismiss"
+    />
+    <up-datetime-picker
+        v-model="activityTimeEnd"
+        :show="showActivityTimeEnd"
+        mode="datetime"
+        title="选择结束时间"
+        :min-date="activityTimeStart"
+        :closeOnClickOverlay="true"
+        confirmColor='#d4af35'
+        cancelColor='#d4af35'
+        @confirm="onActivityTimeEndConfirm"
+        @cancel="onActivityTimeEndDismiss"
+        @close="onActivityTimeEndDismiss"
+    />
     </view>
   </template>
   <script setup lang="ts">
   import { navigateBack } from '@/utils/navigation';
   import lcrBar from '@/components/lcrBar.vue';
-  
+
+  /** 活动时段：默认同日 14:00 ~ 18:00（本地时间） */
+  const activityTimeStart = ref(new Date(2023, 9, 20, 14, 0, 0).getTime());
+  const activityTimeEnd = ref(new Date(2023, 9, 20, 18, 0, 0).getTime());
+  const showActivityTimeStart = ref(false);
+  const showActivityTimeEnd = ref(false);
+
   const activityData = ref({
     title: '活动1',
-    time: '2023-01-01',
+    timeStart: new Date(2023, 9, 20, 14, 0, 0).toISOString(),
+    timeEnd: new Date(2023, 9, 20, 18, 0, 0).toISOString(),
     location: '活动地点1',
     content: '白墙黛瓦，琴声悠扬。以宋代极简美学为底色，点缀青苔与枯木，让每一处留白都充满叙事感。穿着以素色棉麻为主，在烟雨蒙蒙中找寻内心的宁静。',
   });
+
+  function formatActivityDateTime(ms: number) {
+    const d = new Date(ms);
+    if (Number.isNaN(d.getTime())) return '';
+    const y = d.getFullYear();
+    const m = d.getMonth() + 1;
+    const day = d.getDate();
+    const h = String(d.getHours()).padStart(2, '0');
+    const min = String(d.getMinutes()).padStart(2, '0');
+    return `${y}年${m}月${day}日 ${h}:${min}`;
+  }
+
+  const activityTimeRangeDisplay = computed(() => {
+    const startStr = formatActivityDateTime(activityTimeStart.value);
+    const endStr = formatActivityDateTime(activityTimeEnd.value);
+    if (!startStr || !endStr) return '';
+    return `${startStr} <view class=" block text-center">～</view> ${endStr}`;
+  });
+
+  function openActivityDatetime() {
+    showActivityTimeStart.value = true;
+  }
+
+  function onActivityTimeStartConfirm() {
+    showActivityTimeStart.value = false;
+    if (activityTimeEnd.value < activityTimeStart.value) {
+      activityTimeEnd.value = activityTimeStart.value;
+    }
+    showActivityTimeEnd.value = true;
+  }
+
+  function onActivityTimeStartDismiss() {
+    showActivityTimeStart.value = false;
+  }
+
+  function onActivityTimeEndConfirm() {
+    if (activityTimeEnd.value < activityTimeStart.value) {
+      uni.showToast({ title: '结束时间需不早于开始时间', icon: 'none' });
+      return;
+    }
+    showActivityTimeEnd.value = false;
+    activityData.value.timeStart = new Date(activityTimeStart.value).toISOString();
+    activityData.value.timeEnd = new Date(activityTimeEnd.value).toISOString();
+  }
+
+  function onActivityTimeEndDismiss() {
+    showActivityTimeEnd.value = false;
+  }
+
   const onBack = () => {
     navigateBack();
   };

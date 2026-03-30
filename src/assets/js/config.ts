@@ -36,10 +36,11 @@ function getBaseURL(): string {
 
 function getConfig(): AppConfig {
     console.log('=== 开始获取配置 ===');
+    const appName = import.meta.env.VITE_APP_NAME || '';
     const mode = import.meta.env.MODE;
     const isDev = import.meta.env.DEV;
     const baseURL = getBaseURL();
-    const apiVersion = import.meta.env.VITE_API_VERSION || '/api';
+    const apiVersion = import.meta.env.VITE_API_VERSION || '';
     const timeout = Number(import.meta.env.VITE_API_TIMEOUT || '20000');
     const uploadURL = import.meta.env.VITE_UPLOAD_BASE_URL || baseURL;
     const title = import.meta.env.VITE_APP_TITLE || 'uni-app-template';
@@ -50,9 +51,10 @@ function getConfig(): AppConfig {
     const domainWhitelist = parseWhitelist(import.meta.env.VITE_API_DOMAIN_WHITELIST);
     
     console.log('当前环境:', isDev ? '开发环境' : '生产环境');
-    console.log('当前模式:', mode);
+    console.log('当前模式:', mode,import.meta.env.VITE_API_VERSION);
 
     const config: AppConfig = {
+        appName,
         baseURL,
         apiVersion,
         timeout,
@@ -77,6 +79,8 @@ export const config = getConfig();
 
 // 导出环境信息
 export const env = {
+    appName: config.appName,
+    mode: config.mode,
     isDev: import.meta.env.DEV,
     isTest: import.meta.env.MODE === 'test',
     isProd: import.meta.env.PROD,
@@ -128,6 +132,7 @@ export function getCurrentEnv(): string {
 // 导出调试信息
 export function logEnvInfo(): void {
     console.log('=== 环境配置信息 ===');
+    console.log('应用名称:', env.appName);
     console.log('当前环境:', getCurrentEnv());
     console.log('当前模式:', import.meta.env.MODE);
     console.log('应用标题:', env.title);
@@ -153,6 +158,6 @@ export const HTTP_STATUS = {
 logEnvInfo()
 // 业务状态码
 export const BUSINESS_CODE = {
-    SUCCESS: 1,
-    FAIL: 0
+    SUCCESS: 1000,
+    FAILED: 1001
 } 

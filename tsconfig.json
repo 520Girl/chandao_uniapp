@@ -18,7 +18,8 @@
     ],
     "types": [
       "@dcloudio/types",
-      "unplugin-auto-import/types"
+      "unplugin-auto-import/types",
+      "pinia-plugin-persist-uni"
     ],
     "allowJs": true,
     "skipLibCheck": true,

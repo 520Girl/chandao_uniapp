@@ -56,6 +56,9 @@ importers:
       pinia:
         specifier: ^3.0.4
         version: 3.0.4(typescript@4.9.5)(vue@3.5.13(typescript@4.9.5))
+      pinia-plugin-persist-uni:
+        specifier: ^1.3.2
+        version: 1.3.2(pinia@3.0.4(typescript@4.9.5)(vue@3.5.13(typescript@4.9.5)))(vue@3.5.13(typescript@4.9.5))
       uview-plus:
         specifier: ^3.6.18
         version: 3.6.18
@@ -3821,6 +3824,16 @@ packages:
     resolution: {integrity: sha512-udgsAY+fTnvv7kI7aaxbqwWNb0AHiB0qBO89PZKPkoTmGOgdbrHDKD+0B2X4uTfJ/FT1R09r9gTsjUjNJotuog==}
     engines: {node: '>=0.10.0'}
 
+  pinia-plugin-persist-uni@1.3.2:
+    resolution: {integrity: sha512-Z47MWlAI3dnm9xENwodYyT6B3TMDuwFK7MHHymwQyrTchuhG2Yu26w7bYlIap7df0fCwNCmAo0n7n1RK3Ute+w==}
+    peerDependencies:
+      '@vue/composition-api': ^1.0.0
+      pinia: '>2.0.0'
+      vue: ^2.0.0 || >=3.0.0
+    peerDependenciesMeta:
+      '@vue/composition-api':
+        optional: true
+
   pinia@3.0.4:
     resolution: {integrity: sha512-l7pqLUFTI/+ESXn6k3nu30ZIzW5E2WZF/LaHJEpoq6ElcLD+wduZoB2kBN19du6K/4FDpPMazY2wJr+IndBtQw==}
     peerDependencies:
@@ -4750,6 +4763,17 @@ packages:
       sugarss:
         optional: true
       terser:
+        optional: true
+
+  vue-demi@0.12.5:
+    resolution: {integrity: sha512-BREuTgTYlUr0zw0EZn3hnhC3I6gPWv+Kwh4MCih6QcAeaTlaIX0DwOVN0wHej7hSvDPecz4jygy/idsgKfW58Q==}
+    engines: {node: '>=12'}
+    hasBin: true
+    peerDependencies:
+      '@vue/composition-api': ^1.0.0-rc.1
+      vue: ^3.0.0-0 || ^2.6.0
+    peerDependenciesMeta:
+      '@vue/composition-api':
         optional: true
 
   vue-i18n@9.14.5:
@@ -9739,6 +9763,12 @@ snapshots:
 
   pify@2.3.0: {}
 
+  pinia-plugin-persist-uni@1.3.2(pinia@3.0.4(typescript@4.9.5)(vue@3.5.13(typescript@4.9.5)))(vue@3.5.13(typescript@4.9.5)):
+    dependencies:
+      pinia: 3.0.4(typescript@4.9.5)(vue@3.5.13(typescript@4.9.5))
+      vue: 3.5.13(typescript@4.9.5)
+      vue-demi: 0.12.5(vue@3.5.13(typescript@4.9.5))
+
   pinia@3.0.4(typescript@4.9.5)(vue@3.5.13(typescript@4.9.5)):
     dependencies:
       '@vue/devtools-api': 7.7.9
@@ -10759,6 +10789,10 @@ snapshots:
       fsevents: 2.3.3
       sass: 1.91.0
       terser: 5.43.1
+
+  vue-demi@0.12.5(vue@3.5.13(typescript@4.9.5)):
+    dependencies:
+      vue: 3.5.13(typescript@4.9.5)
 
   vue-i18n@9.14.5(vue@3.5.13(typescript@4.9.5)):
     dependencies:

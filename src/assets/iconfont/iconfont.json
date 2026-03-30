@@ -6,6 +6,41 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "1444767",
+      "name": "image-filter-vintage",
+      "font_class": "image-filter-vintage",
+      "unicode": "e7b3",
+      "unicode_decimal": 59315
+    },
+    {
+      "icon_id": "11982098",
+      "name": "spa",
+      "font_class": "spa",
+      "unicode": "e99e",
+      "unicode_decimal": 59806
+    },
+    {
+      "icon_id": "142110",
+      "name": "visibility",
+      "font_class": "visibility",
+      "unicode": "e8fa",
+      "unicode_decimal": 59642
+    },
+    {
+      "icon_id": "26847670",
+      "name": "隐藏",
+      "font_class": "yincang",
+      "unicode": "e66b",
+      "unicode_decimal": 58987
+    },
+    {
+      "icon_id": "832622",
+      "name": "参加",
+      "font_class": "canjia",
+      "unicode": "e681",
+      "unicode_decimal": 59009
+    },
+    {
       "icon_id": "12347953",
       "name": "expand_more_24px_rounded",
       "font_class": "expand_more_px_rounded",

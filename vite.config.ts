@@ -19,12 +19,25 @@ export default defineConfig({
     }),
     AutoImport({
       imports: [
-        "vue", 'uni-app',
+        "vue", 'uni-app','pinia',
+        {
+          '@/stores/user': ['useUserStore']
+         }
+        
       ],
       dts: "src/types/auto-imports.d.ts",
       eslintrc: { enabled: false },
     }),
   ],
+  server:{
+    proxy: {
+      '/api': {
+        target: 'http://192.168.31.78:8001', // 后端API服务器地址
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, '')
+      }
+    }
+  },
   resolve: {
     alias: {
       "@assets": path.resolve(__dirname, "src/assets"),

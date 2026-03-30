@@ -2,7 +2,7 @@
     <view class="amx-headerBar" :style="{ height: headerHeight, paddingTop: statusBarHeight + 'rpx' }"
         :class="appThemeClass">
         <view class="header-content">
-            <text class="title">标题{{ statusBarHeight }}{{ user?.username }}</text>
+            <text class="title">标题{{ statusBarHeight }}{{ user?.nickName || '' }}</text>
         </view>
     </view>
 </template>

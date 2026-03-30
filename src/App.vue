@@ -20,5 +20,11 @@ onHide(() => {
 @import "@/assets/styles/theme.scss";
 @import "@/assets/iconfont/iconfont.css" ;
 // @import "https://at.alicdn.com/t/c/font_5133341_aj65g0b3fe.css";
-
+.uni-toast {
+    margin: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
 </style>

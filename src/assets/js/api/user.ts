@@ -1,10 +1,117 @@
 import { post, get, put } from '../request'
 import { config } from '../config'
+import type { LoginPayload ,UploadImageParams } from '@/types/api/user'
 
 // Token存储键名
 export const TOKEN_KEY = 'auth_token'
 export const USER_INFO_KEY = 'user_info'
 export const AUTO_FACE_KEY = 'auto_face'
+
+/**
+* 手机号密码登陆
+* @param {Object} payload - 登陆信息
+* - `phone`: 手机号
+* - `password`: 密码 
+ */
+export const passwordLogin = (payload: LoginPayload) => {
+    return post('/app/user/login/password', payload)
+}
+
+/**
+ * 获取用户信息
+ * @returns {Promise} - 用户信息
+ */
+export const fetchUserProfile = () => {
+    return get('/app/user/info/person')
+}
+
+/**
+ * 用户退出登录
+ * @returns {Promise} - 退出登录结果
+ */
+export const logoutUser = () => {
+    return post('/app/user/info/logout')
+}
+
+/**
+ * 更新用户信息
+ * @param data 
+ * @returns 
+ */
+export const updateUserProfile = (data: any) => {
+    return post('/app/user/info/updatePerson', data)
+}
+
+
+// 刷新token
+export const refreshToken = () => {
+    return post('/app/user/login/refreshToken')
+}
+
+
+/**
+ * 上传图片,需要确认上传模式 为本地还是云模式，但是都是通过上传接口获取信息
+ * @param {Object} params - 参数对象
+ * - `filePath`: 图片文件路径
+ * - `name`: 图片文件名（默认为 'file'）
+ * - `formData`: 额外的表单数据
+ * - `header`: 额外的请求头
+ * @returns {Promise} - 上传结果
+ */
+
+// 获取上传图片模式
+export const getUploadMode = () => {
+    return get('/app/base/comm/uploadMode')
+}
+
+export const uploadImage = (params: UploadImageParams) => {
+    const { token } = storeToRefs(useUserStore())
+    const uploadUrl = `${config.apiVersion}/app/base/comm/upload`
+
+    const formData = {
+        ...(params.formData || {}),
+        scene: params.scene || 'avatar',
+        ...(params.key ? { key: params.key } : {}),
+    }
+
+    return new Promise<any>((resolve, reject) => {
+        uni.uploadFile({
+            url: uploadUrl,
+            filePath: params.filePath,
+            name: params.name || 'file',
+            formData,
+            header: {
+                ...(token ? { Authorization: `${token.value}` } : {}),
+                ...(params.header || {})
+            },
+            success: (res: any) => {
+                
+                if (res.statusCode >= 300) {
+                    reject(new Error(`上传失败: HTTP ${res.statusCode}`))
+                    return
+                }
+
+                try {
+                    const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
+                    resolve(data)
+                } catch (error) {
+                    reject(new Error('上传成功但响应解析失败'))
+                }
+            },
+            fail: (error) => {
+                reject(error)
+            }
+        })
+    })
+}
+
+
+
+
+
+
+
+
 
 // 用户登录
 export const login = (data: { phone: string; password: string; }) => {
@@ -30,10 +137,6 @@ export const logout = () => {
     return post('/logout')
 }
 
-// 刷新token
-export const refreshToken = () => {
-    return post('/refresh')
-}
 
 //最新一条存缴提取记录
 export const getRecentDeposits = (userId: string) => {
@@ -44,12 +147,6 @@ export const getRecentDeposits = (userId: string) => {
 export const getUserProfile = () => {
     return get('/profile')
 }
-
-// 更新用户信息
-export const updateUserProfile = (userData: any) => {
-    return put('/profile', userData)
-}
-
 
 // 公共资金明细
 // - `page`: 页码（默认1）
@@ -143,46 +240,7 @@ export const clearAuth = (): void => {
 } 
 
 
-export interface UploadImageParams {
-    filePath: string
-    name?: string
-    formData?: Record<string, any>
-    header?: Record<string, string>
-}
 
-export const uploadImage = (params: UploadImageParams) => {
-    const token = getToken()
-    const uploadUrl = `${config.uploadURL}${config.apiVersion}/upload`
-
-    return new Promise<any>((resolve, reject) => {
-        uni.uploadFile({
-            url: uploadUrl,
-            filePath: params.filePath,
-            name: params.name || 'file',
-            formData: params.formData || {},
-            header: {
-                ...(token ? { Authorization: `Bearer ${token}` } : {}),
-                ...(params.header || {})
-            },
-            success: (res) => {
-                if (res.statusCode < 200 || res.statusCode >= 300) {
-                    reject(new Error(`上传失败: HTTP ${res.statusCode}`))
-                    return
-                }
-
-                try {
-                    const data = typeof res.data === 'string' ? JSON.parse(res.data) : res.data
-                    resolve(data)
-                } catch (error) {
-                    reject(new Error('上传成功但响应解析失败'))
-                }
-            },
-            fail: (error) => {
-                reject(error)
-            }
-        })
-    })
-}
 
 /** 音乐列表分页（字段名与后端约定一致时可调整） */
 export interface GetMusicListParams {
@@ -213,3 +271,4 @@ export interface GetRankListParams {
 export const getRankList = (params?: GetRankListParams) => {
     return get("/rank/list", params)
 }
+

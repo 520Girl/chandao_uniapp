@@ -9,16 +9,16 @@
       <view class="flex flex-col items-center pt-4">
         <view class="relative group">
           <view class="w-24 h-24 rounded-full overflow-hidden mb-6 shadow-sm border border-outline-gold" @click="onGoToManage('accountManage')">
-            <img alt="头像" class="w-full h-full object-cover"
-              src="/static/770-800x600.jpg" />
+            <image alt="头像" class="w-full h-full object-cover"
+              :src="avatarUrl" />
           </view>
           <view @click="onGoToManage('accountManage')" class="absolute bottom-6 right-0 bg-white p-1.5 rounded-full shadow-sm border border-outline-gold" >
             <text class="iconfont icon-beizhu text-primary text-sm" data-icon="edit"></text>
           </view>
         </view>
         <view class="text-center space-y-1">
-          <h2 class="font-headline text-3xl font-light italic text-primary tracking-tight" >Elena Vance</h2>
-          <p class="font-label text-xs uppercase tracking-[0.2em] text-secondary opacity-80" >修行始于 2022年</p>
+          <h2 class="font-headline text-3xl font-light italic text-primary tracking-tight" >{{ nickName }}</h2>
+          <p class="font-label text-xs uppercase tracking-[0.2em] text-secondary opacity-80" >修行始于 {{ startTime }}年</p>
         </view>
       </view>
       <!-- Settings Group: Essential -->
@@ -32,7 +32,7 @@
               <text class="font-body text-[28rpx] theme-color-5">账户管理</text>
             </view>
             <view class="flex items-center gap-2">
-              <text class="theme-color-7 text-[24rpx]">elena@example</text>
+              <text class="theme-color-7 text-[24rpx]">{{ phone }}</text>
               <text class="iconfont icon-jinru text-[30rpx] theme-color-12 group-hover:translate-x-1 transition-transform"
                 data-icon="chevron_right"></text>
             </view>
@@ -107,7 +107,7 @@
       <!-- Logout Button -->
       <view
         class="w-full py-[30rpx] shadow-sm rounded-full bg-theme-13 border border-outline-gold/50 hover:bg-red-50 hover:border-red-200 transition-all duration-300 group">
-        <view class="flex items-center justify-center gap-3">
+        <view class="flex items-center justify-center gap-3" @click="loginOut()">
           <text class="iconfont icon-tuichu text-[40rpx] theme-color-1 group-hover:text-red-500 transition-colors"
             data-icon="logout"></text>
           <text
@@ -126,11 +126,30 @@
 <script setup lang="ts">
 import { navigateTo } from '@/utils/navigation';
 import HomeBar from '@/components/homeBar.vue';
-
+import { formatDate } from '@/utils';
+const { nickName, avatarUrl, phone,createTime } = storeToRefs(useUserStore())
 const nickname = ref<string>("Yunxi User");
-const onNavigate = (screen: string) => {
-  navigateTo(screen);
-};
+const startTime = computed(() => formatDate(createTime.value, 'YYYY'));
+  // 退出登录
+const loginOut = () => {
+  uni.showModal({
+    title: '提示',  
+    content: '确认退出登录吗?',
+    success: (res) => {
+      if (res.confirm) {
+        useUserStore().logout();
+        uni.showToast({
+          title: '已退出登录',
+          icon: 'success'
+        });
+        // 可选：跳转到登录页
+        uni.navigateTo({
+          url: '/pages/login/index'
+        })
+      }
+    }
+  }); 
+}
 
 // 前往商城
 const onGoToShop = () => {

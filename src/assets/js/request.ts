@@ -11,7 +11,7 @@ const requestInterceptor = (config: any) => {
   if (token) {
     config.header = {
       ...config.header,
-      'Authorization': `SSS ${token.value}` // 添加Bearer前缀
+      'Authorization': `${token.value}` // 添加Bearer前缀
     }
   }
 
@@ -111,10 +111,19 @@ const errorHandler = async (error: any) => {
 // 封装uni.request
 export const request = (options: any): Promise<any> => {
   return new Promise((resolve, reject) => {
-    const requestUrl = isAbsoluteUrl(options.url)
+
+    // 构建完整请求URL ,因为小程序不存在跨域，但是h5存在跨域，所以小程序直接使用相对路径，h5使用完整URL
+    let requestUrl = '';
+    // #ifdef MP-WEIXIN
+    requestUrl = isAbsoluteUrl(options.url)
       ? options.url
       : `${config.baseURL}${config.apiVersion}${options.url}`
-
+    // #endif
+    // #ifndef MP-WEIXIN
+    requestUrl = isAbsoluteUrl(options.url)
+      ? options.url
+      : `${config.apiVersion}${options.url}`
+    // #endif
     if (!isApiDomainAllowed(requestUrl) && isAbsoluteUrl(requestUrl)) {
       reject(new Error(`请求域名不在白名单中: ${requestUrl}`))
       return

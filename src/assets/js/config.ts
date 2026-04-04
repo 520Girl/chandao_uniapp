@@ -1,5 +1,4 @@
 import type { AppConfig } from '@/types/config';
-
 function parseList(value: string | undefined): string[] {
     if (!value) return [];
     return value
@@ -13,17 +12,48 @@ function parseBoolean(value: string | undefined, defaultValue = false): boolean 
     return value === 'true' || value === '1';
 }
 
+function parseUrlSafe(urlStr: string): { hostname: string; host: string } | null {
+    // 首选标准 URL 对象
+    if (typeof URL !== 'undefined') {
+        try {
+            const u = new URL(urlStr);
+            return { hostname: u.hostname, host: u.host };
+        } catch (e) {
+            // 解析失败，继续备用路由
+        }
+    }
+
+    // H5 环境可用 a 标签解析
+    if (typeof document !== 'undefined' && document.createElement) {
+        try {
+            const a = document.createElement('a');
+            a.href = urlStr;
+            return { hostname: a.hostname || '', host: a.host || '' };
+        } catch (e) {
+            // continue
+        }
+    }
+
+    // 兼容小程序：正则简单提取 host
+    const match = urlStr.match(/^https?:\/\/([^\/\?#]+)([\/\?#]|$)/i);
+    if (match) {
+        return { hostname: match[1].toLowerCase(), host: match[1].toLowerCase() };
+    }
+
+    return null;
+}
+
 function normalizeDomain(input: string): string {
     const withProtocol = /^https?:\/\//i.test(input) ? input : `https://${input}`;
-    try {
-        const url = new URL(withProtocol);
-        return url.hostname.toLowerCase();
-    } catch (error) {
-        return input.toLowerCase();
+    const parsed = parseUrlSafe(withProtocol);
+    if (parsed && parsed.hostname) {
+        return parsed.hostname.toLowerCase();
     }
+    return input.toLowerCase();
 }
 
 function parseWhitelist(raw: string | undefined): string[] {
+    console.log('原始域名白名单字符串:', raw,  parseList(raw).map(normalizeDomain));
     return parseList(raw).map(normalizeDomain);
 }
 
@@ -40,7 +70,13 @@ function getConfig(): AppConfig {
     const mode = import.meta.env.MODE;
     const isDev = import.meta.env.DEV;
     const baseURL = getBaseURL();
-    const apiVersion = import.meta.env.VITE_API_VERSION || '';
+    let apiVersion = '';
+    // #ifdef MP-WEIXIN
+     apiVersion = '';  
+    // #endif
+    // #ifndef MP-WEIXIN
+     apiVersion = import.meta.env.VITE_API_VERSION || '';
+    // #endif
     const timeout = Number(import.meta.env.VITE_API_TIMEOUT || '20000');
     const uploadURL = import.meta.env.VITE_UPLOAD_BASE_URL || baseURL;
     const title = import.meta.env.VITE_APP_TITLE || 'uni-app-template';
@@ -108,15 +144,20 @@ export function buildStaticUrl(path: string): string {
 
 export function isApiDomainAllowed(url: string): boolean {
     if (!config.domainWhitelist.length) return true;
-
     try {
-        const parsed = new URL(url);
-        const host = parsed.hostname.toLowerCase();
+        const parsed = parseUrlSafe(url);
+        console.log('解析请求URL:', url, parsed);
+        if (!parsed || !parsed.hostname) {
+            throw new Error('URL解析失败');
+        }
+        const host = parsed.hostname;
         return config.domainWhitelist.some((allowedHost) => {
-            const normalized = allowedHost.toLowerCase();
+            const normalized = allowedHost;
+            console.log('检查域名:', host, ' against whitelist entry:', normalized);
             return host === normalized || host.endsWith(`.${normalized}`);
         });
     } catch (error) {
+        console.error('解析请求URL失败:', error);
         return false;
     }
 }

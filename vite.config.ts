@@ -32,7 +32,7 @@ export default defineConfig({
   server:{
     proxy: {
       '/api': {
-        target: 'http://192.168.31.78:8001', // 后端API服务器地址
+        target: 'http://192.168.1.169:8001', // 后端API服务器地址
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }

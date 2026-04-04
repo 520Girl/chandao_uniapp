@@ -1,0 +1,81 @@
+---
+alwaysApply: true
+description: 模块化约定——api、types、utils、Pinia stores 目录职责与注释规范
+---
+
+# 前端模块化标准（API · 类型 · 工具 · 状态）
+
+新增或修改下列目录代码时，遵守分工与注释要求；风格对齐现有 [device API](mdc:src/assets/js/api/device.ts)、[types/api/device](mdc:src/types/api/device.ts)、[types/pages/device](mdc:src/types/pages/device.ts)、[utils/navigation](mdc:src/utils/navigation.ts)、[stores/user](mdc:src/stores/user.ts)。
+
+## 1. `src/assets/js/api/` — 仅放 HTTP 调用
+
+- **按业务域拆文件**：与后端模块对应，如 `device.ts`、`user.ts`；文件名 **kebab-case** 或 **camelCase** 与现有一致，全项目统一即可。
+- **职责**：从 [request](mdc:src/assets/js/request.ts) 引入 `get` / `post` / `put` / `delete`，导出「一个接口一个导出函数」。
+- **类型**：入参/出参结构从 `@/types/api/<域>` 引入；仅允许极小内联类型。
+- **注释（必填）**：文件头模块说明；**每个** `export` 请求函数 **JSDoc**（用途、`@param`、关键字段、分页/业务码说明）。
+- **路径**：后端 path 字符串（如 `'/app/device/list'`）；重复 path 可在同文件抽常量。
+
+## 2. `src/types/api/` — 仅放「接口契约」类型
+
+- **与 api 域对应**：如 `device.ts` 对应设备 DTO、枚举、列表项等。
+- **职责**：`interface` / `type` 描述后端入参、出参；**不写**纯 UI 展示模型（属 `types/pages`）。
+- **注释（必填）**：每个 `export` 类型及重要字段 **JSDoc 或行尾注释**；状态码、枚举、时间格式等必须写清。
+
+## 3. `src/types/pages/` — 页面 / 模块「视图模型」与跨组件类型
+
+- **职责**：列表行、表单视图模型；仅与 UI/前端状态相关、不宜进 `types/api` 的类型（如 [ToastInputField](mdc:src/types/pages/component.ts)）。
+- **与接口类型**：由 `types/api` 在页面或 composable 中映射；类型定义放本目录。
+- **注释（必填）**：说明使用场景与字段含义（含与接口字段的对应关系）。
+
+## 4. `src/utils/` — 工具函数（无业务 HTTP）
+
+- **按主题拆文件**：如 [navigation.ts](mdc:src/utils/navigation.ts)、[common.ts](mdc:src/utils/common.ts)、[system.ts](mdc:src/utils/system.ts)；**禁止**在本目录直接发 `uni.request` / 封装业务接口（应放 `assets/js/api`）。
+- **职责**：纯函数、格式化、平台判断、路由辅助、画布/工具绘图等与 **具体页面无关** 的可复用逻辑。
+- **可选** [index.ts](mdc:src/utils/index.ts) 做 **barrel 再导出**，避免循环依赖时不要强行聚合。
+- **注释（必填）**：
+  - 文件头说明模块用途；
+  - **每个** `export` 函数 **JSDoc**：用途、`@param`、`@returns`；非显而易见的行为（副作用、兼容性）需写明。
+
+## 5. `src/stores/` — Pinia 状态（按模块分文件）
+
+- **按域拆 Store**：一文件一 `defineStore`，如 [user.ts](mdc:src/stores/user.ts) 导出 `useUserStore`；新模块新增 `src/stores/<模块>.ts`，**不要** 把所有 state 堆进单文件。
+- **职责**：跨页面共享状态、与登录态/用户偏好/全局开关等相关逻辑；**异步业务** 可在 `actions` 内调用 `@/assets/js/api/*`，不要在 store 里手写 `uni.request`。
+- **类型**：`state` / `getters` / `actions` 参数优先使用 `@/types/api/*` 或与 store 同文件的 `type`；复杂结构可抽到 `types/pages` 或 `types/api` 并在规则 2、3 中归类。
+- **注册**：应用入口使用 [stores/index.ts](mdc:src/stores/index.ts) 创建 Pinia 并挂载插件（如 `pinia-plugin-persist-uni`），不在业务 store 文件里重复 `createPinia`。
+- **注释（必填）**：
+  - 文件头说明该 Store 管理的业务域；
+  - `state` 关键字段、`getters`、**每个** `action` 用简短注释或 JSDoc 说明意图与副作用（是否写缓存、是否调接口）。
+
+## 6. 引用关系（禁止反向依赖）
+
+```
+页面 / 组件
+  → @/assets/js/api/*   （HTTP）
+  → @/types/api/*
+  → @/types/pages/*
+  → @/utils/*
+  → @/stores/*          （useXxxStore）
+
+src/assets/js/api/*
+  → @/types/api/*
+  → ../request
+
+src/stores/*
+  → @/assets/js/api/*   （actions 内调接口，允许）
+  → @/types/api/*
+  → @/utils/*           （允许）
+
+src/utils/*
+  → 不依赖 @/assets/js/api/*（避免工具层绑死业务接口；特例需在注释中说明）
+```
+
+- **`types/api` 与 `types/pages` 不得** `import` `assets/js/api`。
+- **工具函数默认不 import store**；若必须读全局状态，优先通过参数传入，避免 `utils` ↔ `stores` 循环依赖。
+
+## 7. 自检清单（提交前）
+
+- [ ] 新接口是否在正确 `api` 文件且带 JSDoc？`types/api` 是否同步？
+- [ ] 页面模型是否在 `types/pages`，未混入 `types/api`？
+- [ ] 新工具是否在 `src/utils`、无裸 HTTP？是否带函数注释？
+- [ ] 新状态是否独立 `stores/<模块>.ts`，action 注释是否完整？
+- [ ] 别名是否使用 `@/`（见 [vite-and-aliases](mdc:.cursor/rules/vite-and-aliases.mdc)）？

@@ -6,6 +6,13 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "40213218",
+      "name": "设备",
+      "font_class": "shebei1",
+      "unicode": "e622",
+      "unicode_decimal": 58914
+    },
+    {
       "icon_id": "1444767",
       "name": "image-filter-vintage",
       "font_class": "image-filter-vintage",

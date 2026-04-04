@@ -110,9 +110,6 @@ export const uploadImage = (params: UploadImageParams) => {
 
 
 
-
-
-
 // 用户登录
 export const login = (data: { phone: string; password: string; }) => {
     return post('/login', data)

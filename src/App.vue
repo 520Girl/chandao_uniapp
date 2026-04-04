@@ -10,6 +10,11 @@ onLaunch(() => {
 });
 onShow(() => {
   console.log("App Show");
+  uni.request({
+  url: 'http://192.168.31.78:8001',
+  success: (res) => { console.log('原始请求成功', res) },
+  fail: (err) => { console.error('原始请求失败', err) }
+})
 });
 onHide(() => {
   console.log("App Hide");

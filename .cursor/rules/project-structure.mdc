@@ -20,4 +20,9 @@ alwaysApply: true
   - 公共样式与 SCSS 基础在 [src/assets/styles](mdc:src/assets/styles)
   - 别名：`@` → `src`，`@assets` → `src/assets`
 
+- 工具与全局状态：
+  - 通用工具函数：[src/utils](mdc:src/utils)
+  - Pinia 分模块：[src/stores](mdc:src/stores)（入口 [stores/index.ts](mdc:src/stores/index.ts)）
+  - 与 `api` / `types` 的分工与注释要求见 [api-modules-and-types](mdc:.cursor/rules/api-modules-and-types.mdc)
+
 使用习惯：新增页面置于 `src/pages/`，通用组件/样式放至 `src/components/` 与 `src/assets/styles/`。

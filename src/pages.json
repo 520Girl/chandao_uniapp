@@ -202,6 +202,20 @@
         "navigationBarTitleText": "勋章",
         "navigationStyle": "custom"
       }
+    },
+    {
+      "path": "pages/shop/order",
+      "style": {
+        "navigationBarTitleText": "我的订单",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/shop/order-detail",
+      "style": {
+        "navigationBarTitleText": "订单状态",
+        "navigationStyle": "custom"
+      }
     }
   ],
   "tabBar": {

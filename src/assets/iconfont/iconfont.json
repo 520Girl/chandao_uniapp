@@ -6,6 +6,27 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "1167193",
+      "name": "我的订单",
+      "font_class": "wodedingdan",
+      "unicode": "e64f",
+      "unicode_decimal": 58959
+    },
+    {
+      "icon_id": "7366361",
+      "name": "客服",
+      "font_class": "kefu",
+      "unicode": "e608",
+      "unicode_decimal": 58888
+    },
+    {
+      "icon_id": "23227172",
+      "name": "Package-2",
+      "font_class": "Package-2",
+      "unicode": "e66e",
+      "unicode_decimal": 58990
+    },
+    {
       "icon_id": "40213218",
       "name": "设备",
       "font_class": "shebei1",

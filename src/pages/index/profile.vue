@@ -55,6 +55,15 @@
             <text class="iconfont icon-jinru text-[30rpx] theme-color-12 group-hover:translate-x-1 transition-transform"
               data-icon="chevron_right"></text>
           </view>
+          <view @click="onGoToManage('order')"
+            class="flex bg-theme-13 items-center justify-between p-4 bg-accent-light/30 border border-primary/20 rounded-2xl hover:bg-accent-light/50 transition-colors cursor-pointer group">
+            <view class="flex items-center gap-4">
+              <text class="iconfont icon-wodedingdan text-[40rpx] theme-color-1" data-icon="lock"></text>
+              <text class="font-body text-[28rpx] theme-color-5">我的订单</text>
+            </view>
+            <text class="iconfont icon-jinru text-[30rpx] theme-color-12 group-hover:translate-x-1 transition-transform"
+              data-icon="chevron_right"></text>
+          </view>
           <view @click="onGoToManage('medal')"
             class="flex bg-theme-13 items-center justify-between p-4 bg-accent-light/30 border border-primary/20 rounded-2xl hover:bg-accent-light/50 transition-colors cursor-pointer group">
             <view class="flex items-center gap-4">
@@ -162,6 +171,10 @@ const onGoToManage = (target: string) => {
   if (target === 'postManage') {
     uni.navigateTo({
       url: '/pages/community/manage'
+    })
+  } else if (target === 'order') {
+    uni.navigateTo({
+      url: '/pages/shop/order'
     })
   } else {
     uni.navigateTo({

@@ -115,6 +115,31 @@ export function drawCloudBridgeCanvas(progress = 0.7, canvasId = "cloudBridgeCan
 }
 
 /**
+ * 将后端常见日期字符串转为 iOS（Safari / WKWebView / 微信小程序）可稳定解析的形式。
+ * `yyyy-MM-dd HH:mm:ss`（空格分隔）在部分 iOS 下会得到 Invalid Date，需改为 `T` 分隔。
+ *
+ * @param s 原始字符串
+ * @returns 可直接传入 `new Date(...)` 的字符串
+ */
+export function toIosSafeDateString(s: string): string {
+  const t = s.trim();
+  if (!t) return t;
+  if (/^\d{4}-\d{2}-\d{2}\s+\d/.test(t)) {
+    return t.replace(/^(\d{4}-\d{2}-\d{2})\s+/, "$1T");
+  }
+  return t;
+}
+
+/**
+ * 解析为 `Date`，字符串走 `toIosSafeDateString` 再 `new Date`。
+ */
+export function parseCrossPlatformDateInput(input: Date | number | string): Date {
+  if (input instanceof Date) return input;
+  if (typeof input === "number") return new Date(input);
+  return new Date(toIosSafeDateString(String(input)));
+}
+
+/**
  * 时间格式化工具，支持自定义格式字符串
  * @param date 输入日期，支持 Date 对象、时间戳（毫秒）或 ISO 字符串
  * @param format 输出格式，默认为 "YYYY-MM-DD HH:mm:ss"
@@ -122,7 +147,7 @@ export function drawCloudBridgeCanvas(progress = 0.7, canvasId = "cloudBridgeCan
 export function formatDate(date: Date | number | string, format = "YYYY-MM-DD HH:mm:ss"): string {
   let d: Date;
   if (typeof date === "string") {
-    d = new Date(date);
+    d = parseCrossPlatformDateInput(date);
   }
   else if (typeof date === "number") {
     d = new Date(date);
@@ -144,4 +169,64 @@ export function formatDate(date: Date | number | string, format = "YYYY-MM-DD HH
     .replace("mm", String(minute).padStart(2, "0"))
     .replace("ss", String(second).padStart(2, "0"));
 
+}
+
+/** 本地日历日的 0 点时间戳（毫秒） */
+function startOfLocalDayMs(date: Date): number {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+/**
+ * 相对时间文案（中文）：刚刚、N 分钟前、N 小时前、昨天、前天、当年 `MM-DD`、跨年 `YYYY-MM-DD`。
+ * 使用本地时区；未来时间按 `MM-DD`（当年）或 `YYYY-MM-DD` 展示。
+ * @param input 与 `formatDate` 相同：`Date`、毫秒时间戳或可解析日期字符串
+ * @returns 展示文案；无法解析时返回空字符串
+ */
+export function formatRelativeTime(input: Date | number | string): string {
+  const d = parseCrossPlatformDateInput(input);
+  if (Number.isNaN(d.getTime())) {
+    return "";
+  }
+
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+
+  // 未来时间：当年用月-日，否则带年
+  if (diffMs < 0) {
+    return d.getFullYear() === now.getFullYear()
+      ? `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+      : formatDate(d, "YYYY-MM-DD");
+  }
+
+  const daySpan = Math.floor(
+    (startOfLocalDayMs(now) - startOfLocalDayMs(d)) / 86400000
+  );
+
+  // 今天：刚刚 / 分钟前 / 小时前
+  if (daySpan === 0) {
+    if (diffMs < 60_000) {
+      return "刚刚";
+    }
+    if (diffMs < 3600_000) {
+      const m = Math.floor(diffMs / 60_000);
+      return `${m}分钟前`;
+    }
+    const h = Math.floor(diffMs / 3600_000);
+    return `${h}小时前`;
+  }
+
+  if (daySpan === 1) {
+    return "昨天";
+  }
+  if (daySpan === 2) {
+    return "前天";
+  }
+
+  if (d.getFullYear() === now.getFullYear()) {
+    return `${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  }
+
+  return formatDate(d, "YYYY-MM-DD");
 }

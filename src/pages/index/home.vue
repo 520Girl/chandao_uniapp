@@ -1,6 +1,12 @@
 <template>
     <view class="flex flex-col min-h-screen pb-32 theme-bg meditation-page">
-      <HomeBar title="云息空间" description="极 简 禅 意" :leftIcon="'icon-bell'" :messageCount="3"  titleIcon="icon-Cloudy" :handleClick="goProfile" />
+      <HomeBar
+        title="云息空间"
+        description="极 简 禅 意"
+        :leftIcon="'icon-bell'"
+        :messageCount="messageUnreadCount"
+        titleIcon="icon-Cloudy"
+        :handleClick="goProfile" />
   
       <view class="flex-1 px-6 flex items-center">
         <view class="flex-1 flex flex-col items-center relative overflow-y-auto no-scrollbar pt-4">
@@ -258,9 +264,11 @@
   
   <script setup lang="ts">
   import { getCurrentInstance } from 'vue';
+  import { fetchMessageUnreadCount } from '@/assets/js/api/message';
   import { getMusicList } from '@/assets/js/api/user';
   import { config } from '@/assets/js/config';
   import HomeBar from '@/components/homeBar.vue';
+  import { unwrapApiData } from '@/utils/apiResponse';
   
   /** 分钟范围（与 UI 文案 05–60 一致） */
   const minMinutes = 5;
@@ -281,12 +289,34 @@
     return Math.min(1, Math.max(0, (base - minMinutes) / span));
   });
 
-  // 跳转个人中心
-const goProfile = () => {
+  /** 首页铃铛未读角标（GET `/app/message/unread-count` 的 data） */
+  const messageUnreadCount = ref(0);
+
+  /**
+   * 拉取未读消息数。首页为 tabBar 页，应在 `onShow` 调用，从消息页返回时会自动刷新。
+   */
+  async function loadMessageUnreadCount() {
+    try {
+      const res = await fetchMessageUnreadCount();
+      const inner = unwrapApiData<Record<string, unknown> | number>(res);
+      let n = 0;
+      if (typeof inner === 'number') {
+        n = inner;
+      } else if (inner && typeof inner === 'object' && typeof inner.data === 'number') {
+        n = inner.data;
+      }
+      messageUnreadCount.value = Math.max(0, Math.floor(n));
+    } catch (e) {
+      console.error('fetchMessageUnreadCount', e);
+    }
+  }
+
+  // 跳转消息中心
+  const goProfile = () => {
     uni.navigateTo({
-        url: '/pages/message/index'
-    })
-}
+      url: '/pages/message/index'
+    });
+  };
 
   const activeList = reactive([
       { id: 1, type:"dark" ,imgUrl:"https://images.unsplash.com/photo-1532767153582-b1a0e5145009",totalTime:"25 MINS",endTime:"22:00 今晚", title: '深夜觉察',url:"",subtitle:"静坐于此，观照情绪如深夜之云悄然飘过。", h2Class:"text-white",spanClass:"text-white/60", bgClass: 'from-indigo-950/100 via-slate-10/60', btnClass: 'bg-white/10 backdrop-blur-xl', icon: 'meditation' },
@@ -535,6 +565,10 @@ const goProfile = () => {
   
   onMounted(() => {
     fetchMusicPage(true);
+  });
+
+  onShow(() => {
+    loadMessageUnreadCount();
   });
   
   const playingId = ref<string | null>(null);

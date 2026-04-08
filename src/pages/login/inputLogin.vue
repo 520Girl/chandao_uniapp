@@ -41,8 +41,8 @@
                                 class="h-[100rpx] leading-[100rpx] box-border theme-color-7  bg-theme-10 border-none rounded-xl px-4 text-on-surface placeholder:text-on-surface-variant/30 focus:ring-1 focus:ring-tertiary/30 transition-all outline-none"
                                 placeholder="请输入您的密码" :type="passwordVisible ? 'text' : 'password'" />
                             <view
-                                class="absolute right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-tertiary transition-colors"
-                                @click="togglePasswordVisible" type="view">
+                                class="absolute height-full z-[2] w-[60rpx] right-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 hover:text-tertiary transition-colors"
+                                @click="togglePasswordVisible">
                                 <view v-if="passwordVisible" class="iconfont icon-yincang text-xl theme-color-7"></view>
                                 <view v-else class="iconfont icon-visibility text-xl theme-color-7"></view>
                             </view>

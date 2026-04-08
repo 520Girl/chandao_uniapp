@@ -32,7 +32,16 @@
       "path": "pages/index/community",
       "style": {
         "navigationBarTitleText": "社区",
-        "navigationStyle": "custom"
+        "navigationStyle": "custom",
+        "onReachBottomDistance": 120
+      }
+    },
+    {
+      "path": "pages/index/communitycopy",
+      "style": {
+        "navigationBarTitleText": "社区副本",
+        "navigationStyle": "custom",
+        "onReachBottomDistance": 120
       }
     },
     {
@@ -135,9 +144,23 @@
       }
     },
     {
+      "path": "pages/post/detailCopy",
+      "style": {
+        "navigationBarTitleText": "动态详情副本",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/post/activity",
       "style": {
         "navigationBarTitleText": "活动详情",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/post/activity-edite",
+      "style": {
+        "navigationBarTitleText": "活动编辑",
         "navigationStyle": "custom"
       }
     },
@@ -173,6 +196,13 @@
       "path": "pages/profile/disclaimer",
       "style": {
         "navigationBarTitleText": "免责声明",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/message/indexcopy",
+      "style": {
+        "navigationBarTitleText": "消息中心",
         "navigationStyle": "custom"
       }
     },

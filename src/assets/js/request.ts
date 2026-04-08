@@ -1,7 +1,7 @@
 import { config, HTTP_STATUS, BUSINESS_CODE, isApiDomainAllowed } from './config'
 import { getToken, removeToken, refreshToken } from './api/user'
 import { decryptPayload, encryptPayload, shouldEncryptRequest } from './crypto'
-
+import type { RequestError } from '@/types/config'
 
 const isAbsoluteUrl = (url: string) => /^https?:\/\//i.test(url)
 // 请求拦截器
@@ -49,12 +49,19 @@ const responseInterceptor = (response: any) => {
   console.log('响应拦截器 - 原始响应:', response)
   // HTTP状态码检查
   if (statusCode !== HTTP_STATUS.SUCCESS && statusCode !== HTTP_STATUS.CREATED) {
-    throw new Error(`HTTP错误: ${statusCode}`)
+     // 🔥 抛出自定义错误，携带完整信息
+     const err: RequestError = new Error(`HTTP错误: ${statusCode}`)
+     err.statusCode = statusCode
+     err.data = data
+     throw err
   }
 
   //后端接口返回的状态，请求成功的前提下
   if (data.code !== BUSINESS_CODE.SUCCESS) {
-    throw new Error(data.message || '请求失败')
+    const err: RequestError = new Error(data.message || '请求失败')
+    err.statusCode = statusCode
+    err.data = data
+    throw err
   }
 
   // 服务端返回加密包时自动解密
@@ -69,7 +76,7 @@ const responseInterceptor = (response: any) => {
 
 // 错误处理
 const errorHandler = async (error: any) => {
-  console.error('请求错误:', error)
+  console.error('请求错误sssssssssss:', error)
 
   // 如果是401错误，尝试刷新token
   if (error.statusCode === HTTP_STATUS.UNAUTHORIZED) {
@@ -88,9 +95,19 @@ const errorHandler = async (error: any) => {
         title: '登录已过期，请重新登录',
         icon: 'none'
       })
-
+      return;
 
     }
+  }else if(error.statusCode === HTTP_STATUS.SUCCESS) {
+    // 后端接口返回的状态，请求成功的前提下
+    uni.showToast({
+      title: error.message || '网络请求失败',
+      icon: 'none'
+    })
+    setTimeout(() => {
+      uni.navigateBack()
+    }, 1500)
+    return;
   }
 
   // 显示错误信息

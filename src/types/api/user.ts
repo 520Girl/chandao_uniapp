@@ -38,6 +38,7 @@ export interface UserState {
     refreshToken: string | null
     isLoggedIn: boolean
     loading: boolean
+    unRead: number
 }
 
 

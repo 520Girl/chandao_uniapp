@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia'
 import type {  UserState,UserPayload,LoginPayload} from '@/types/api/user'
 import { passwordLogin ,fetchUserProfile ,logoutUser,updateUserProfile} from '@/assets/js/api/user'
+import { fetchMessageUnreadCount } from '@/assets/js/api/message'
 import { config } from '@/assets/js/config'
 // 定义用户信息的接口
 
@@ -19,7 +20,8 @@ export const useUserStore = defineStore('user', {
         token: null,
         refreshToken: null,
         isLoggedIn: false,
-        loading: false
+        loading: false,
+        unRead: 0
     }),
 
     getters: {
@@ -30,7 +32,8 @@ export const useUserStore = defineStore('user', {
         userID: (state): number => state.currentUser?.id || 1,
         createTime: (state): string => state.currentUser?.createTime || '',
         // 状态字段 token/isLoggedIn 不需要 getter，避免和 state 冲突。
-        isAuth: (state): boolean => state.isLoggedIn
+        isAuth: (state): boolean => state.isLoggedIn,
+        unReadCount: (state): number => state.unRead
     },
 
     actions: {
@@ -46,7 +49,8 @@ export const useUserStore = defineStore('user', {
                 token: null,
                 refreshToken: null,
                 isLoggedIn: false,
-                loading: false
+                loading: false,
+                unRead: 0
             });
         },
 
@@ -93,6 +97,7 @@ export const useUserStore = defineStore('user', {
 
                 // 获取用户信息
                 const isSuccess = await this.fetchUserProfile()
+                await this.fetchUnReadCount()
                 if (!isSuccess) {
                     this.clearUser()
                     return;
@@ -140,6 +145,12 @@ export const useUserStore = defineStore('user', {
                 throw error
             } finally {
                 this.loading = false
+            }
+        },
+        async fetchUnReadCount() {
+            const response = await fetchMessageUnreadCount()
+            if (response.code === 1000) {
+                this.unRead = response.data
             }
         }
     }

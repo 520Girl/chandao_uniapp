@@ -1,191 +1,281 @@
 <template>
-    <view class="flex flex-col min-h-screen theme-bg cloud-pattern">
-      <lcrBar :title="'活动详情'" :leftIcon="'icon-arrow-left'" :handleClick="onBack" :type="'all'" />
-      <view class="px-6  pb-24">
-        <!-- view: Theme (Editable) -->
-        <view class="mt-8 mb-12">
-            <view class="flex items-center gap-2 mb-4">
-                <view class="w-1 h-4 bg-primary rounded-full"></view>
-                <view class="text-primary text-xs uppercase tracking-widest font-semibold">活动灵魂</view>
-            </view>
-            <label class="block group">
-                <text class="text-[#918355] text-sm font-light mb-2 block">点击描绘活动主题</text>
-                <view class="relative">
-                    <input
-                        class="theme-color-5 w-full h-[100rpx] bg-transparent border-0 border-b border-[#e5e0d2] dark:border-[#4a4538] focus:border-primary focus:ring-0 text-2xl font-light py-2 px-0 placeholder:text-[#d1cdc2] transition-colors"
-                        placeholder="输入一个诗意的主题..." type="text" value="林间听风：初秋茶叙" />
-                    <text
-                        class="iconfont icon-Edit absolute right-0 top-1/2 -translate-y-1/2 text-[#918355] text-xl opacity-0 group-hover:opacity-100 transition-opacity"></text>
-                </view>
-            </label>
+  <view
+    class="flex flex-col min-h-screen theme-bg cloud-pattern pb-[calc(200rpx+env(safe-area-inset-bottom))]"
+  >
+    <lcrBar :title="'活动详情'" :leftIcon="'icon-arrow-left'" :handleClick="onBack" :type="'all'" />
+
+    <view v-if="loadError" class="px-6 mt-10 text-center text-sm theme-color-8">
+      {{ loadError }}
+    </view>
+    <view v-else-if="loading" class="py-16 text-center text-sm theme-color-8">加载中…</view>
+
+    <scroll-view v-else-if="detail" scroll-y class="flex-1 min-h-0" :show-scrollbar="false">
+      <view class="px-6 pt-6">
+        <view class="flex items-start gap-4 mb-10">
+          <up-image
+            v-if="templateIconUrl"
+            :src="templateIconUrl"
+            width="120rpx"
+            height="120rpx"
+            radius="24rpx"
+            class="shrink-0"
+            mode="aspectFill"
+          />
+          <view class="min-w-0 flex-1">
+            <text class="text-[#918355] text-xs font-medium tracking-wide block mb-1">{{
+              detail.templateName || "共修活动"
+            }}</text>
+            <text class="theme-color-5 text-2xl font-light leading-snug block break-words">{{
+              detail.title
+            }}</text>
+          </view>
         </view>
-        <!-- view: Time (Editable) -->
-        <view class="mb-12">
+
+        <view class="mb-10">
+          <view class="flex items-center gap-2 mb-3">
+            <view class="w-1 h-4 bg-primary rounded-full" />
+            <text class="text-primary text-xs uppercase tracking-widest font-semibold">时光约定</text>
+          </view>
+          <view
+            class="flex items-center gap-4 p-4 bg-white/40 dark:bg-white/5 rounded-xl border border-white/60 dark:border-white/5"
+          >
+            <view class="size-12 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+              <text class="iconfont icon-calendar-today text-[48rpx] theme-color-1" />
+            </view>
+            <view class="min-w-0 flex-1 text-center">
+              <text class="theme-color-5 text-base leading-relaxed block whitespace-pre-wrap ">{{
+                timeRangeText
+              }}</text>
+            </view>
+          </view>
+        </view>
+
+        <view v-if="detail.content?.trim()" class="mb-10">
+          <view class="flex items-center gap-2 mb-3">
+            <view class="w-1 h-4 bg-primary rounded-full" />
+            <text class="text-primary text-xs uppercase tracking-widest font-semibold">活动说明</text>
+          </view>
+          <view class="bg-primary/5 dark:bg-primary/10 p-6 rounded-xl relative overflow-hidden">
+            <text class="theme-color-5 text-base font-light leading-relaxed block whitespace-pre-wrap">{{
+              detail.content
+            }}</text>
+          </view>
+        </view>
+
+        <view class="mb-10">
+          <view class="flex items-center gap-2 mb-3">
+            <view class="w-1 h-4 bg-primary rounded-full" />
+            <text class="text-primary text-xs uppercase tracking-widest font-semibold">打卡概况</text>
+          </view>
+          <view class="flex gap-4 mb-4">
             <view
-                class="flex items-center justify-between p-3 bg-white/40 dark:bg-white/5 rounded-lg border border-white/60 dark:border-white/5 shadow-sm">
-                <view class="flex items-center gap-4">
-                    <view class="size-12 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                        <text class="iconfont icon-calendar-today text-[48rpx] theme-color-1"></text>
-                    </view>
-                    <view class="min-w-0 flex-1">
-                        <view class="text-[#918355] text-xs font-medium tracking-wide">时光约定</view>
-                        <view class="text-[#1a170f] dark:text-[#fbfbf9] text-base leading-relaxed break-words" v-html="activityTimeRangeDisplay">
-                            
-                        </view>
-                    </view>
-                </view>
-                <view
-                    class="text-primary active:opacity-80 transition-opacity"
-                    @tap="openActivityDatetime">
-                    <text class="iconfont icon-lishidianjihou text-[48rpx] theme-color-1"></text>
-                </view>
+              class="flex-1 rounded-xl bg-white/50 dark:bg-white/5 border border-[#d4af35]/15 p-4 text-center"
+            >
+              <text class="text-[#918355] text-xs block mb-1">参与人数</text>
+              <text class="text-xl font-semibold theme-color-1">{{
+                detail.checkinStats.totalParticipants
+              }}</text>
             </view>
-        </view>
-        <!-- view: Location (Static) -->
-        <view class="mb-12">
-            <view class="flex items-start gap-4 px-2">
-                <view class="size-12 shrink-0 flex items-center justify-center text-[#918355]">
-                    <text class="iconfont icon-MapPin text-[49rpx] theme-color-1"></text>
-                </view>
-                <view class="flex-1 border-l border-[#e5e0d2] dark:border-[#4a4538] pl-6 pb-2">
-                    <view class="text-[#918355] text-xs font-medium tracking-wide mb-1">静谧之地</view>
-                    <view class="theme-color-5 dark:text-[#fbfbf9] text-base leading-relaxed">杭州市西湖区灵隐街道<br />法喜寺后山·竹间茶室
-                    </view>
-                </view>
+            <view
+              class="flex-1 rounded-xl bg-white/50 dark:bg-white/5 border border-[#d4af35]/15 p-4 text-center"
+            >
+              <text class="text-[#918355] text-xs block mb-1">今日已打卡</text>
+              <text class="text-xl font-semibold theme-color-1">{{
+                detail.checkinStats.todayCheckinCount
+              }}</text>
             </view>
-        </view>
-        <!-- view: Content Style (Editable) -->
-        <view class="mb-16">
-            <view class="flex items-center gap-2 mb-6">
-                <view class="w-1 h-4 bg-primary rounded-full"></view>
-                <view class="text-primary text-xs uppercase tracking-widest font-semibold">美学范围</view>
+          </view>
+          <view
+            v-if="detail.checkinStats.checkinList?.length"
+            class="rounded-xl border border-[#d4af35]/10 overflow-hidden bg-white/30"
+          >
+            <view
+              v-for="(row, idx) in detail.checkinStats.checkinList"
+              :key="`${row.userId}-${idx}`"
+              class="flex items-center justify-between px-4 py-3 border-b border-[#d4af35]/10 last:border-b-0"
+            >
+              <text class="theme-color-5 text-sm truncate flex-1 pr-2">{{ row.userName }}</text>
+              <text class="text-[#918355] text-xs shrink-0"
+                >连续 {{ row.checkinDays }} 天<text v-if="row.todayChecked" class="theme-color-1 ml-1"
+                  >· 今日已打卡</text
+                ></text
+              >
             </view>
-            <view class="bg-primary/5 dark:bg-primary/10 p-8 rounded-lg relative overflow-hidden">
-                <!-- Decorative element -->
-                <view class="absolute -right-4 -top-4 text-primary/10 select-none">
-                    <text class="icon-auto_awesome iconfont text-8xl"></text>
-                </view>
-                <label class="block">
-                    <text class="text-[#918355] text-sm font-light mb-4 block">定义内容意境</text>
-                    <textarea
-                        class="theme-color-5 w-full bg-transparent border-0 focus:ring-0  dark:text-[#fbfbf9] font-light leading-relaxed p-0 resize-none h-32 placeholder:text-[#d1cdc2]"
-                        placeholder="描述您期望的活动氛围或视觉风格..." v-model="activityData.content"></textarea>
-                </label>
-            </view>
+          </view>
         </view>
-        <!-- Action Button -->
-        <view class="fixed bottom-10 left-0 right-0 px-8 flex justify-center pointer-events-none">
-            <button
-                class="pointer-events-auto bg-primary text-white px-12 py-4 rounded-full shadow-lg shadow-primary/20 hover:shadow-primary/40 hover:-translate-y-1 transition-all duration-300 flex items-center gap-2">
-                <text class="text-sm font-medium tracking-[0.2em] ml-2">保存意境</text>
-                <text class="iconfont icon-done-all text-lg"></text>
-            </button>
-        </view>
+      </view>
+    </scroll-view>
+
+    <view
+      v-if="detail && !loading"
+      class="fixed bottom-0 left-0 right-0 px-6 pt-3 pb-[calc(24rpx+env(safe-area-inset-bottom))] bg-theme-bg/95 backdrop-blur border-t border-[#d4af35]/10"
+    >
+      <view v-if="showJoinBtn" class="flex justify-center">
+        <button
+          class="w-full max-w-md bg-primary text-white py-3 rounded-full text-sm font-medium tracking-widest disabled:opacity-50"
+          :disabled="actionLoading"
+          @click="onJoin"
+        >
+          {{ actionLoading ? "处理中…" : "加入活动" }}
+        </button>
+      </view>
+      <view v-else-if="showCheckinBtn" class="flex justify-center">
+        <button
+          class="w-full max-w-md bg-theme-1 text-white py-3 rounded-full text-sm font-medium tracking-widest disabled:opacity-50"
+          :disabled="actionLoading"
+          @click="onCheckin"
+        >
+          {{ actionLoading ? "处理中…" : "今日打卡" }}
+        </button>
+      </view>
+      <view v-else-if="meRow?.todayChecked" class="text-center py-3 text-sm theme-color-1 font-medium">
+        今日已打卡
+      </view>
     </view>
-    <!-- Footer decoration -->
-    <view class="text-center py-12 opacity-20 pointer-events-none">
-        <view class="inline-block w-12 h-[1px] bg-primary align-middle"></view>
-        <text class="mx-4 text-primary text-[10px] tracking-[0.5em] uppercase">Poetic Life</text>
-        <view class="inline-block w-12 h-[1px] bg-primary align-middle"></view>
-    </view>
-    <!-- 联动：先选开始，确认后再选结束（结束时间 minDate = 开始时间） -->
-    <up-datetime-picker
-        v-model="activityTimeStart"
-        :show="showActivityTimeStart"
-        mode="datetime"
-        title="选择开始时间"
-        :closeOnClickOverlay="true"
-        confirmColor='#d4af35'
-        cancelColor='#d4af35'
-        @confirm="onActivityTimeStartConfirm"
-        @cancel="onActivityTimeStartDismiss"
-        @close="onActivityTimeStartDismiss"
-    />
-    <up-datetime-picker
-        v-model="activityTimeEnd"
-        :show="showActivityTimeEnd"
-        mode="datetime"
-        title="选择结束时间"
-        :min-date="activityTimeStart"
-        :closeOnClickOverlay="true"
-        confirmColor='#d4af35'
-        cancelColor='#d4af35'
-        @confirm="onActivityTimeEndConfirm"
-        @cancel="onActivityTimeEndDismiss"
-        @close="onActivityTimeEndDismiss"
-    />
-    </view>
-  </template>
-  <script setup lang="ts">
-  import { navigateBack } from '@/utils/navigation';
-  import lcrBar from '@/components/lcrBar.vue';
+  </view>
+</template>
 
-  /** 活动时段：默认同日 14:00 ~ 18:00（本地时间） */
-  const activityTimeStart = ref(new Date(2023, 9, 20, 14, 0, 0).getTime());
-  const activityTimeEnd = ref(new Date(2023, 9, 20, 18, 0, 0).getTime());
-  const showActivityTimeStart = ref(false);
-  const showActivityTimeEnd = ref(false);
+<script setup lang="ts">
+import { onLoad, onShow } from "@dcloudio/uni-app";
+import { storeToRefs } from "pinia";
+import { fetchActivityDetail, postActivityCheckin, postActivityJoin } from "@/assets/js/api/activity";
+import { config } from "@/assets/js/config";
+import { useUserStore } from "@/stores/user";
+import type { ActivityDetail } from "@/types/api/activity";
+import { unwrapApiData } from "@/utils/apiResponse";
+import { formatDate } from "@/utils";
+import { navigateBack } from "@/utils/navigation";
+import lcrBar from "@/components/lcrBar.vue";
 
-  const activityData = ref({
-    title: '活动1',
-    timeStart: new Date(2023, 9, 20, 14, 0, 0).toISOString(),
-    timeEnd: new Date(2023, 9, 20, 18, 0, 0).toISOString(),
-    location: '活动地点1',
-    content: '白墙黛瓦，琴声悠扬。以宋代极简美学为底色，点缀青苔与枯木，让每一处留白都充满叙事感。穿着以素色棉麻为主，在烟雨蒙蒙中找寻内心的宁静。',
-  });
+const userStore = useUserStore();
+const { userID } = storeToRefs(userStore);
 
-  function formatActivityDateTime(ms: number) {
-    const d = new Date(ms);
-    if (Number.isNaN(d.getTime())) return '';
-    const y = d.getFullYear();
-    const m = d.getMonth() + 1;
-    const day = d.getDate();
-    const h = String(d.getHours()).padStart(2, '0');
-    const min = String(d.getMinutes()).padStart(2, '0');
-    return `${y}年${m}月${day}日 ${h}:${min}`;
+const activityId = ref(0);
+/** 从列表带入：已加入 */
+const optimisticJoined = ref(false);
+/** 本页成功调用加入接口 */
+const sessionJoined = ref(false);
+
+const loading = ref(true);
+const loadError = ref("");
+const detail = ref<ActivityDetail | null>(null);
+const actionLoading = ref(false);
+
+function resolveMediaUrl(raw: string | null | undefined): string {
+  const u = (raw || "").trim();
+  if (!u) return "";
+  if (/^https?:\/\//i.test(u)) return u;
+  if (u.startsWith("//")) return `https:${u}`;
+  const base = config.baseURL.replace(/\/+$/, "");
+  const path = u.startsWith("/") ? u : `/${u}`;
+  return `${base}${path}`;
+}
+
+const templateIconUrl = computed(() =>
+  detail.value?.templateIcon ? resolveMediaUrl(detail.value.templateIcon) : "",
+);
+
+const timeRangeText = computed(() => {
+  const d = detail.value;
+  if (!d) return "时间待定";
+  const s = d.startDate?.trim();
+  const e = d.endDate?.trim();
+  if (s && e) {
+    return `${formatDate(s, "YYYY-MM-DD HH:mm")}\n～\n${formatDate(e, "YYYY-MM-DD HH:mm")}`;
   }
+  return s || e || "时间待定";
+});
 
-  const activityTimeRangeDisplay = computed(() => {
-    const startStr = formatActivityDateTime(activityTimeStart.value);
-    const endStr = formatActivityDateTime(activityTimeEnd.value);
-    if (!startStr || !endStr) return '';
-    return `${startStr} <view class=" block text-center">～</view> ${endStr}`;
-  });
+const meRow = computed(() => {
+  const uid = userID.value;
+  const list = detail.value?.checkinStats?.checkinList;
+  if (uid == null || !list?.length) return undefined;
+  return list.find((r) => r.userId === uid);
+});
 
-  function openActivityDatetime() {
-    showActivityTimeStart.value = true;
+const isMember = computed(
+  () => optimisticJoined.value || sessionJoined.value || !!meRow.value,
+);
+
+const showJoinBtn = computed(() => !isMember.value);
+const showCheckinBtn = computed(() => isMember.value && !meRow.value?.todayChecked);
+
+async function loadActivity() {
+  if (!activityId.value) {
+    loadError.value = "缺少活动信息";
+    loading.value = false;
+    return;
   }
-
-  function onActivityTimeStartConfirm() {
-    showActivityTimeStart.value = false;
-    if (activityTimeEnd.value < activityTimeStart.value) {
-      activityTimeEnd.value = activityTimeStart.value;
-    }
-    showActivityTimeEnd.value = true;
-  }
-
-  function onActivityTimeStartDismiss() {
-    showActivityTimeStart.value = false;
-  }
-
-  function onActivityTimeEndConfirm() {
-    if (activityTimeEnd.value < activityTimeStart.value) {
-      uni.showToast({ title: '结束时间需不早于开始时间', icon: 'none' });
+  loading.value = true;
+  loadError.value = "";
+  try {
+    const res = await fetchActivityDetail({ id: activityId.value });
+    const data = unwrapApiData<ActivityDetail>(res);
+    if (!data) {
+      loadError.value = "暂无活动数据";
+      detail.value = null;
       return;
     }
-    showActivityTimeEnd.value = false;
-    activityData.value.timeStart = new Date(activityTimeStart.value).toISOString();
-    activityData.value.timeEnd = new Date(activityTimeEnd.value).toISOString();
+    detail.value = data;
+  } catch (e) {
+    console.error("fetchActivityDetail", e);
+    loadError.value = "加载失败，请稍后重试";
+    detail.value = null;
+  } finally {
+    loading.value = false;
   }
+}
 
-  function onActivityTimeEndDismiss() {
-    showActivityTimeEnd.value = false;
+async function onJoin() {
+  if (!activityId.value || actionLoading.value) return;
+  actionLoading.value = true;
+  try {
+    await postActivityJoin({ id: activityId.value });
+    sessionJoined.value = true;
+    uni.showToast({ title: "加入成功", icon: "success" });
+    await loadActivity();
+  } catch (e) {
+    console.error("postActivityJoin", e);
+    uni.showToast({ title: "加入失败", icon: "none" });
+  } finally {
+    actionLoading.value = false;
   }
+}
 
-  const onBack = () => {
-    navigateBack();
-  };
-  </script>
-  <style scoped lang="scss">
-  
-  </style>
+async function onCheckin() {
+  if (!activityId.value || actionLoading.value) return;
+  actionLoading.value = true;
+  try {
+    await postActivityCheckin({ id: activityId.value });
+    uni.showToast({ title: "打卡成功", icon: "success" });
+    await loadActivity();
+  } catch (e) {
+    console.error("postActivityCheckin", e);
+    uni.showToast({ title: "打卡失败", icon: "none" });
+  } finally {
+    actionLoading.value = false;
+  }
+}
+
+function onBack() {
+  navigateBack();
+}
+
+onLoad((options) => {
+  const q = options ?? {};
+  const id = Number(q.id);
+  activityId.value = Number.isFinite(id) && id > 0 ? id : 0;
+  optimisticJoined.value = String(q.joined ?? "") === "1";
+});
+
+onShow(() => {
+  if (activityId.value) {
+    loadActivity();
+  } else {
+    loading.value = false;
+    loadError.value = "缺少活动信息";
+  }
+});
+</script>
+
+<style scoped lang="scss"></style>

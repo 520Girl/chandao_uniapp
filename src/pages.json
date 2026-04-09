@@ -66,6 +66,13 @@
       }
     },
     {
+      "path": "pages/community/managecopy",
+      "style": {
+        "navigationBarTitleText": "社群管理",
+        "navigationStyle":"custom"
+      }
+    },
+    {
       "path": "pages/community/allPost",
       "style": {
         "navigationBarTitleText": "全部动态",

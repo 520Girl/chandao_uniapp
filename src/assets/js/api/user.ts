@@ -1,6 +1,21 @@
-import { post, get, put } from '../request'
-import { config } from '../config'
-import type { LoginPayload ,UploadImageParams } from '@/types/api/user'
+/**
+ * 用户登录、资料、团队、定位等 HTTP（`/app/user/*`）。
+ */
+import { post, get } from "../request";
+import { config } from "../config";
+import type {
+  BindPhoneDTO,
+  JoinByInviteDTO,
+  LoginPayload,
+  MiniPhoneBindDTO,
+  MyTeamsQuery,
+  QuitTeamDTO,
+  ReverseGeoDTO,
+  UpdatePasswordDTO,
+  UpdatePersonDTO,
+  UploadImageParams,
+  UserLocationReport,
+} from "@/types/api/user";
 
 // Token存储键名
 export const TOKEN_KEY = 'auth_token'
@@ -17,36 +32,124 @@ export const passwordLogin = (payload: LoginPayload) => {
     return post('/app/user/login/password', payload)
 }
 
+const USER_INFO_PERSON = "/app/user/info/person";
+const USER_INFO_UPDATE_PERSON = "/app/user/info/updatePerson";
+const USER_INFO_UPDATE_PASSWORD = "/app/user/info/updatePassword";
+const USER_INFO_LOGOFF = "/app/user/info/logoff";
+const USER_INFO_LOGOUT = "/app/user/info/logout";
+const USER_INFO_BIND_PHONE = "/app/user/info/bindPhone";
+const USER_INFO_MINI_PHONE = "/app/user/info/miniPhone";
+const USER_LOCATION_REPORT = "/app/user/location/report";
+const USER_LOCATION_REVERSE = "/app/user/location/reverse";
+const USER_JOIN_INVITE = "/app/user/joinByInvite";
+const USER_QUIT_TEAM = "/app/user/quitTeam";
+const USER_MY_TEAMS = "/app/user/myTeams";
+
 /**
- * 获取用户信息
- * @returns {Promise} - 用户信息
+ * 获取当前登录用户资料（UserPerson）；需登录。
  */
 export const fetchUserProfile = () => {
-    return get('/app/user/info/person')
-}
+  return get(USER_INFO_PERSON);
+};
 
 /**
- * 用户退出登录
- * @returns {Promise} - 退出登录结果
+ * 更新用户资料；成功后 `data` 为更新后的 UserPerson；需登录。
+ *
+ * @param body `nickName` / `avatarUrl` / `gender` / `bio` 可选
+ */
+export const updateUserProfile = (body: UpdatePersonDTO) => {
+  return post(USER_INFO_UPDATE_PERSON, body);
+};
+
+/**
+ * 修改密码；成功后业务 `data` 为 `null`；需登录。
+ *
+ * @param body `password` 新密码，`code` 短信/验证码
+ */
+export const postUserUpdatePassword = (body: UpdatePasswordDTO) => {
+  return post(USER_INFO_UPDATE_PASSWORD, body);
+};
+
+/**
+ * 注销账号；成功后业务 `data` 为 `null`；需登录。
+ */
+export const postUserLogoff = () => {
+  return post(USER_INFO_LOGOFF, {});
+};
+
+/**
+ * 退出登录；成功后业务 `data` 为 `null`；需登录。
  */
 export const logoutUser = () => {
-    return post('/app/user/info/logout')
-}
+  return post(USER_INFO_LOGOUT, {});
+};
 
 /**
- * 更新用户信息
- * @param data 
- * @returns 
+ * 绑定手机号；成功后业务 `data` 为 `null`；需登录。
  */
-export const updateUserProfile = (data: any) => {
-    return post('/app/user/info/updatePerson', data)
-}
+export const postUserBindPhone = (body: BindPhoneDTO) => {
+  return post(USER_INFO_BIND_PHONE, body);
+};
+
+/**
+ * 登录态内绑定小程序手机号；成功后 `data` 为 UserPerson；需登录。
+ */
+export const postUserMiniPhone = (body: MiniPhoneBindDTO) => {
+  return post(USER_INFO_MINI_PHONE, body);
+};
+
+/**
+ * 上报用户位置（展示/排行榜等）；成功后业务 `data` 为 `null`；需登录。
+ *
+ * @param body 经纬度、精度、省市、场景等；可只传 lat/lng/accuracy 由后端逆地理
+ */
+export const postUserLocationReport = (body: UserLocationReport) => {
+  return post(USER_LOCATION_REPORT, body);
+};
+
+/**
+ * 经纬度转省市；需登录。依赖后端地图 Key，否则可能返回 null。
+ *
+ * @param body `lat` / `lng`
+ */
+export const postUserLocationReverse = (body: ReverseGeoDTO) => {
+  return post(USER_LOCATION_REVERSE, body);
+};
+
+/**
+ * 通过邀请码加入团队；成功后 `data` 含 `teamId`；需登录。
+ */
+export const postUserJoinByInvite = (body: JoinByInviteDTO) => {
+  return post(USER_JOIN_INVITE, body);
+};
+
+/**
+ * 主动退出团队；成功后业务 `data` 为 `null`；需登录。
+ */
+export const postUserQuitTeam = (body: QuitTeamDTO) => {
+  return post(USER_QUIT_TEAM, body);
+};
+
+/**
+ * 我的团队列表；需登录。
+ *
+ * @param query `status`：0 当前团队，1 历史团队；默认 0
+ */
+export const fetchMyTeams = (query?: MyTeamsQuery) => {
+  return get(USER_MY_TEAMS, query ?? {});
+};
 
 
-// 刷新token
-export const refreshToken = () => {
-    return post('/app/user/login/refreshToken')
-}
+/**
+ * 刷新 access token；**必须**走 `skipAuthRefresh`，否则会与 `request` 内 401 刷新逻辑互相递归。
+ */
+export const refreshTokenHttp = (refreshToken: string) => {
+  return post(
+    "/app/user/login/refreshToken",
+    { refreshToken },
+    { skipAuthRefresh: true },
+  );
+};
 
 
 /**
@@ -104,6 +207,25 @@ export const uploadImage = (params: UploadImageParams) => {
         })
     })
 }
+
+/**
+ * 我的团队列表（同 `fetchMyTeams`）；需登录。
+ * @deprecated 新代码请使用 `fetchMyTeams`
+ */
+export const getUserTeam = (query?: MyTeamsQuery) => {
+  return fetchMyTeams(query);
+};
+
+
+
+
+
+
+
+
+
+
+
 
 
 

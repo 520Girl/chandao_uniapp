@@ -3,13 +3,31 @@
     <HomeBar :title="'云息社区'" description="安 定 共 修" :leftIcon="'icon-shopping-bag'" :handleClick="gotoShop" />
     <view class="px-4 py-6">
       <view class="text-center">
-        <view class="text-[48rpx] font-bold mb-6">今日照见：________</view>
+        <view
+          class="flex flex-wrap justify-center items-end gap-x-[10rpx] gap-y-2 px-2 mb-6 text-[48rpx] font-bold leading-tight"
+        >
+          <text class="shrink-0">今日照见：</text>
+          <view
+            class="min-w-[140rpx] max-w-[85%] pb-[8rpx] border-b-2 border-dashed border-[#d4af35]/45 box-border"
+          >
+            <text
+              class="block text-center text-[34rpx] font-semibold italic text-[#d4af35] break-all line-clamp-2 min-h-[1.15em]"
+            >
+              {{ heroGlimpseText || " " }}
+            </text>
+          </view>
+        </view>
         <view class="relative max-w-[90%] mx-auto">
-          <input style="height: 132rpx; min-height: auto; line-height: 2" v-model="content"
+          <input
+            style="height: 132rpx; min-height: auto; line-height: 2"
+            v-model="content"
             class="w-full bg-white border border-theme-12 rounded-full text-center italic text-[#d4af35]/60 shadow-sm"
-            placeholder="分享你的内心天空..." />
-          <view @click="goPublishPost"
-            class="absolute bg-theme-1 right-2 top-2 text-white w-[96rpx] h-[96rpx] rounded-full shadow-lg flex items-center justify-center">
+            placeholder="分享你的内心天空..."
+          />
+          <view
+            @click="goPublishPost"
+            class="absolute bg-theme-1 right-2 top-2 text-white w-[96rpx] h-[96rpx] rounded-full shadow-lg flex items-center justify-center"
+          >
             <text class="iconfont icon-send text-[48rpx] bg-theme-1"></text>
           </view>
         </view>
@@ -25,11 +43,18 @@
           </text>
         </view>
         <view class="flex items-center gap-4 overflow-x-auto pb-[32rpx] no-scrollbar">
-          <view v-for="(item, index) in rankList" :key="index" class="flex flex-col items-center gap-2">
+          <view v-for="(item, index) in rankList" :key="item.userId" class="flex flex-col items-center gap-2">
             <view :class="index === 0 ? 'border-2 border-theme-1 shadow-[0_0_15px_rgba(212,175,53,0.3)]' : 'border border-primary/20'
               " class="relative p-[12rpx] rounded-full">
-              <image :alt="item.name" class="w-[90rpx] h-[90rpx] rounded-full object-cover" :src="item.imgUrl"
-                mode="aspectFill" :lazy-load="true" :show-menu="false" />
+              <image
+                :alt="item.name"
+                class="w-[90rpx] h-[90rpx] rounded-full object-cover"
+                :class="item.isVacant ? 'opacity-60' : ''"
+                :src="item.imgUrl"
+                mode="aspectFill"
+                :lazy-load="true"
+                :show-menu="false"
+              />
             </view>
             <span :class="index === 0 ? 'theme-color-1' : 'theme-color-8'" class="text-[20rpx] font-bold">{{
               item.name
@@ -152,76 +177,38 @@
 
 <script setup lang="ts">
 import { onPageScroll, onReachBottom, onShow } from "@dcloudio/uni-app";
+import { fetchLeaderboardScore } from "@/assets/js/api/leaderboard";
 import { fetchMixedFeed, postPostLike } from "@/assets/js/api/post";
-import { getDictJumpType } from "@/assets/js/api/dict";
 import { config } from "@/assets/js/config";
 import { postActivityJoin } from "@/assets/js/api/activity";
+import type { LeaderboardScoreItem, LeaderboardScorePage } from "@/types/api/leaderboard";
 import type { MixedFeedItem } from "@/types/api/post";
-import type { resItem } from "@/types/api/dict";
-import { formatDate, formatRelativeTime } from "@/utils";
-import { unwrapApiList, unwrapApiPagedResult } from "@/utils/apiResponse";
+import { formatDate, formatRelativeTime, postUserStateIconClassSuffix } from "@/utils";
+import { unwrapApiData, unwrapApiPagedResult } from "@/utils/apiResponse";
 import HomeBar from "@/components/homeBar.vue";
+import { useDictStore } from "@/stores/dict";
+import { usePostDraftStore } from "@/stores/post";
 
 
 type FeedLoadStatus = "loadmore" | "loading" | "nomore";
 
+const dictStore = useDictStore();
+
 const content = ref<string>("");
-const rankList = ref([
-  {
-    name: "艾登",
-    score: 98,
-    imgUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuDfHJ-RCqeVenIKcaa_DXfaiFK1x6tE5jBXA1KGXw9kbn-X1d_j3uuKcGQZtXjFFC9XDPljtXPH_SFbPHkcDxh16ViWWBz51zdjNbtw-twWkwXjbJ_1-CGkzDqU7CV-rAqAOLT31LHrY6VHAoIZXhM4lf2zWHOZP2vy0wmeUSgBHBukvF_EOa3Di13qWNfZvEmj1Uf7fgza5nBlHwrf1QQRg6d7YcnEIFxTOQXwlgEKzyfbz0kFH5vbjdHdS_2lHzGvKH5BLG9znRrb",
-  },
-  {
-    name: "莎拉",
-    score: 95,
-    imgUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAP1_Aew993r9KgMuODx_O8uK7CsvTOufMCHUaCw_-62lDjzoQIq4zYkX59lRl7l-sMXhzNGrZq1qrt8KtWxKdVn2oiqlcm4c4XToU5LJpvD0U1zOEMP3Z5A7bB9FZ-oITvty5YR9jcdtZrJJCyC0hmLCq_bGxRKG_n0p4xv7kJr-3GTvmFkJK-FkvpPH8-ZiNtt5nkq1oDlPTuxjKL_22740LQh1NYEe2ZsfC2S-u5ID7ufpCfXOcQAqB3Wg2YLH46cXOXaramk4Mi",
-  },
-  {
-    name: "马库斯",
-    score: 92,
-    imgUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAP1_Aew993r9KgMuODx_O8uK7CsvTOufMCHUaCw_-62lDjzoQIq4zYkX59lRl7l-sMXhzNGrZq1qrt8KtWxKdVn2oiqlcm4c4XToU5LJpvD0U1zOEMP3Z5A7bB9FZ-oITvty5YR9jcdtZrJJCyC0hmLCq_bGxRKG_n0p4xv7kJr-3GTvmFkJK-FkvpPH8-ZiNtt5nkq1oDlPTuxjKL_22740LQh1NYEe2ZsfC2S-u5ID7ufpCfXOcQAqB3Wg2YLH46cXOXaramk4Mi",
-  },
-  {
-    name: "埃琳娜",
-    score: 90,
-    imgUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAP1_Aew993r9KgMuODx_O8uK7CsvTOufMCHUaCw_-62lDjzoQIq4zYkX59lRl7l-sMXhzNGrZq1qrt8KtWxKdVn2oiqlcm4c4XToU5LJpvD0U1zOEMP3Z5A7bB9FZ-oITvty5YR9jcdtZrJJCyC0hmLCq_bGxRKG_n0p4xv7kJr-3GTvmFkJK-FkvpPH8-ZiNtt5nkq1oDlPTuxjKL_22740LQh1NYEe2ZsfC2S-u5ID7ufpCfXOcQAqB3Wg2YLH46cXOXaramk4Mi",
-  },
-  {
-    name: "朱利安",
-    score: 88,
-    imgUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAP1_Aew993r9KgMuODx_O8uK7CsvTOufMCHUaCw_-62lDjzoQIq4zYkX59lRl7l-sMXhzNGrZq1qrt8KtWxKdVn2oiqlcm4c4XToU5LJpvD0U1zOEMP3Z5A7bB9FZ-oITvty5YR9jcdtZrJJCyC0hmLCq_bGxRKG_n0p4xv7kJr-3GTvmFkJK-FkvpPH8-ZiNtt5nkq1oDlPTuxjKL_22740LQh1NYEe2ZsfC2S-u5ID7ufpCfXOcQAqB3Wg2YLH46cXOXaramk4Mi",
-  },
-  {
-    name: "朱利安",
-    score: 88,
-    imgUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAP1_Aew993r9KgMuODx_O8uK7CsvTOufMCHUaCw_-62lDjzoQIq4zYkX59lRl7l-sMXhzNGrZq1qrt8KtWxKdVn2oiqlcm4c4XToU5LJpvD0U1zOEMP3Z5A7bB9FZ-oITvty5YR9jcdtZrJJCyC0hmLCq_bGxRKG_n0p4xv7kJr-3GTvmFkJK-FkvpPH8-ZiNtt5nkq1oDlPTuxjKL_22740LQh1NYEe2ZsfC2S-u5ID7ufpCfXOcQAqB3Wg2YLH46cXOXaramk4Mi",
-  },
-  {
-    name: "朱利安",
-    score: 88,
-    imgUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAP1_Aew993r9KgMuODx_O8uK7CsvTOufMCHUaCw_-62lDjzoQIq4zYkX59lRl7l-sMXhzNGrZq1qrt8KtWxKdVn2oiqlcm4c4XToU5LJpvD0U1zOEMP3Z5A7bB9FZ-oITvty5YR9jcdtZrJJCyC0hmLCq_bGxRKG_n0p4xv7kJr-3GTvmFkJK-FkvpPH8-ZiNtt5nkq1oDlPTuxjKL_22740LQh1NYEe2ZsfC2S-u5ID7ufpCfXOcQAqB3Wg2YLH46cXOXaramk4Mi",
-  },
-  {
-    name: "朱利安",
-    score: 88,
-    imgUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAP1_Aew993r9KgMuODx_O8uK7CsvTOufMCHUaCw_-62lDjzoQIq4zYkX59lRl7l-sMXhzNGrZq1qrt8KtWxKdVn2oiqlcm4c4XToU5LJpvD0U1zOEMP3Z5A7bB9FZ-oITvty5YR9jcdtZrJJCyC0hmLCq_bGxRKG_n0p4xv7kJr-3GTvmFkJK-FkvpPH8-ZiNtt5nkq1oDlPTuxjKL_22740LQh1NYEe2ZsfC2S-u5ID7ufpCfXOcQAqB3Wg2YLH46cXOXaramk4Mi",
-  },
-  {
-    name: "朱利安",
-    score: 88,
-    imgUrl:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAP1_Aew993r9KgMuODx_O8uK7CsvTOufMCHUaCw_-62lDjzoQIq4zYkX59lRl7l-sMXhzNGrZq1qrt8KtWxKdVn2oiqlcm4c4XToU5LJpvD0U1zOEMP3Z5A7bB9FZ-oITvty5YR9jcdtZrJJCyC0hmLCq_bGxRKG_n0p4xv7kJr-3GTvmFkJK-FkvpPH8-ZiNtt5nkq1oDlPTuxjKL_22740LQh1NYEe2ZsfC2S-u5ID7ufpCfXOcQAqB3Wg2YLH46cXOXaramk4Mi",
-  },
-]);
+/** 首页输入框内容，展示在「今日照见」下划线区域 */
+const heroGlimpseText = computed(() => content.value.trim());
+
+/** 社区首页横向「安宁指数榜」预览行（映射自排行榜接口） */
+type CommunityRankPreviewItem = {
+  userId: number;
+  name: string;
+  imgUrl: string;
+  isVacant?: boolean;
+};
+
+const COMMUNITY_LEADERBOARD_PREVIEW_SIZE = 15;
+
+const rankList = ref<CommunityRankPreviewItem[]>([]);
 
 /** 超过该滚动距离（px）后显示回顶按钮 */
 const BACK_TOP_AFTER = 320;
@@ -232,8 +219,6 @@ const showBackToTop = computed(() => pageScrollTop.value >= BACK_TOP_AFTER);
 const backTopBottom = "calc(120rpx + env(safe-area-inset-bottom) + 32rpx)";
 
 const FEED_PAGE_SIZE = 20;
-/** `post_user_state`：value → 展示名（字典更新后副标题会跟着变） */
-const userStateLabelByValue = ref<Map<number, string>>(new Map());
 const feedList = ref<MixedFeedItem[]>([]);
 const feedPage = ref(1);
 const feedLoadStatus = ref<FeedLoadStatus>("loadmore");
@@ -248,6 +233,51 @@ function resolveMediaUrl(raw: string | null | undefined): string {
   const base = config.baseURL.replace(/\/+$/, "");
   const path = u.startsWith("/") ? u : `/${u}`;
   return `${base}${path}`;
+}
+
+/** 与 `pages/profile/rank` 一致的数据范围 */
+const COMMUNITY_LEADERBOARD_RANGE = "total" as const;
+const COMMUNITY_RANK_PLACEHOLDER_AVATAR = "/static/logo.png";
+
+function leaderboardPreviewAvatar(raw: string | null | undefined): string {
+  const u = resolveMediaUrl(raw);
+  return u || COMMUNITY_RANK_PLACEHOLDER_AVATAR;
+}
+
+function vacantCommunityRankStrip(): CommunityRankPreviewItem[] {
+  return [
+    { userId: -1, name: "虚位以待", imgUrl: COMMUNITY_RANK_PLACEHOLDER_AVATAR, isVacant: true },
+    { userId: -2, name: "虚位以待", imgUrl: COMMUNITY_RANK_PLACEHOLDER_AVATAR, isVacant: true },
+    { userId: -3, name: "虚位以待", imgUrl: COMMUNITY_RANK_PLACEHOLDER_AVATAR, isVacant: true },
+  ];
+}
+
+function mapLeaderboardToCommunityPreview(item: LeaderboardScoreItem): CommunityRankPreviewItem {
+  return {
+    userId: item.userId,
+    name: item.nickName?.trim() || "云友",
+    imgUrl: leaderboardPreviewAvatar(item.avatarUrl),
+  };
+}
+
+async function refreshCommunityLeaderboard() {
+  try {
+    const res = await fetchLeaderboardScore({
+      range: COMMUNITY_LEADERBOARD_RANGE,
+      page: 1,
+      size: COMMUNITY_LEADERBOARD_PREVIEW_SIZE,
+    });
+    const data = unwrapApiData<LeaderboardScorePage>(res);
+    const rawList = data?.list ?? [];
+    if (rawList.length === 0) {
+      rankList.value = vacantCommunityRankStrip();
+      return;
+    }
+    rankList.value = rawList.map(mapLeaderboardToCommunityPreview);
+  } catch (e) {
+    console.error("refreshCommunityLeaderboard", e);
+    rankList.value = vacantCommunityRankStrip();
+  }
 }
 
 function feedAvatar(item: MixedFeedItem, index: number): string {
@@ -284,7 +314,7 @@ function feedPostSubline(item: MixedFeedItem): string {
   else if (item.postType === 2) base = "照见分享";
   const s = item.userState;
   if (s == null) return base;
-  const stateLabel = userStateLabelByValue.value.get(s);
+  const stateLabel = dictStore.post_user_state.get(s);
   return stateLabel ? `${base} · ${stateLabel}` : base;
 }
 /** 活动详情路由；`joined=1` 供详情页判断已加入（列表未带打卡行时仍可打卡） */
@@ -343,9 +373,9 @@ function feedContent(item: MixedFeedItem): string {
   }
 
   let html = escapeHtmlForFeed(raw);
-  const labels = [...new Set(userStateLabelByValue.value.values())]
-    .filter((l) => l && l.trim().length > 0)
-    .sort((a, b) => b.length - a.length);
+  const labels = [
+    ...new Set(dictStore.post_user_state_list.map((r) => r.name.trim()).filter((l) => l.length > 0)),
+  ].sort((a, b) => b.length - a.length);
 
   for (const label of labels) {
     const escapedLabel = escapeHtmlForFeed(label.trim());
@@ -362,52 +392,13 @@ function feedContent(item: MixedFeedItem): string {
 
 function feedMoodIcon(item: MixedFeedItem): string {
   if (item.itemType === "activity") return "huodong";
-  switch (item.userState) {
-    case 1:
-      return "Cloudy";
-    case 2:
-      return "ink-water-drop";
-    case 3:
-      return "wind";
-    case 4:
-      return "lightbulb";
-    default:
-      return "Cloudy";
-  }
+  return postUserStateIconClassSuffix(item.userState ?? 0);
 }
 
 function feedImages(item: MixedFeedItem): string[] {
   if (item.itemType !== "post" || !item.images?.length) return [];
   return item.images.map((u) => resolveMediaUrl(u)).filter(Boolean);
 }
-/**
- * 拉取动态相关字典项（当前为 post_user_state），解析为 { value, label }。
- * 接口包一层 data 时用 unwrapApiList，避免直接当数组用。
- */
-async function getDictJumpTypeData(): Promise<{ value: number; label: string }[]> {
-  const res = await getDictJumpType({ types: ["post_user_state"] });
-  const list = unwrapApiList(res['data']['post_user_state']) as resItem[];
-  return list.map((row) => ({
-    value: row.value,
-    label: row.name,
-  }));
-}
-
-/** 在页面展示前刷新用户状态字典；适合放在 onShow，与列表请求并行。 */
-async function refreshPostUserStateDict() {
-  try {
-    const rows = await getDictJumpTypeData();
-    const next = new Map<number, string>();
-    for (const r of rows) {
-      next.set(r.value, r.label);
-    }
-    console.log(next)
-    userStateLabelByValue.value = next;
-  } catch (e) {
-    console.error("refreshPostUserStateDict", e);
-  }
-}
-
 async function loadFeedPage(reset: boolean) {
   if (feedLoading.value) return;
   if (!reset && feedFinished.value) return;
@@ -460,8 +451,18 @@ async function onToggleLike(item: MixedFeedItem) {
   }
 }
 
+const postStore = usePostDraftStore();
+
+/** 预填走 Pinia（内存），`prefill=1` 仅用于发布页识别是否消费草稿 */
 const goPublishPost = () => {
-  uni.navigateTo({ url: "/pages/post/edit-post" });
+  const t = content.value.trim();
+  if (t) {
+    postStore.setCommunityPrefill(`今日照见：${t}`);
+  } else {
+    postStore.clearCommunityPrefill();
+  }
+  const q = t ? "?type=cindex&prefill=1" : "?type=cindex";
+  uni.navigateTo({ url: `/pages/post/edit-post${q}` });
 };
 
 const onFeedNavigate = (item: MixedFeedItem) => {
@@ -500,7 +501,8 @@ onPageScroll((e) => {
 });
 
 onShow(() => {
-  refreshPostUserStateDict();
+  void dictStore.fetchPostUserState();
+  void refreshCommunityLeaderboard();
   loadFeedPage(true);
 });
 

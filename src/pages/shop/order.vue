@@ -20,8 +20,12 @@
         <view class="px-5 py-2 rounded-full bg-theme-13 text-gray-500 text-sm whitespace-nowrap hover:bg-primary/10 transition-colors">已完成</view>
       </view>
       -->
-      <scroll-view scroll-x class="mb-8 whitespace-nowrap no-scrollbar" enable-flex>
-        <view class="flex flex-row items-center gap-2 pb-1 no-scrollbar">
+      <scroll-view
+        scroll-x
+        class="order-status-tabs-scroll mb-8 whitespace-nowrap"
+        enable-flex
+        :show-scrollbar="false">
+        <view class="flex flex-row items-center gap-2 pb-1">
           <view
             v-for="tab in statusTabs"
             :key="tab.label"
@@ -51,7 +55,7 @@
           class="order-up-list"
           height="100%"
           :lower-threshold="120"
-          :show-scrollbar="true"
+          :show-scrollbar="false"
           @scrolltolower="onOrderScrollToLower">
           <up-list-item v-for="item in orders" :key="item.id" :anchor="String(item.id)">
             <view
@@ -279,6 +283,16 @@ onMounted(() => {
 });
 </script>
 <style scoped lang="scss">
+/* H5：横向 scroll-view 的滚动条在内层 div，需显式隐藏（小程序等同理配合 show-scrollbar） */
+.order-status-tabs-scroll :deep(.uni-scroll-view-scrollbar-hidden) {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.order-status-tabs-scroll :deep(.uni-scroll-view-scrollbar-hidden::-webkit-scrollbar) {
+  display: none;
+  width: 0;
+  height: 0;
+}
 
 .order-list-host {
   flex: 1;

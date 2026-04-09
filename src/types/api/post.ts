@@ -25,6 +25,8 @@ export interface PostInfo {
   status: number;
   createTime: string;
   updateTime: string;
+  /** 列表接口可能带回 */
+  likeCount?: number | null;
 }
 
 /** POST `/app/post/share` Body */
@@ -46,6 +48,14 @@ export interface PostManualDTO {
   teamId?: number | null;
   /** 用户状态，默认 1 */
   userState?: number;
+  /** 发布位置纬度（若后端支持） */
+  lat?: number;
+  /** 发布位置经度（若后端支持） */
+  lng?: number;
+  /** 发布位置精度（若后端支持） */
+  accuracy?: number;
+  /** 发布状态，默认 2 ,1为私密，2为公开 */
+  status?: number;
 }
 
 /** PUT `/app/post/update` Body */
@@ -55,12 +65,20 @@ export interface PostUpdateDTO {
   images?: string[];
 }
 
-/** GET `/app/post/feed`、`/feed/teams`、`/feed/mixed` 共用 Query */
+/** GET `/app/post/feed`、`/feed/teams`、`/feed/mixed` 共用 Query（feed 另支持 publishStatus） */
 export interface PostFeedQuery {
   /** 页码，默认 1 */
   page?: number;
   /** 每页条数，默认 20 */
   size?: number;
+}
+
+/**
+ * GET `/app/post/feed` Query：仅「我的动态」支持 `publishStatus`。
+ * `2` 已发布（默认）；`1` 未发布；`0` 全部（1+2）。
+ */
+export interface MyPostFeedQuery extends PostFeedQuery {
+  publishStatus?: 0 | 1 | 2;
 }
 
 /** GET `/app/post/feed` 的 data */
@@ -134,6 +152,11 @@ export interface MixedFeedPage {
 /** POST `/app/post/like` Body */
 export interface PostLikeDTO {
   /** 动态 id（post_info.id） */
+  id: number;
+}
+
+/** POST `/app/post/delete` Body；成功后 `data` 为 `null`；仅可删本人动态 */
+export interface PostDeleteDTO {
   id: number;
 }
 

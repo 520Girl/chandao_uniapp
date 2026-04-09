@@ -19,9 +19,10 @@
                 style="font-variation-settings: 'FILL' 1; font-size: 32px"
               />
             </view>
-            <view :class="podiumAvatarWrapClass(item.rank)">
+            <view :class="podiumAvatarWrapClass(item.rank, item.isVacant)">
               <image
                 class="w-full h-full rounded-full object-cover"
+                :class="item.isVacant ? 'opacity-60 scale-95' : ''"
                 :src="item.avatar"
                 :alt="item.avatarAlt"
                 mode="aspectFill"
@@ -31,9 +32,10 @@
               <text :class="podiumBadgeTextClass(item.rank)">{{ item.rank }}</text>
             </view>
           </view>
-          <view :class="podiumNameClass(item.rank)">{{ item.name }}</view>
+          <view :class="podiumNameClass(item.rank, item.isVacant)">{{ item.name }}</view>
           <view :class="podiumScoreWrapClass(item.rank)">
-            <text :class="podiumScoreTextClass(item.rank)">{{ item.score }} {{ podiumScoreSuffix }}</text>
+            <text v-if="item.isVacant" :class="podiumScoreTextClass(item.rank)">—</text>
+            <text v-else :class="podiumScoreTextClass(item.rank)">{{ item.score }} {{ podiumScoreSuffix }}</text>
           </view>
         </view>
       </view>
@@ -43,12 +45,12 @@
       <view class="font-label text-[20rpx] uppercase tracking-[0.2rem] theme-color-5 mb-[32rpx] pl-2 shrink-0">
         {{ listSectionTitle }}
       </view>
-      <view class="rank-list-host">
+      <view class="rank-list-host no-scrollbar">
         <up-list
-          class="rank-up-list"
+          class="rank-up-list no-scrollbar"
           height="100%"
           :lower-threshold="120"
-          :show-scrollbar="true"
+          :show-scrollbar="false"
           @scrolltolower="onRankScrollToLower"
         >
           <up-list-item v-for="(row,index) in rank.list" :key="row.rank" :anchor="String(row.rank)">
@@ -91,7 +93,12 @@
         <view class="flex items-center gap-4">
           <text class="font-headline text-white/60 italic text-sm">{{ rank.myRank.rank }}</text>
           <view class="w-10 h-10 rounded-full border border-white/20 overflow-hidden">
-            <image class="w-full h-full object-cover" :src="rank.myRank.avatar" :alt="rank.myRank.avatarAlt" mode="aspectFill" />
+            <image
+              class="w-full h-full object-cover"
+              :src="rank.myRank.avatar"
+              :alt="rank.myRank.avatarAlt"
+              mode="aspectFill"
+            />
           </view>
           <view>
             <view class="text-sm font-medium">{{ rank.myRank.name }}</view>
@@ -107,10 +114,14 @@
   </view>
 </template>
 <script setup lang="ts">
-import { computed, onMounted, reactive } from 'vue';
-import { getRankList } from '@/assets/js/api/user';
-import { navigateBack } from '@/utils/navigation';
-import lcrBar from '@/components/lcrBar.vue';
+import { computed, onMounted, reactive } from "vue";
+import { fetchLeaderboardScore } from "@/assets/js/api/leaderboard";
+import { config } from "@/assets/js/config";
+import type { LeaderboardScoreItem, LeaderboardScorePage } from "@/types/api/leaderboard";
+import { unwrapApiData } from "@/utils/apiResponse";
+import { navigateBack } from "@/utils/navigation";
+import { useUserStore } from "@/stores/user";
+import lcrBar from "@/components/lcrBar.vue";
 
 type RankRow = {
   rank: number;
@@ -118,193 +129,112 @@ type RankRow = {
   subtitle: string;
   avatar: string;
   avatarAlt: string;
-  score: number;
+  score: number | string;
   isSelf?: boolean;
+  /** 领奖台空缺占位（无榜单数据时 1–3 名） */
+  isVacant?: boolean;
 };
 
-type RankPagePayload = {
-  topThree: RankRow[];
-  list: RankRow[];
-  myRank: RankRow | null;
-  hasMore: boolean;
-};
+const RANK_PAGE_SIZE = 20;
 
-const RANK_PAGE_SIZE = 10;
-/** 开发时 true：走本页模拟分页；false：走 getRankList，结构在 parseRankApiPayload 对齐后端 */
-const USE_RANK_MOCK = true;
+const userStore = useUserStore();
 
-const MOCK_AVATAR = '/static/770-800x600.jpg';
+/** 与接口一致；不展示切换 UI 时固定为周榜、全站 */
+const LEADERBOARD_RANGE = "total" as const;
 
-const MOCK_TOP_THREE: RankRow[] = [
-  {
-    rank: 1,
-    name: '陈云溪',
-    subtitle: '',
-    score: 1204,
-    avatar: MOCK_AVATAR,
-    avatarAlt: ''
-  },
-  {
-    rank: 2,
-    name: '林素心',
-    subtitle: '',
-    score: 982,
-    avatar: MOCK_AVATAR,
-    avatarAlt: ''
-  },
-  {
-    rank: 3,
-    name: '周墨语',
-    subtitle: '',
-    score: 945,
-    avatar: MOCK_AVATAR,
-    avatarAlt: ''
-  }
-];
+/** 领奖台空缺时的默认头像（与资料页默认一致） */
+const PODIUM_PLACEHOLDER_AVATAR = "/static/logo.png";
 
-const MOCK_FROM_FOUR: RankRow[] = [
-  {
-    rank: 4,
-    name: '沈漫天',
-    subtitle: '修行 12 天 · 已安定',
-    score: 892,
-    avatar:
-      'https://lview.googleusercontent.com/aida-public/AB6AXuCyrXyBndweRU1MXL7pbHX0gTiRrxG3G8tOVw--SDIJwl3HPL-P3lMVQS8xQkGe9jKboiDUSH6uXHFPJNHYqVFeUMm7H1ZzGftq8TtqDjOkVosh4Ux865GBWAXRxiaITAUgnTGJ4jPD0FGinuCgXSkgmZsWuWf04vWQAqmfu6rlfIWfhSsAQmNZgr26RNP8GNqAyB9f7CQjLr0Qo3UyPNWuUP2D-xRi2xCdGMuLX5zCL7Ci0YDhXwKHkzaJWCJHZZUYN3cJywufOx9R',
-    avatarAlt: ''
-  },
-  {
-    rank: 5,
-    name: '何广智',
-    subtitle: '修行 8 天 · 云端中',
-    score: 876,
-    avatar:
-      'https://lview.googleusercontent.com/aida-public/AB6AXuC8EGKx-x9tBZpls42DSODy_niXYSD46Z0OWcWtF3DiccJnRhgixG1TwMSKzkI5IeoDEwQXPfaQcyeMjpltno7kWLR8O_J8mZ5N4sB3FIG7RnlIbmOU4ULpZEo0TG5iUi0-jAHQSQgUkmKn_QNtW3hEPf9EcRccCQFN7Rz2fSsQXDKxIKMEUzmPrTpqPAJ3m13bdTx0ni0weJ4VqNlJ6tzFP9HvZfdcWCB0Fnp8VczZgZYth2Vf4yydwNKHyNtS0p0y1245qrkRqYGq',
-    avatarAlt: ''
-  },
-  {
-    rank: 6,
-    name: '苏禾子',
-    subtitle: '修行 32 天 · 大师境',
-    score: 812,
-    avatar: MOCK_AVATAR,
-    avatarAlt: ''
-  },
-  {
-    rank: 7,
-    name: '王清风',
-    subtitle: '修行 15 天 · 入定中',
-    score: 798,
-    avatar:
-      'https://lview.googleusercontent.com/aida-public/AB6AXuADmtcPWSuLWmi3FuCj4KNu05Zw01bmUuL-8CjjxbDFu3hbrA1jjF5dqEXH6NlICt5ghjXaEZ84FImkAqUm4LPqBMxRCLfzuBR2AZ0vnERMVKO2XjKHNTJmUdNVYRiK07KTZojUIcTgyxSXdZqe3vhK4zBEcQ-vgr1B4KlDGTFJmHF54spXWgcvNCudDozyJ-muewWT6Q4gIaDdXXhUO8q612frph9mwW97QBObxQiZI9FLI_VFw2FsyWGnFEFSoH91-vtlBJ21x-LH',
-    avatarAlt: ''
-  }
-];
-
-function buildMockRankRest(): RankRow[] {
-  const rest: RankRow[] = [...MOCK_FROM_FOUR];
-  for (let r = 8; r < 24; r += 1) {
-    rest.push({
-      rank: r,
-      name: `修行者${r}`,
-      subtitle: `修行 ${r % 29} 天 · 精进中`,
-      score: 820 - r,
-      avatar: MOCK_AVATAR,
-      avatarAlt: ''
-    });
-  }
-  rest.push({
-    rank: 24,
-    name: '我',
-    subtitle: '已打败 78% 修行者',
-    score: 542,
-    avatar:
-      'https://lview.googleusercontent.com/aida-public/AB6AXuAVimXxTHHxSdNkj-DTFiY1OJxZ7WO_D1e6hbnpqrTpOFMLg4N6TCbYpTCg1rdW53yZs7XBHbnnNIyFR7lRkIqCrRzTvHVcB3X3h74W067LbippoYBuEuLFACR1YiVzWwU5Lrabp38ZtHvRH15QbMRve4aQIB18vjEL0LDDIGFBXshQL6trKxH0EXnbYZXGwYWtJioPbxEG5zGw-71iduWpz0wT8ahcwQ3Yc10moM56rvdmXBPSAcP02DAxc8kgKycPjLOjg1sF_KIL',
-    avatarAlt: '',
-    isSelf: true
-  });
-  for (let r = 25; r <= 45; r += 1) {
-    rest.push({
-      rank: r,
-      name: `修行者${r}`,
-      subtitle: `修行 ${r % 29} 天 · 精进中`,
-      score: 820 - r,
-      avatar: MOCK_AVATAR,
-      avatarAlt: ''
-    });
-  }
-  return rest;
+function resolveMediaUrl(raw: string | null | undefined): string {
+  const u = (raw || "").trim();
+  if (!u) return "/static/logo.png";
+  if (/^https?:\/\//i.test(u)) return u;
+  if (u.startsWith("//")) return `https:${u}`;
+  const base = config.baseURL.replace(/\/+$/, "");
+  const path = u.startsWith("/") ? u : `/${u}`;
+  return `${base}${path}`;
 }
 
-const RANK_MOCK_REST = buildMockRankRest();
-
-function mockRankPage(page: number, pageSize: number): Promise<RankPagePayload> {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const start = (page - 1) * pageSize;
-      const list = RANK_MOCK_REST.slice(start, start + pageSize);
-      const hasMore = start + pageSize < RANK_MOCK_REST.length;
-      if (page === 1) {
-        const myRank = RANK_MOCK_REST.find((x) => x.isSelf) ?? null;
-        resolve({
-          topThree: [...MOCK_TOP_THREE].sort((a, b) => a.rank - b.rank),
-          list,
-          myRank,
-          hasMore
-        });
-      } else {
-        resolve({ topThree: [], list, myRank: null, hasMore });
-      }
-    }, 260);
-  });
+function formatScore(n: number): string {
+  if (!Number.isFinite(n)) return "0";
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
-function parseRankApiPayload(raw: unknown): RankPagePayload {
-  const d =
-    raw && typeof raw === 'object' && 'data' in raw && (raw as { data: unknown }).data != null
-      ? (raw as { data: Record<string, unknown> }).data
-      : (raw as Record<string, unknown>);
-  const topThree = d?.topThree;
-  const list = d?.list ?? d?.records ?? d?.rows;
-  const myRank = d?.myRank ?? null;
-  const hasMore = d?.hasMore ?? d?.hasNext;
+function selfUserId(): number {
+  return userStore.currentUser?.id ?? 0;
+}
+
+function mapLeaderItem(item: LeaderboardScoreItem, rank: number, selfId: number): RankRow {
+  const loc = [item.lastProvince, item.lastCity].filter((x) => (x || "").trim()).join(" · ");
+  const sub =
+    loc ||
+    `点赞 ${item.likes} · 动态 ${item.postCount} · 打卡 ${item.checkins} · 报告 ${item.reportCount} · ${item.minutes} 分钟`;
   return {
-    topThree: Array.isArray(topThree) ? (topThree as RankRow[]) : [],
-    list: Array.isArray(list) ? (list as RankRow[]) : [],
-    myRank: myRank && typeof myRank === 'object' ? (myRank as RankRow) : null,
-    hasMore: Boolean(hasMore)
+    rank,
+    name: item.nickName?.trim() || "云友",
+    subtitle: sub,
+    score: formatScore(item.score),
+    avatar: resolveMediaUrl(item.avatarUrl),
+    avatarAlt: "",
+    isSelf: selfId > 0 && item.userId === selfId,
   };
 }
 
-/** 整页唯一数据源：前三名、列表、我的排名、分页与加载态 */
 const rank = reactive({
   topThree: [] as RankRow[],
   list: [] as RankRow[],
   myRank: null as RankRow | null,
   page: 1,
   finished: false,
-  loadStatus: 'loadmore' as 'loadmore' | 'loading' | 'nomore',
-  fetching: false
+  loadStatus: "loadmore" as "loadmore" | "loading" | "nomore",
+  fetching: false,
+  total: 0,
 });
 
-/** 领奖台：真实名次 2 → 1 → 3 */
-const podiumTop = computed(() => {
+const listSectionTitle = "本周修行排行";
+
+function vacantPodiumSlot(rankNum: 1 | 2 | 3): RankRow {
+  return {
+    rank: rankNum,
+    name: "虚位以待",
+    subtitle: "",
+    score: "—",
+    avatar: PODIUM_PLACEHOLDER_AVATAR,
+    avatarAlt: "",
+    isVacant: true,
+  };
+}
+
+/** 始终三条：2 → 1 → 3；无数据用「虚位以待」+ 默认头像 */
+const podiumTop = computed((): RankRow[] => {
   const top = [...rank.topThree].filter((r) => r.rank >= 1 && r.rank <= 3);
-  const by = (n: number) => top.find((r) => r.rank === n);
-  const second = by(2);
-  const first = by(1);
-  const third = by(3);
-  return [second, first, third].filter((x): x is RankRow => x != null);
+  const by = (n: 1 | 2 | 3) => top.find((r) => r.rank === n);
+  const second = by(2) ?? vacantPodiumSlot(2);
+  const first = by(1) ?? vacantPodiumSlot(1);
+  const third = by(3) ?? vacantPodiumSlot(3);
+  return [second, first, third];
 });
 
-const listSectionTitle = '本周修行排行';
-const scoreUnitLabel = 'Stability';
-const podiumScoreSuffix = '安定';
+const scoreUnitLabel = "Stability";
+const podiumScoreSuffix = "安定";
 
 const listCardClass =
-  'zen-glass rounded-2xl p-4 flex items-center justify-between border border-white/20 transition-all';
+  "zen-glass rounded-2xl p-4 flex items-center justify-between border border-white/20 transition-all";
 
 const myRankBarWrapClass =
-  'bg-primary text-white rounded-3xl p-4 flex items-center justify-between shadow-xl shadow-primary/20';
+  "bg-primary text-white rounded-3xl p-4 flex items-center justify-between shadow-xl shadow-primary/20";
+
+function mergeMyRankFromItems(items: LeaderboardScoreItem[], page: number) {
+  const selfId = selfUserId();
+  if (!selfId) return;
+  const base = (page - 1) * RANK_PAGE_SIZE;
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].userId === selfId) {
+      rank.myRank = mapLeaderItem(items[i], base + i + 1, selfId);
+      return;
+    }
+  }
+}
 
 async function fetchRankPage(reset: boolean) {
   if (rank.fetching) return;
@@ -317,32 +247,52 @@ async function fetchRankPage(reset: boolean) {
     rank.myRank = null;
     rank.page = 1;
     rank.finished = false;
+    rank.total = 0;
   }
-  rank.loadStatus = 'loading';
+  rank.loadStatus = "loading";
 
   try {
     const page = rank.page;
-    const res = USE_RANK_MOCK
-      ? await mockRankPage(page, RANK_PAGE_SIZE)
-      : parseRankApiPayload(await getRankList({ page, pageSize: RANK_PAGE_SIZE }));
-    if (page === 1) {
-      rank.topThree = res.topThree;
-      if (res.myRank) rank.myRank = res.myRank;
-    }
-    rank.list = rank.list.concat(res.list);
+    const res = await fetchLeaderboardScore({
+      range: LEADERBOARD_RANGE,
+      page,
+      size: RANK_PAGE_SIZE,
+    });
+    const data = unwrapApiData<LeaderboardScorePage>(res);
+    const rawList = data?.list ?? [];
+    const pagination = data?.pagination;
+    rank.total = pagination?.total ?? rawList.length;
+    mergeMyRankFromItems(rawList, page);
 
-    const noMore = !res.hasMore || res.list.length === 0 || res.list.length < RANK_PAGE_SIZE;
+    const sid = selfUserId();
+    if (page === 1) {
+      rank.topThree = rawList.slice(0, 3).map((it, i) => mapLeaderItem(it, i + 1, sid));
+      const rest = rawList.slice(3).map((it, i) => mapLeaderItem(it, i + 4, sid));
+      rank.list = rank.list.concat(rest);
+    } else {
+      const startRank = (page - 1) * RANK_PAGE_SIZE + 1;
+      const rows = rawList.map((it, i) => mapLeaderItem(it, startRank + i, sid));
+      rank.list = rank.list.concat(rows);
+    }
+
+    const loadedSlots = rank.topThree.length + rank.list.length;
+    const total = pagination?.total ?? rank.total;
+    const noMore =
+      rawList.length === 0 ||
+      rawList.length < RANK_PAGE_SIZE ||
+      loadedSlots >= total ||
+      (pagination != null && page * RANK_PAGE_SIZE >= total);
     if (noMore) {
       rank.finished = true;
-      rank.loadStatus = 'nomore';
+      rank.loadStatus = "nomore";
     } else {
       rank.page = page + 1;
-      rank.loadStatus = 'loadmore';
+      rank.loadStatus = "loadmore";
     }
   } catch (e) {
-    console.error('getRankList', e);
-    rank.loadStatus = rank.list.length ? 'nomore' : 'loadmore';
-    uni.showToast({ title: '排行榜加载失败', icon: 'none' });
+    console.error("fetchLeaderboardScore", e);
+    rank.loadStatus = rank.list.length || rank.topThree.length ? "nomore" : "loadmore";
+    uni.showToast({ title: "排行榜加载失败", icon: "none" });
   } finally {
     rank.fetching = false;
   }
@@ -355,7 +305,7 @@ function onRankScrollToLower() {
 }
 
 function loadMoreRank() {
-  if (rank.loadStatus === 'loadmore' && !rank.finished && !rank.fetching) {
+  if (rank.loadStatus === "loadmore" && !rank.finished && !rank.fetching) {
     fetchRankPage(false);
   }
 }
@@ -364,45 +314,48 @@ onMounted(() => {
   fetchRankPage(true);
 });
 
-function podiumColClass(rank: number) {
-  if (rank === 1) return 'flex flex-col items-center w-2/5 -translate-y-4';
-  return 'flex flex-col items-center w-1/3';
+function podiumColClass(r: number) {
+  if (r === 1) return "flex flex-col items-center w-2/5 -translate-y-4";
+  return "flex flex-col items-center w-1/3";
 }
 
-function podiumAvatarWrapClass(rank: number) {
-  if (rank === 1) return 'w-24 h-24 rounded-full border-4 border-theme-1 p-1 overflow-hidden shadow-xl';
-  if (rank === 2) return 'w-16 h-16 rounded-full border-2 border-[#DABB53] p-0.5 overflow-hidden';
-  return 'w-16 h-16 rounded-full border-2 border-[#F0E8CF] p-0.5 overflow-hidden';
+function podiumAvatarWrapClass(r: number, vacant?: boolean) {
+  const dash = vacant ? " border-dashed border-primary/35" : "";
+  if (r === 1) return `w-24 h-24 rounded-full border-4 border-theme-1 p-1 overflow-hidden shadow-xl${dash}`;
+  if (r === 2) return `w-16 h-16 rounded-full border-2 border-[#DABB53] p-0.5 overflow-hidden${dash}`;
+  return `w-16 h-16 rounded-full border-2 border-[#F0E8CF] p-0.5 overflow-hidden${dash}`;
 }
 
-function podiumBadgeWrapClass(rank: number) {
-  if (rank === 1)
-    return 'absolute -bottom-2 left-1/2 -translate-x-1/2 bg-theme-1 text-white rounded-full w-8 h-8 flex items-center justify-center border-4 border-background shadow-md';
-  if (rank === 2)
-    return 'absolute -bottom-1 -right-1 bg-[#DABB53] rounded-full w-6 h-6 flex items-center justify-center shadow-sm';
-  return 'absolute -bottom-1 -right-1 bg-[#F0E8CF] rounded-full w-6 h-6 flex items-center justify-center shadow-sm';
+function podiumBadgeWrapClass(r: number) {
+  if (r === 1)
+    return "absolute -bottom-2 left-1/2 -translate-x-1/2 bg-theme-1 text-white rounded-full w-8 h-8 flex items-center justify-center border-4 border-background shadow-md";
+  if (r === 2)
+    return "absolute -bottom-1 -right-1 bg-[#DABB53] rounded-full w-6 h-6 flex items-center justify-center shadow-sm";
+  return "absolute -bottom-1 -right-1 bg-[#F0E8CF] rounded-full w-6 h-6 flex items-center justify-center shadow-sm";
 }
 
-function podiumBadgeTextClass(rank: number) {
-  if (rank === 1) return 'text-xs font-bold';
-  return 'text-[20rpx] font-bold text-white';
+function podiumBadgeTextClass(r: number) {
+  if (r === 1) return "text-xs font-bold";
+  return "text-[20rpx] font-bold text-white";
 }
 
-function podiumNameClass(rank: number) {
-  if (rank === 1) return 'font-headline text-[32rpx] font-bold theme-color-5 mb-1 theme-glow-active';
-  return 'font-headline text-[28rpx] theme-color-5 mb-1';
+function podiumNameClass(r: number, vacant?: boolean) {
+  const muted = vacant ? " opacity-75" : "";
+  if (r === 1)
+    return `font-headline text-[32rpx] font-bold theme-color-5 mb-1 theme-glow-active${muted}`;
+  return `font-headline text-[28rpx] theme-color-5 mb-1${muted}`;
 }
 
-function podiumScoreWrapClass(rank: number) {
-  if (rank === 1) return 'bg-theme-1 px-3 py-1 rounded-full shadow-sm';
-  if (rank === 2) return 'bg-[#DABB53] px-2 py-0.5 rounded-full';
-  return 'bg-[#F0E8CF] px-2 py-0.5 rounded-full';
+function podiumScoreWrapClass(r: number) {
+  if (r === 1) return "bg-theme-1 px-3 py-1 rounded-full shadow-sm";
+  if (r === 2) return "bg-[#DABB53] px-2 py-0.5 rounded-full";
+  return "bg-[#F0E8CF] px-2 py-0.5 rounded-full";
 }
 
-function podiumScoreTextClass(rank: number) {
-  if (rank === 1) return 'font-label text-[22rpx] tracking-[0.15rem] text-white font-bold';
-  if (rank === 2) return 'font-label text-[20rpx] tracking-widest text-white uppercase';
-  return 'font-label text-[22rpx] tracking-widest text-white uppercase';
+function podiumScoreTextClass(r: number) {
+  if (r === 1) return "font-label text-[22rpx] tracking-[0.15rem] text-white font-bold";
+  if (r === 2) return "font-label text-[20rpx] tracking-widest text-white uppercase";
+  return "font-label text-[22rpx] tracking-widest text-white uppercase";
 }
 
 const onBack = () => {

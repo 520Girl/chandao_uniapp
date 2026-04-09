@@ -18,210 +18,417 @@
       <!-- Content view: My Posts -->
       <view class="space-y-4">
         <view class="flex items-center justify-between">
-          <view class="text-[28rpx] font-bold theme-color-1">我的动态 (12)</view>
+          <view class="text-[28rpx] font-bold theme-color-1">我的动态 ({{ myPostsTotal }})</view>
           <view class="text-[24rpx] font-bold theme-color-1 flex items-center gap-1" @click="goAllPost()">
             全部动态 <text class="iconfont icon-jinru text-[24rpx]" ></text>
           </view>
         </view>
-        <!-- Post Card 1 -->
-        <view class="bg-white rounded-[70rpx] p-[32rpx] shadow-sm border border-primary/5" @click="goPostDetail('post123')">
-          <view class="flex gap-3 mb-3">
-            <img class="w-[80rpx] h-[80rpx] rounded-full object-cover ring-2 ring-[#d4af3566]"
-              data-alt="User personal profile avatar"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCzWhDOZIzg5xM43f3LIxMHPa8AtizXJbIRJVM6tc3eNcDHOZZ8YWgZppYx2dVse0YaDXAKrbeLkAKR9wPJJCjWDB-9pCo0vn0PpoY1zJFdIRdma28nlYwPMgpOhP8KI9IQAtVE11h8mQagg2Z4bMNJNaZzbX2RSuU7VP6tVm-2OaznO5FOmsYs-IGMwjmimGre45P6TJe21slwR2UyVjJ4TeY2gWzxb_zJvis4wEi7dywPjv8axFA01gArltji5sXWcKRXrGcrvkSd" />
-            <view>
-              <view class="font-bold text-[28rpx]">李慕白</view>
-              <view class="text-[20rpx] theme-color-8 uppercase">2小时前 · 已发布</view>
+        <template v-for="(post, pIdx) in filteredPosts" :key="post.id">
+          <!-- 与原版一致：偶数索引为「大图卡片」，奇数为「纯文卡片」 -->
+          <view
+            v-if="pIdx % 2 === 0"
+            class="bg-white rounded-[70rpx] p-[32rpx] shadow-sm border border-primary/5"
+            @click="goPostDetail(post.id)"
+          >
+            <view class="flex gap-3 mb-3">
+              <image class="w-[80rpx] h-[80rpx] rounded-full object-cover ring-2 ring-[#d4af3566]"
+                data-alt="User personal profile avatar"
+                :src="selfAvatar" />
+              <view>
+                <view class="font-bold text-[28rpx]">{{ selfNickname }}</view>
+                <view class="text-[20rpx] theme-color-8 uppercase">
+                  {{ formatRelativeTime(post.updateTime || post.createTime) }} · {{ postStatusLabel(post.status) }}
+                </view>
+              </view>
+            </view>
+            <view class="text-[28rpx] leading-relaxed mb-[32rpx] theme-color-5">
+              {{ (post.content || '').trim() || '（无正文）' }}
+            </view>
+            <view v-if="post.images?.length" class="grid grid-cols-2 gap-2 mb-[32rpx]">
+              <image class="w-full h-[256rpx] object-cover rounded-[30rpx]"
+                v-for="(img, imgIdx) in post.images.slice(0, 4)"
+                :key="imgIdx"
+                mode="aspectFill"
+                :src="resolveMediaUrl(img)" />
+            </view>
+            <view class="flex items-center justify-between pt-[32rpx] border-t border-primary/5">
+              <view class="flex gap-4">
+                <text class="flex items-center gap-1 text-[24rpx] theme-color-8"><text
+                    class="iconfont icon-heart-fill text-base align-middle"></text> {{ post.likeCount ?? 0 }}</text>
+                <text class="flex items-center gap-1 text-[24rpx] theme-color-8"><text
+                    class="iconfont icon-chat-bubble-1 text-base align-middle "></text> 0</text>
+              </view>
+              <view class="flex gap-2" @click.stop>
+                <view
+                  class="flex items-center gap-1 px-[24rpx] text-[24rpx] py-[12rpx] rounded-full bg-theme-13 theme-color-1 text-xs font-bold transition-transform active:scale-95"
+                  @click.stop="goPostDetail(post.id)">
+                  <text class="iconfont icon-beizhu text-[24rpx]"></text> 编辑
+                </view>
+                <view
+                  class="flex items-center gap-1 px-[24rpx] text-[24rpx] py-[12rpx] rounded-full bg-red-500/10 text-[#ef4444] font-bold transition-transform active:scale-95"
+                  @click.stop="openDeletePostConfirm(post)">
+                  <text class="iconfont icon-trash-2 text-[24rpx]"></text> 删除
+                </view>
+              </view>
             </view>
           </view>
-          <view class="text-[28rpx] leading-relaxed mb-[32rpx] theme-color-5">
-            今天在社群里和大家分享了关于极简主义设计的深度思考，非常感谢大家的积极反馈。希望我们能一起在美学与功能的平衡点上探索。
-          </view>
-          <view class="grid grid-cols-2 gap-2 mb-[32rpx]">
-            <image class="w-full h-[256rpx] object-cover rounded-[30rpx]"
-              data-alt="Minimalist modern interior design with natural light"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuD7sFm9d_YUIFpLN8suE8ZN_ovvnBIxdNA2Vjm7saYwR7466DLo1ohh8bzIJtndHmIfcORAz--ErAtCulJIudWKbrj_kxyIIVvZVT3-UJwQjgiXGj0-T5EQqhWRo473tD83joH6sAARumuSCjcCJ396aW3ftI1rM4087XX7O2yc_jZs5rKXftRL8op3pvC_OmvCoNxjFJ-B_NG5uG3KAo7hjXp_CBhc32s1-x21gpvRva3SCtxIKpoCkUlrZrSVt7i71BJee5oUZnkG" />
-            <image class="w-full h-[256rpx] object-cover rounded-[30rpx]" data-alt="Clean abstract architectural lines"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuDn04bT0nhCa1L9a_i8HLZCHO3-zITbCbfK0aE3x-4fYtm8AMiipXSNOAWtJ7VF9JKTBuusHUicghCDhh13KxHeMyZXdnkGi21MF0XbG1WO8gurYQJGmg_nxVK88tiqwcJXnksgjfPRM0q2KfPH-GI8emVhSycad6aQYdPWxAKM0BG9y-rOh727CII4UQYOzy-Ov1v7cK1Ihgzrcj-HACwYnH0mLcTnLlIiwfc1aINST_3RRdE2By0fRIsx_KPwin5S-fb7JyGVy16Y" />
-          </view>
-          <view class="flex items-center justify-between pt-[32rpx] border-t border-primary/5">
-            <view class="flex gap-4">
-              <text class="flex items-center gap-1 text-[24rpx] theme-color-8"><text
-                  class="iconfont icon-heart-fill text-base align-middle"></text> 24</text>
-              <text class="flex items-center gap-1 text-[24rpx] theme-color-8"><text
-                  class="iconfont icon-chat-bubble-1 text-base align-middle "></text> 8</text>
+          <view
+            v-else
+            class="bg-white rounded-[70rpx] p-[32rpx] shadow-sm border border-primary/5"
+            @click="goPostDetail(post.id)"
+          >
+            <view class="flex gap-3 mb-3">
+              <image class="w-10 h-10 rounded-full object-cover ring-2 ring-primary/20"
+                data-alt="User personal profile avatar"
+                :src="selfAvatar"
+                mode="aspectFill" />
+              <view>
+                <view class="font-bold text-[28rpx]">{{ selfNickname }}</view>
+                <view class="text-[20rpx] theme-color-8 uppercase">
+                  {{ formatRelativeTime(post.updateTime || post.createTime) }} · {{ postStatusLabel(post.status) }}
+                </view>
+              </view>
             </view>
-            <view class="flex gap-2">
-              <button
-                class="flex items-center gap-1 px-[24rpx] text-[24rpx] py-[12rpx] rounded-full bg-theme-13 theme-color-1 text-xs font-bold transition-transform active:scale-95">
-                <text class="iconfont icon-beizhu text-[24rpx]"></text> 编辑
-              </button>
-              <button
-                class="flex items-center gap-1 px-[24rpx] text-[24rpx] py-[12rpx] rounded-full bg-red-500/10 text-[#ef4444] font-bold transition-transform active:scale-95">
-                <text class="iconfont icon-trash-2 text-[24rpx]"></text> 删除
-              </button>
+            <view class="text-[24rpx] leading-relaxed mb-[32rpx] text-[#4a4538] dark:text-primary/80 italic">
+              {{ (post.content || '').trim() || '（无正文）' }}
             </view>
-          </view>
-        </view>
-        <!-- Post Card 2 (Text Only) -->
-        <view class="bg-white rounded-[70rpx] p-[32rpx] shadow-sm border border-primary/5" @click="goPostDetail('post124')">
-          <view class="flex gap-3 mb-3">
-            <image class="w-10 h-10 rounded-full object-cover ring-2 ring-primary/20"
-              data-alt="User personal profile avatar"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCqfZJlLkKTyAB9OgowybNQK4kcdXti52IlDo7sSkSAnAhUAHnVWjvlKzVGgzVhJfjkyOLZliMS95M1xXr7Pcx86P4xQZIpWjscsOZSc8itzEMSdHdlwYvz2QzdvrYl5fUW3os8Fg17Gjwn0joxXTaZuQ0a66QxR-aZn8U27RJh6G0JoUE5Z2GTBPmNXyOyhIu28zpXEMdiLQfAKk5nuyjh54XKr5w49DDZxcNdzliIOlMGf1YycMmDp4LUdWC9SDx1BxNqAuK9vhjY" />
-            <view>
-                <view class="font-bold text-[28rpx]">李慕白</view>
-                <view class="text-[20rpx] theme-color-8 uppercase">2小时前 · 已发布</view>
-            </view>
-          </view>
-          <view class="text-[24rpx] leading-relaxed mb-[32rpx] text-[#4a4538] dark:text-primary/80 italic">
-            "美并不是加无可加，而是减无可减。" —— 最近一直在思考的一句话。
-          </view>
-          <view class="flex items-center justify-between pt-[32rpx] border-t border-primary/5">
-            <view class="flex gap-4">
-               <text class="flex items-center gap-1 text-[24rpx] theme-color-8">
-                <text
-                  class="iconfont icon-heart-fill text-base align-middle"></text> 24</text>
-            </view>
-            <view class="flex gap-2">
-               <button
-                class="flex items-center gap-1 px-[24rpx] text-[24rpx] py-[12rpx] rounded-full bg-theme-13 theme-color-1 text-xs font-bold transition-transform active:scale-95">
-                <text class="iconfont icon-beizhu text-[24rpx]"></text> 编辑
-              </button>
-              <button
-                class="flex items-center gap-1 px-[24rpx] text-[24rpx] py-[12rpx] rounded-full bg-red-500/10 text-[#ef4444] font-bold transition-transform active:scale-95">
-                <text class="iconfont icon-trash-2 text-[24rpx]"></text> 删除
-              </button>
+            <view class="flex items-center justify-between pt-[32rpx] border-t border-primary/5">
+              <view class="flex gap-4">
+                <text class="flex items-center gap-1 text-[24rpx] theme-color-8">
+                  <text
+                    class="iconfont icon-heart-fill text-base align-middle"></text> {{ post.likeCount ?? 0 }}</text>
+              </view>
+              <view class="flex gap-2" @click.stop>
+                <view
+                  class="flex items-center gap-1 px-[24rpx] text-[24rpx] py-[12rpx] rounded-full bg-theme-13 theme-color-1 text-xs font-bold transition-transform active:scale-95"
+                  @click.stop="goPostDetail(post.id)">
+                  <text class="iconfont icon-beizhu text-[24rpx]"></text> 编辑
+                </view>
+                <view
+                  class="flex items-center gap-1 px-[24rpx] text-[24rpx] py-[12rpx] rounded-full bg-red-500/10 text-[#ef4444] font-bold transition-transform active:scale-95"
+                  @click.stop="openDeletePostConfirm(post)">
+                  <text class="iconfont icon-trash-2 text-[24rpx]"></text> 删除
+                </view>
+              </view>
             </view>
           </view>
-        </view>
+        </template>
       </view>
       <!-- Member Management view -->
       <view class="space-y-4">
         <view class="flex items-center justify-between">
-          <view class="text-[28rpx] font-bold theme-color-1 uppercase tracking-widest">社群成员 (256)</view>
+          <view class="text-[28rpx] font-bold theme-color-1 uppercase tracking-widest">社群成员 ({{ membersTotal }})</view>
           <view class="text-[24rpx] font-bold theme-color-1 flex items-center gap-1" @click="goAllMember()">
             管理全员 <text class="iconfont icon-setting text-[24rpx]"></text>
           </view>
         </view>
         <view class="bg-white dark:bg-white/5 rounded-xl viewide-y viewide-primary/5 border border-primary/5">
-          <!-- Member 1 -->
-          <view class="flex items-center justify-between p-4">
-            <view class="flex items-center gap-3">
-              <view class="relative">
-                <image class="w-[96rpx] h-[96rpx] rounded-full object-cover" data-alt="Male user profile portrait"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDKwmv5wZTXBwU6zy0acGtnHKR1TkRKLseZptVnd0YAxe5vAMinhLSu2Q8SSMukkfYND3r15n1uq-8gCHNp5m9_lBoID-zhG5oI2nYiV5Qma0xHmHr-DP3Mg1luqmx1JV9_v7o6_lTtA8FYrd__iFIFgOzKF4h3Na47_mmHtQvjyhEC71Uo8R40704bLd5NES27FSXpwaN8r9XWeOBqMovlMLFnu_Zwlresj3SP7NkzARojQ3iA6A8ZaP0JGxK8STCajTnLuOF_5mrn" />
-                <text class="absolute bottom-0 right-0 w-[24rpx] h-[24rpx] bg-[#22c55e] border-2 border-white rounded-full"></text>
-              </view>
-              <view>
-                <view class="flex items-center gap-2">
-                  <view class="font-bold text-[28rpx] theme-color-5">陈修远</view>
-                  <text class="px-[16rpx] py-[4rpx] rounded-full bg-theme-3 text-[20rpx] theme-color-1 font-bold">管理员</text>
+          <template v-for="(m, mIdx) in filteredMembers" :key="m.userId">
+            <view v-if="mIdx % 3 === 0" class="flex items-center justify-between p-4">
+              <view class="flex items-center gap-3">
+                <view class="relative">
+                  <image class="w-[96rpx] h-[96rpx] rounded-full object-cover" data-alt="Male user profile portrait"
+                    :src="resolveMediaUrl(m.avatarUrl)"
+                    mode="aspectFill" />
+                  <text class="absolute bottom-0 right-0 w-[24rpx] h-[24rpx] bg-[#22c55e] border-2 border-white rounded-full"></text>
                 </view>
-                <view class="text-[24rpx] theme-color-4">上次在线: 5分钟前</view>
+                <view>
+                  <view class="flex items-center gap-2">
+                    <view class="font-bold text-[28rpx] theme-color-5">{{ m.nickName?.trim() || '云友' }}</view>
+                    <text v-if="m.isOwner == 1" class="px-[16rpx] py-[4rpx] rounded-full bg-theme-3 text-[20rpx] theme-color-1 font-bold">管理员</text>
+                  </view>
+                  <view class="text-[24rpx] theme-color-4">{{ memberSubline(m) }}</view>
+                </view>
+              </view>
+              <view
+                v-if="canRemoveMember(m)"
+                class="flex items-center gap-1 px-[24rpx] text-[24rpx] py-[12rpx] rounded-full bg-red-500/10 text-[#ef4444] font-bold transition-transform active:scale-95"
+                @click.stop="openRemoveMemberConfirm(m)">
+                <text class="iconfont icon-trash-2 text-[24rpx]"></text> 移出
+              </view>
+              <view
+                v-else
+                class="w-[80rpx] h-[80rpx] flex mr-0 items-center justify-center rounded-full bg-theme-13  text-primary hover:bg-primary/20 transition-colors">
+                <text class="iconfont icon-person_search text-[48rpx]  theme-color-1 "></text>
               </view>
             </view>
-            <button
-              class="w-[80rpx] h-[80rpx] flex mr-0 items-center justify-center rounded-full bg-theme-13  text-primary hover:bg-primary/20 transition-colors">
-              <text class="iconfont icon-person_search text-[48rpx]  theme-color-1 "></text>
-            </button>
-          </view>
-          <!-- Member 2 -->
-          <view class="flex items-center justify-between p-4">
-            <view class="flex items-center gap-3">
-              <img class="w-12 h-12 rounded-full object-cover" data-alt="Female user profile portrait"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuC9u9a-cWnEqR3lutmggEHgKNkKfS-c82-PjTEOUaSTwWHl1Sf6_WIBEy94XpkcjOE3DjmWcYKA7Yxgk8pJhQGlEeBkudwijzN2ulsxR7vgIJVmuCZ6KvQcmxjDVICXn_zk-pJ54wQc9qpqszfBFChP4WWrpQ1MB8TFiJIf_TdZN81NqIBadB1yH7LREXdmlV8NUCr0fGvXVqwG2soLCnlLuSLr523f1-uqBFMuIq3H706JGZv6DX4HmUXxuUQJdD6GCSAjMLtMaCqf" />
-              <view>
-                <view class="flex items-center gap-2">
-                  <view class="font-bold text-[28rpx] theme-color-5">林诗雨</view>
+            <view v-else-if="mIdx % 3 === 1" class="flex items-center justify-between p-4">
+              <view class="flex items-center gap-3">
+                <img class="w-12 h-12 rounded-full object-cover" data-alt="Female user profile portrait"
+                  :src="resolveMediaUrl(m.avatarUrl)" />
+                <view>
+                  <view class="flex items-center gap-2">
+                    <view class="font-bold text-[28rpx] theme-color-5">{{ m.nickName?.trim() || '云友' }}</view>
+                  </view>
+                  <view class="text-[24rpx] theme-color-4">{{ memberSubline(m) }}</view>
                 </view>
-                <view class="text-[24rpx] theme-color-4">活跃成员 · 32 动态</view>
+              </view>
+              <view
+                v-if="canRemoveMember(m)"
+                class="flex items-center gap-1 px-[32rpx] py-[12rpx] mr-0 rounded-full bg-red-500/10 text-[#ef4444] text-[24rpx] font-bold transition-transform active:scale-95"
+                @click.stop="openRemoveMemberConfirm(m)">
+                <text class="iconfont icon-trash-2 text-[24rpx]"></text> 移出
+              </view>
+              <view
+                v-else
+                class="px-[32rpx] py-[12rpx] mr-0 rounded-full ring-1 ring-[#d4af35]/30 bg-theme-13 text-primary text-[24rpx] font-bold hover:bg-primary/5 transition-colors">
+                管理
               </view>
             </view>
-            <button
-              class="px-[32rpx] py-[12rpx] mr-0 rounded-full ring-1 ring-[#d4af35]/30 bg-theme-13 text-primary text-[24rpx] font-bold hover:bg-primary/5 transition-colors">
-              管理
-            </button>
-          </view>
-          <!-- Member 3 -->
-          <view class="flex items-center justify-between p-4">
-            <view class="flex items-center gap-3">
-              <image class="w-12 h-12 rounded-full object-cover" data-alt="Professional user profile portrait"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuD6EOqvJ3WQprwSiIcrSBUq88GfnTW6WnuZRZXJSn9zs-34JZeKLcqQPVrLNkkYDYgs3cOffVTvP8ZZ4b5dfPY4a9gfwr_ZSvhMZysQeSietZwCwMJHjb5UemWGgtNYvJPQbpzTenOO7vjHaN0gYncPnbem1FnB6st7tCeURrO8B8Teq3UhQoJEa46CbTOLoiAdviewZqeed2WI5IzNBFG-4URXcKo25bCVC1DjhWnsBO6XXJ-vu0olXVuhyvtpYGExNuStncI0gmi6L" />
-              <view>
-                <view class="flex items-center gap-2">
-                  <view class="font-bold text-[28rpx] theme-color-5">张云帆</view>
+            <view v-else class="flex items-center justify-between p-4">
+              <view class="flex items-center gap-3">
+                <image class="w-12 h-12 rounded-full object-cover" data-alt="Professional user profile portrait"
+                  :src="resolveMediaUrl(m.avatarUrl)"
+                  mode="aspectFill" />
+                <view>
+                  <view class="flex items-center gap-2">
+                    <view class="font-bold text-[28rpx] theme-color-5">{{ m.nickName?.trim() || '云友' }}</view>
+                  </view>
+                  <view class="text-[24rpx] theme-color-4">{{ memberSubline(m) }}</view>
                 </view>
-                <view class="text-[24rpx] theme-color-4">新加入 · 昨天 14:20</view>
+              </view>
+              <view
+                v-if="canRemoveMember(m)"
+                class="flex items-center gap-1 px-4 py-1.5 mr-0 rounded-full bg-red-500/10 text-[#ef4444] text-xs font-bold transition-transform active:scale-95"
+                @click.stop="openRemoveMemberConfirm(m)">
+                <text class="iconfont icon-trash-2 text-[24rpx]"></text> 移出
+              </view>
+              <view
+                v-else
+                class="px-4 py-1.5 mr-0 rounded-full ring-1 ring-[#d4af35]/30 text-primary bg-theme-13 text-xs font-bold hover:bg-primary/5 transition-colors">
+                管理
               </view>
             </view>
-            <button
-              class="px-4 py-1.5 mr-0 rounded-full ring-1 ring-[#d4af35]/30 text-primary bg-theme-13 text-xs font-bold hover:bg-primary/5 transition-colors">
-              管理
-            </button>
-          </view>
+          </template>
         </view>
       </view>
     </view>
-    <!-- Floating Action Button -->
+    <!-- Floating Action view -->
     <view class="fixed bottom-24 right-6 flex flex-col gap-3">
-      <button
+      <view
       @click="goEditPost()"
         class="flex items-center justify-center w-[112rpx] h-[112rpx] rounded-full  bg-theme-2 text-background-dark shadow-lg shadow-primary/20 active:scale-95 transition-transform">
         <text class="iconfont icon-share text-[70rpx] text-white"></text>
-      </button>
-    </view>
-
-    <!-- Delete Confirmation Modal (Visual only) -->
-    <view
-      class="hidden fixed inset-0 z-[100] bg-background-dark/60 backdrop-blur-sm flex items-center justify-center p-6">
-      <view
-        class="bg-white dark:bg-background-dark w-full max-w-xs rounded-xl p-6 shadow-xl border border-primary/10 text-center">
-        <view class="w-12 h-12 bg-red-500/10 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4">
-          <text class="iconfont icon-add text-3xl">warning</text>
-        </view>
-        <view class="text-lg font-bold mb-2">确认删除？</view>
-        <view class="text-sm text-primary/60 mb-6">此操作将永久删除该动态，无法撤销。</view>
-        <view class="flex gap-3">
-          <button class="flex-1 py-3 rounded-full bg-primary/10 text-primary font-bold text-sm">取消</button>
-          <button class="flex-1 py-3 rounded-full bg-red-500 text-white font-bold text-sm">确定删除</button>
-        </view>
       </view>
     </view>
+
+    <Toast
+      v-model:show="manageToastShow"
+      :title="manageToastTitle"
+      :message="manageToastMessage"
+      :fields="manageToastFieldsEmpty"
+      :confirm-text="manageToastConfirmText"
+      cancel-text="取消"
+      :mask-closable="true"
+      @confirm="onManageToastConfirm"
+    />
   </view>
 </template>
 <script setup lang="ts">
-import { navigateBack } from '@/utils/navigation';
-import LcrBar from '@/components/lcrBar.vue';
-import { getNavbarHeight } from '@/utils/system';
+import { onShow } from "@dcloudio/uni-app";
+import { computed, ref } from "vue";
+import { fetchTeamMemberPage, postTeamMemberRemove } from "@/assets/js/api/team";
+import { fetchPostFeed, postPostDelete } from "@/assets/js/api/post";
+import { config } from "@/assets/js/config";
+import type { PostInfo } from "@/types/api/post";
+import type { TeamMemberRow } from "@/types/api/team";
+import type { ToastInputField } from "@/types/pages/component";
+import { unwrapApiData } from "@/utils/apiResponse";
+import { formatRelativeTime } from "@/utils/common";
+import { getNavbarHeight } from "@/utils/system";
+import LcrBar from "@/components/lcrBar.vue";
+import Toast from "@/components/common/toast.vue";
+import { useTeamStore } from "@/stores/team";
+import { useUserStore } from "@/stores/user";
 
-console.log('社群管理页面加载',getNavbarHeight());
-const onBack = () => {
-  navigateBack();
-};
-const searchQuery = ref('');
+const teamStore = useTeamStore();
+const userStore = useUserStore();
 
-const goPostDetail = (postId: string) => {
-  // 跳转到动态详情页
+const searchQuery = ref("");
+const myPosts = ref<PostInfo[]>([]);
+const myPostsTotal = ref(0);
+const members = ref<TeamMemberRow[]>([]);
+const membersTotal = ref(0);
+
+/** 纯确认弹窗：无输入框 */
+const manageToastFieldsEmpty: ToastInputField[] = [];
+const manageToastShow = ref(false);
+const manageToastTitle = ref("");
+const manageToastMessage = ref("");
+const manageToastConfirmText = ref("确定");
+
+type ManageToastPending =
+  | { kind: "deletePost"; postId: number }
+  | { kind: "removeMember"; member: TeamMemberRow }
+  | null;
+
+const manageToastPending = ref<ManageToastPending>(null);
+
+const selfNickname = computed(() => userStore.nickName);
+const selfAvatar = computed(() => userStore.avatarUrl);
+
+function resolveMediaUrl(raw: string | null | undefined): string {
+  const u = (raw || "").trim();
+  if (!u) return "/static/logo.png";
+  if (/^https?:\/\//i.test(u)) return u;
+  if (u.startsWith("//")) return `https:${u}`;
+  const base = config.baseURL.replace(/\/+$/, "");
+  const path = u.startsWith("/") ? u : `/${u}`;
+  return `${base}${path}`;
+}
+
+function postStatusLabel(status: number): string {
+  if (status === 2) return "已发布";
+  if (status === 1) return "待审核";
+  return "草稿";
+}
+
+function memberSubline(m: TeamMemberRow): string {
+  const parts: string[] = [];
+  if (m.joinedAt) parts.push(`${formatRelativeTime(m.joinedAt)}加入`);
+  parts.push(`${m.postCount} 条动态`);
+  return parts.join(" · ");
+}
+
+const filteredPosts = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return myPosts.value;
+  return myPosts.value.filter((p) => (p.content || "").toLowerCase().includes(q));
+});
+
+const filteredMembers = computed(() => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return members.value;
+  return members.value.filter(
+    (m) =>
+      (m.nickName || "").toLowerCase().includes(q) || String(m.userId).includes(q),
+  );
+});
+
+/** 当前所选团队是否由本人负责（与 `MyTeamItem.ownerId` 一致） */
+const isTeamOwner = computed(() => {
+  const uid = userStore.currentUser?.id;
+  const tid = teamStore.resolvedPublishTeamId;
+  if (uid == null || tid == null) return false;
+  const team = teamStore.myCurrentTeams.find((t) => t.teamId === tid);
+  return team != null && team.ownerId === uid;
+});
+
+function canRemoveMember(m: TeamMemberRow): boolean {
+  return isTeamOwner.value && m.isOwner != 1;
+}
+
+function openDeletePostConfirm(post: PostInfo) {
+  manageToastPending.value = { kind: "deletePost", postId: post.id };
+  manageToastTitle.value = "确认删除动态？";
+  manageToastMessage.value =
+    "仅可删除本人发布的动态。删除后将同步清理点赞记录，且不可恢复。";
+  manageToastConfirmText.value = "删除";
+  manageToastShow.value = true;
+}
+
+function openRemoveMemberConfirm(m: TeamMemberRow) {
+  const tid = teamStore.resolvedPublishTeamId;
+  if (tid == null) {
+    uni.showToast({ title: "暂无可用团队", icon: "none" });
+    return;
+  }
+  if (!canRemoveMember(m)) return;
+  manageToastPending.value = { kind: "removeMember", member: m };
+  manageToastTitle.value = "确认移出成员？";
+  manageToastMessage.value = `将「${(m.nickName || "").trim() || "该成员"}」移出当前团队，对方将不再属于本社群。`;
+  manageToastConfirmText.value = "移出";
+  manageToastShow.value = true;
+}
+
+async function onManageToastConfirm(_vals: Record<string, string>) {
+  const pending = manageToastPending.value;
+  manageToastPending.value = null;
+  if (!pending) return;
+  if (pending.kind === "deletePost") {
+    try {
+      await postPostDelete({ id: pending.postId });
+      uni.showToast({ title: "已删除", icon: "success" });
+      await loadPageData();
+    } catch (e) {
+      console.error("postPostDelete", e);
+    }
+    return;
+  }
+  const tid = teamStore.resolvedPublishTeamId;
+  if (tid == null) return;
+  try {
+    await postTeamMemberRemove({ teamId: tid, userId: pending.member.userId });
+    uni.showToast({ title: "已移出", icon: "success" });
+    await loadPageData();
+  } catch (e) {
+    console.error("postTeamMemberRemove", e);
+  }
+}
+
+async function loadPageData() {
+  try {
+    await teamStore.fetchMyCurrentTeams();
+    teamStore.syncPublishTeamFromUserFirstTeam(userStore.currentUser?.firstTeamId);
+
+    const teamId = teamStore.resolvedPublishTeamId ?? undefined;
+
+    const [feedRes, memberRes] = await Promise.all([
+      fetchPostFeed({ page: 1, size: 2, publishStatus: 2 }),
+      fetchTeamMemberPage({ teamId, page: 1, size: 3, role: 0 }),
+    ]);
+
+    const feedData = unwrapApiData<{ list: PostInfo[]; pagination?: { total?: number } }>(feedRes);
+    myPosts.value = feedData?.list ?? [];
+    myPostsTotal.value = feedData?.pagination?.total ?? myPosts.value.length;
+
+    const memData = unwrapApiData<{ list: TeamMemberRow[]; pagination?: { total?: number } }>(memberRes);
+    members.value = memData?.list ?? [];
+    membersTotal.value = memData?.pagination?.total ?? members.value.length;
+  } catch (e) {
+    console.error("manage loadPageData", e);
+    uni.showToast({ title: "加载失败", icon: "none" });
+    myPosts.value = [];
+    members.value = [];
+  }
+}
+
+onShow(() => {
+  void loadPageData();
+});
+
+function teamQuerySuffix(): string {
+  const id = teamStore.resolvedPublishTeamId;
+  return id != null ? `?teamId=${id}` : "";
+}
+
+const goPostDetail = (postId: number) => {
   uni.navigateTo({
-    url: `/pages/post/detail?id=${postId}`,
+    url: `/pages/post/detail?id=${postId}&type=manage`,
   });
-  console.log('跳转到动态详情页', postId);
 };
 
-const goEditPost = () => {
+function goEditPost(post?: PostInfo) {
+  if (post?.id != null) {
+    uni.navigateTo({
+      url: `/pages/post/edit-post?id=${post.id}`,
+    });
+    return;
+  }
   uni.navigateTo({
-    url: '/pages/post/edit-post',
+    url: "/pages/post/edit-post",
   });
-};
+}
+
 const goAllPost = () => {
   uni.navigateTo({
-    url: '/pages/community/allPost',
+    url: `/pages/community/allPost${teamQuerySuffix()}`,
   });
 };
+
 const goAllMember = () => {
   uni.navigateTo({
-    url: '/pages/community/allMember',
+    url: `/pages/community/allMember${teamQuerySuffix()}`,
   });
 };
 </script>

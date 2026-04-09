@@ -1,7 +1,8 @@
 /**************************** CodeGeeX Inline Diff ****************************/
 import { defineStore } from 'pinia'
-import type {  UserState,UserPayload,LoginPayload} from '@/types/api/user'
+import type { AuthTokenPayload, LoginPayload, UserPayload, UserState } from "@/types/api/user";
 import { passwordLogin ,fetchUserProfile ,logoutUser,updateUserProfile} from '@/assets/js/api/user'
+import { useTeamStore } from '@/stores/team'
 import { fetchMessageUnreadCount } from '@/assets/js/api/message'
 import { config } from '@/assets/js/config'
 // 定义用户信息的接口
@@ -12,7 +13,7 @@ export const useUserStore = defineStore('user', {
       H5Storage: localStorage, // H5平台使用localStorage
       strategies:[{
         key: 'user_store',
-        paths: ['token', 'isLoggedIn','currentUser'],
+        paths: ['token', 'isLoggedIn','currentUser','refreshToken'],
       }]
     },
     state: (): UserState => ({
@@ -44,6 +45,7 @@ export const useUserStore = defineStore('user', {
 
         // 清除用户信息
         clearUser() {
+            useTeamStore().clearTeams();
             this.$patch({
                 currentUser: null,
                 token: null,
@@ -51,6 +53,19 @@ export const useUserStore = defineStore('user', {
                 isLoggedIn: false,
                 loading: false,
                 unRead: 0
+            });
+        },
+
+        /** 刷新 token 成功后写入；未返回新 refreshToken 时保留原 refreshToken */
+        applyAuthTokens(payload: AuthTokenPayload) {
+            const nextRt =
+                payload.refreshToken != null && String(payload.refreshToken).length > 0
+                    ? payload.refreshToken
+                    : this.refreshToken;
+            this.$patch({
+                token: payload.token,
+                refreshToken: nextRt,
+                isLoggedIn: true,
             });
         },
 
@@ -118,6 +133,9 @@ export const useUserStore = defineStore('user', {
             const response = await fetchUserProfile()
             if (response.code === 1000) {
                 this.currentUser = response.data
+                const teamStore = useTeamStore()
+                await teamStore.fetchMyCurrentTeams()
+                teamStore.syncPublishTeamFromUserFirstTeam(this.currentUser?.firstTeamId)
                 return true;
             } else {
                 uni.showToast({

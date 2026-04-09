@@ -4,6 +4,8 @@
 import { get, post, put } from "../request";
 import type {
   MixedFeedQuery,
+  MyPostFeedQuery,
+  PostDeleteDTO,
   PostFeedQuery,
   PostInfoQuery,
   PostLikeDTO,
@@ -19,6 +21,7 @@ const POST_FEED_PATH = "/app/post/feed";
 const POST_FEED_TEAMS_PATH = "/app/post/feed/teams";
 const MIXED_FEED_PATH = "/app/post/feed/mixed";
 const POST_LIKE_PATH = "/app/post/like";
+const POST_DELETE_PATH = "/app/post/delete";
 const POST_INFO_PATH = "/app/post/info";
 
 /**
@@ -33,9 +36,11 @@ export const postPostShare = (body: PostShareDTO) => {
 /**
  * 手动发布动态；成功后 `data` 为 `PostInfo`；需登录。
  *
- * @param body `content` 必填；`images` / `teamId` / `userState` 可选
+ * @param body `content` 必填；`images` / `teamId` / `userState` / `lat` / `lng` / `visibility` 可选（后三者依后端是否支持）
  */
 export const postPostManual = (body: PostManualDTO) => {
+  // console.log(body);
+  // return 
   return post(POST_MANUAL_PATH, body);
 };
 
@@ -51,9 +56,9 @@ export const putPostUpdate = (body: PostUpdateDTO) => {
 /**
  * 动态流（我的动态）；需登录。
  *
- * @param query `page` / `size`
+ * @param query `page` / `size` / `publishStatus`（0 全部 1 待审 2 已发布，默认 2）
  */
-export const fetchPostFeed = (query?: PostFeedQuery) => {
+export const fetchPostFeed = (query?: MyPostFeedQuery) => {
   return get(POST_FEED_PATH, query ?? {});
 };
 
@@ -91,4 +96,13 @@ export const fetchPostDetail = (query: PostInfoQuery) => {
  */
 export const postPostLike = (body: PostLikeDTO) => {
   return post(POST_LIKE_PATH, body);
+};
+
+/**
+ * 删除动态；成功后业务 `data` 为 `null`；需登录，仅本人可删。
+ *
+ * @param body `id` 为 post_info.id
+ */
+export const postPostDelete = (body: PostDeleteDTO) => {
+  return post(POST_DELETE_PATH, body);
 };

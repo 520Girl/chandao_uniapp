@@ -45,8 +45,19 @@ export interface UserDefaultAddressData {
   address: UserAddress | null;
 }
 
-/** POST `/app/user/address/page` 请求体 */
+/** POST `/app/user/address/page` 请求体（可带其它查询字段，后端仍强制 userId） */
 export interface UserAddressPageDTO {
   page?: number;
   size?: number;
+  [key: string]: unknown;
+}
+
+/** POST `/app/user/address/page` 的 data：分页列表 */
+export interface UserAddressPageResult {
+  list: UserAddress[];
+  pagination?: {
+    page?: number;
+    size?: number;
+    total?: number;
+  };
 }

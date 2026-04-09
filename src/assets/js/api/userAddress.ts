@@ -1,11 +1,13 @@
-// 用户收货地址
-import { get, post } from '../request';
+/**
+ * 用户收货地址：`/app/user/address/*`（服务端注入当前 `userId`）。
+ */
+import { get, post } from "../request";
 import type {
   UserAddressCreate,
   UserAddressDeleteDTO,
   UserAddressPageDTO,
-  UserAddressUpdate
-} from '@/types/api/userAddress';
+  UserAddressUpdate,
+} from "@/types/api/userAddress";
 
 /**
  * 新增地址（需登录）。
@@ -50,10 +52,12 @@ export const fetchUserAddressList = (body: Record<string, unknown> = {}) => {
 
 /**
  * 地址分页（需登录）。
- * @param body `page` / `size` 等
+ *
+ * @param body `page` / `size` 等；可带其它条件，后端仍强制 userId
+ * @returns 业务 `data` 常为 `{ list, pagination }`，见 `UserAddressPageResult`
  */
 export const fetchUserAddressPage = (body?: UserAddressPageDTO) => {
-  return post('/app/user/address/page', body ?? {});
+  return post("/app/user/address/page", body ?? {});
 };
 
 /**

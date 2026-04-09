@@ -19,9 +19,14 @@
                 <text class="iconfont icon-close text-lg theme-color-7 text-on-surface-variant/70"></text>
             </view>
             <view class="relative z-[1] w-full pt-2 shrink-0">
-                <view class="text-base font-medium text-on-surface px-2 mb-4">{{ title }}</view>
+                <view class="text-base font-medium text-on-surface px-2 mb-2">{{ title }}</view>
+                <view
+                    v-if="messageTrimmed"
+                    class="text-sm theme-color-7 text-on-surface-variant/90 leading-relaxed whitespace-pre-wrap px-2 mb-3 text-left">
+                    {{ messageTrimmed }}
+                </view>
             </view>
-            <view class="relative z-[1] w-full space-y-3 text-left">
+            <view v-if="effectiveFields.length > 0" class="relative z-[1] w-full space-y-3 text-left">
                 <view v-for="item in effectiveFields" :key="item.key" class="w-full">
                     <text
                         v-if="fieldLabelVisible(item.label)"
@@ -68,6 +73,7 @@ const props = withDefaults(
     {
         show: false,
         title: '提示',
+        message: '',
         fields: undefined,
         icon: 'icon-Edit',
         iconColor: 'theme-color-12',
@@ -91,6 +97,8 @@ const visible = computed({
     get: () => props.show,
     set: (v: boolean) => emit('update:show', v)
 });
+
+const messageTrimmed = computed(() => String(props.message ?? '').trim());
 
 /** 未传 label、或仅空白：不展示标题行 */
 function fieldLabelVisible(label: string | undefined | null) {
@@ -129,14 +137,17 @@ function resolvedFieldIconClassList(f: ToastInputField): string[] {
     return list;
 }
 
-/** 无 fields 时退化为一条 key=value */
+/** 显式 `fields: []` 为纯确认；不传 `fields` 退化为一条输入 */
 const effectiveFields = computed((): ToastInputField[] => {
-    if (props.fields && props.fields.length > 0) {
-        return props.fields.map((f) => ({
-            ...f,
-            placeholder: f.placeholder ?? '请输入',
-            required: f.required !== undefined ? f.required : props.required
-        }));
+    if (Array.isArray(props.fields)) {
+        if (props.fields.length > 0) {
+            return props.fields.map((f) => ({
+                ...f,
+                placeholder: f.placeholder ?? '请输入',
+                required: f.required !== undefined ? f.required : props.required
+            }));
+        }
+        return [];
     }
     return [
         {
@@ -187,6 +198,11 @@ function handleClose() {
 }
 
 function handleConfirm() {
+    if (effectiveFields.value.length === 0) {
+        emit('confirm', {});
+        visible.value = false;
+        return;
+    }
     const out: Record<string, string> = {};
     for (const f of effectiveFields.value) {
         const raw = (formValues.value[f.key] ?? '').trim();

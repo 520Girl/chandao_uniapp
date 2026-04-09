@@ -72,10 +72,24 @@
     "mp-weixin" : {
         "appid" : "wxa1dcf856a0579cd2",
         "cloudfunctionRoot" : "cloudfunctions/",
+
+        "requiredPrivateInfos": ["getLocation", "chooseLocation"], // 必选，微信新规
+        "permission": {
+          "scope.userLocation": {
+            "desc": "获取您的位置信息用于提供精准服务" // 申请权限时的说明文案
+          }
+        },
+        
         "setting" : {
             "urlCheck" : false
         },
-        "usingComponents" : true
+        "usingComponents" : true,
+        "permission" : {
+            "scope.userLocation" : {
+                "desc" : "用于发布动态时关联位置"
+            }
+        },
+        "requiredPrivateInfos" : [ "getLocation" ]
     },
     "mp-alipay" : {
         "usingComponents" : true

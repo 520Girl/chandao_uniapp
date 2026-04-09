@@ -1,6 +1,12 @@
 export interface ToastProps {
     show?: boolean;
     title?: string;
+    /** 说明文案；与 `fields: []` 组合为纯确认弹窗（无输入框） */
+    message?: string;
+    /**
+     * 表单项；不传则退化为单行输入。
+     * 传空数组 `[]` 表示仅标题/说明 + 确定取消，无输入。
+     */
     fields?: ToastInputField[];
     /** 表单项未指定 icon 时的默认类名（如 icon-Edit）；传 `''` 则默认不显示行尾图标 */
     icon?: string;

@@ -1,0 +1,137 @@
+/**
+ * 禅修模块本地状态：首页活动偏好、最近一次禅修的时间/时长/音乐等（持久化，非用户表字段）。
+ */
+import { defineStore } from "pinia";
+
+/** 禅修结束时写入的一条摘要（本地） */
+export interface LastMeditationSessionPayload {
+  /** 本次禅修开始时刻（ISO 8601） */
+  startedAtIso: string;
+  /** 计划时长（分钟） */
+  plannedMinutes: number;
+  /** 结束时的已进行秒数 */
+  elapsedSec: number;
+  trackId: string;
+  trackTitle: string;
+  trackUrl: string;
+  /** 若均有效则同步更新首页活动偏好 */
+  activityId?: number | null;
+  activityTemplateId?: number | null;
+}
+
+/** 跳转禅修页前写入：复用持久化字段，与「上次练完」结构一致，无需单独 pending */
+export interface NextMeditationLaunchPayload {
+  durationMinutes: number;
+  trackId: string;
+  trackTitle: string;
+  trackUrl: string;
+  /** 场景卡进入时传入，会同步更新 `homePreferredActivity*`；右下角开始请勿传 */
+  activityId?: number | null;
+  activityTemplateId?: number | null;
+}
+
+export interface MeditationState {
+  /** 最近一次完成禅修关联的活动 ID，用于首页横向列表排序与默认带入 */
+  homePreferredActivityId: number | null;
+  homePreferredActivityTemplateId: number | null;
+  /** 最近一次禅修开始时间（ISO 8601） */
+  lastMeditationStartedAt: string | null;
+  /** 计划时长（分钟）：练前为将用时长，练后与 record 一致 */
+  lastMeditationPlannedMinutes: number | null;
+  /** 最近一次实际已进行秒数（结束时） */
+  lastMeditationElapsedSec: number | null;
+  lastMeditationTrackId: string | null;
+  lastMeditationTrackTitle: string | null;
+  lastMeditationTrackUrl: string | null;
+}
+
+export const useMeditationStore = defineStore("meditation", {
+  persist: {
+    enabled: true,
+    H5Storage: localStorage,
+    strategies: [
+      {
+        key: "meditation_store",
+        paths: [
+          "homePreferredActivityId",
+          "homePreferredActivityTemplateId",
+          "lastMeditationStartedAt",
+          "lastMeditationPlannedMinutes",
+          "lastMeditationElapsedSec",
+          "lastMeditationTrackId",
+          "lastMeditationTrackTitle",
+          "lastMeditationTrackUrl",
+        ],
+      },
+    ],
+  },
+  state: (): MeditationState => ({
+    homePreferredActivityId: null,
+    homePreferredActivityTemplateId: null,
+    lastMeditationStartedAt: null,
+    lastMeditationPlannedMinutes: null,
+    lastMeditationElapsedSec: null,
+    lastMeditationTrackId: null,
+    lastMeditationTrackTitle: null,
+    lastMeditationTrackUrl: null,
+  }),
+  actions: {
+    /**
+     * 进入禅修页前写入：更新 `lastMeditationPlannedMinutes`、三 track 字段；
+     * 仅场景卡等需要指定活动时传 `activityId` / `activityTemplateId`（会写 homePreferred）。
+     */
+    applyNextMeditationLaunch(payload: NextMeditationLaunchPayload) {
+      this.lastMeditationPlannedMinutes = Math.max(1, Math.round(payload.durationMinutes));
+      this.lastMeditationTrackId = payload.trackId || null;
+      this.lastMeditationTrackTitle = payload.trackTitle || null;
+      this.lastMeditationTrackUrl = payload.trackUrl || null;
+      const aid = payload.activityId;
+      const tid = payload.activityTemplateId;
+      if (
+        aid != null &&
+        tid != null &&
+        Number.isFinite(aid) &&
+        Number.isFinite(tid)
+      ) {
+        this.homePreferredActivityId = aid;
+        this.homePreferredActivityTemplateId = tid;
+      }
+    },
+
+    /**
+     * 禅修结束时写入：开始时间、计划/实际时长、音乐；若带有效活动 id 则更新首页活动偏好。
+     */
+    recordLastMeditationSession(payload: LastMeditationSessionPayload) {
+      this.lastMeditationStartedAt = payload.startedAtIso;
+      this.lastMeditationPlannedMinutes = Math.max(1, Math.round(payload.plannedMinutes));
+      this.lastMeditationElapsedSec = Math.max(0, Math.floor(payload.elapsedSec));
+      this.lastMeditationTrackId = payload.trackId || null;
+      this.lastMeditationTrackTitle = payload.trackTitle || null;
+      this.lastMeditationTrackUrl = payload.trackUrl || null;
+
+      const aid = payload.activityId;
+      const tid = payload.activityTemplateId;
+      if (
+        aid != null &&
+        tid != null &&
+        Number.isFinite(aid) &&
+        Number.isFinite(tid)
+      ) {
+        this.homePreferredActivityId = aid;
+        this.homePreferredActivityTemplateId = tid;
+      }
+    },
+
+    /** 登出等：清空禅修模块全部本地持久化字段 */
+    clearHomeActivityPreference() {
+      this.homePreferredActivityId = null;
+      this.homePreferredActivityTemplateId = null;
+      this.lastMeditationStartedAt = null;
+      this.lastMeditationPlannedMinutes = null;
+      this.lastMeditationElapsedSec = null;
+      this.lastMeditationTrackId = null;
+      this.lastMeditationTrackTitle = null;
+      this.lastMeditationTrackUrl = null;
+    },
+  },
+});

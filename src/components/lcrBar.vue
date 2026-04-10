@@ -5,7 +5,7 @@
             <view class="titleBar" :style="{ height: getTitleBarHeight() + 'px', marginLeft: getTitleLogo() + 'rpx' }">
                 <view
                     class="flex items-center justify-between border-b border-[#d4af35]/5" :style="{ width: 'calc(100vw - ' + getMenuButtonWidth() + 'px)' }">
-                    <view class="left-actions" v-if="type !== 'back'">
+                    <view class="left-actions" v-if="type === 'all'">
                         <view @click="onBack" class="left-btn">
                             <text class="iconfont icon-fanhui1 left-icon"></text>
                         </view>
@@ -14,11 +14,15 @@
                             <text class="iconfont icon-fangzi left-icon"></text>
                         </view>
                     </view>
-                    <view class="left-actions" style="padding:0;" v-else>
+                    <view class="left-actions" style="padding:0;"v-else-if="type === 'back'">
                          <view @click="onBack" class="left-btn">
                             <text class="iconfont icon-fanhui1 left-icon"></text>
                         </view>
                     </view>
+                    <view v-else>
+                      
+                    </view>
+                    
                     
                     <view class=" flex items-center justify-center rounded-full flex-1">
                         <h1 class="text-[36rpx] font-bold tracking-tight">{{title}}</h1>

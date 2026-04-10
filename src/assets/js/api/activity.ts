@@ -1,5 +1,5 @@
 /**
- * 活动模块 HTTP（分页、详情、打卡、参加等）。
+ * 活动模块 HTTP（`/app/activity/*`）：分页、详情、打卡统计、参加、打卡。
  */
 import { get, post } from "../request";
 import type {
@@ -19,7 +19,7 @@ const ACTIVITY_CHECKIN_PATH = "/app/activity/checkin";
 /**
  * 活动分页列表；需登录。
  *
- * @param body `page` / `size`
+ * @param body `page` 默认 1，`size` 默认 20
  */
 export const fetchActivityPage = (body?: ActivityPageQuery) => {
   return post(ACTIVITY_PAGE_PATH, body ?? {});
@@ -35,7 +35,7 @@ export const fetchActivityDetail = (query: ActivityInfoQuery) => {
 };
 
 /**
- * 活动打卡统计（可与详情中的 `checkinStats` 结构一致）；需登录。
+ * 活动打卡统计；需登录。返回结构与详情中 `checkinStats` 一致。
  *
  * @param query `id` 活动主键
  */
@@ -55,7 +55,7 @@ export const postActivityJoin = (body: ActivityJoinDTO) => {
 /**
  * 活动打卡；成功后业务 `data` 为 `null`；需登录。
  *
- * @param body `id` 活动主键
+ * @param body `id` 必填；`lat`/`lng`/`accuracy` 线下活动建议上报；`province`/`city` 可选展示字段
  */
 export const postActivityCheckin = (body: ActivityCheckinDTO) => {
   return post(ACTIVITY_CHECKIN_PATH, body);

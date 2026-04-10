@@ -47,60 +47,111 @@
         暂无动态
       </view>
       <view v-else class="space-y-6">
-        <view
-          v-for="post in posts"
-          :key="post.id"
-          class="rounded-[2rem] p-5 shadow-sm border border-primary/10 bg-[#ffffffcc]"
-          @click="goPostDetail(post.id)">
-          <view class="flex items-center justify-between mb-4">
-            <view class="flex items-center gap-3">
-              <image
-                class="w-8 h-8 rounded-full object-cover ring-2 ring-primary/10"
-                :src="selfAvatar"
-                mode="aspectFill" />
-              <text class="text-[10px] font-bold tracking-[0.15em] text-on-surface-variant uppercase">{{
-                selfNickname
-              }}</text>
-            </view>
-            <text
-              class="px-2.5 py-1 rounded-full bg-primary/10 text-[9px] font-bold text-primary tracking-widest uppercase">
-              {{ postStatusLabel(post.status) }}
-            </text>
-          </view>
-          <view class="text-[26rpx] font-body theme-color-6 leading-relaxed mb-4 line-clamp-4 whitespace-pre-wrap">
-            {{ (post.content || "").trim() || "（无正文）" }}
-          </view>
-          <view v-if="post.images?.length" class="grid grid-cols-2 gap-2.5 mb-4">
-            <image
-              v-for="(img, imgIdx) in post.images.slice(0, 4)"
-              :key="imgIdx"
-              class="rounded-xl h-32 w-full object-cover"
-              mode="aspectFill"
-              :src="resolveMediaUrl(img)" />
-          </view>
-          <view class="flex items-center justify-between pt-4 border-t border-primary/5">
-            <view class="flex gap-5">
-              <text class="flex items-center gap-1 text-[24rpx] theme-color-8">
-                <text class="iconfont icon-heart-fill text-[36rpx]"></text>
-                {{ post.likeCount ?? 0 }}
+        <template v-for="post in posts" :key="post.id">
+          <!-- 待审核：与 allPost copy 一致（白底、粗边框、批准发布 + 标记） -->
+          <view
+            v-if="post.status === 1"
+            class="bg-white rounded-[2rem] p-5 border border-primary/20 shadow-sm"
+            @click="goPostDetail(post.id)">
+            <view class="flex items-center justify-between mb-4">
+              <view class="flex items-center gap-3">
+                <image
+                  class="w-8 h-8 rounded-full object-cover ring-2 ring-primary/10"
+                  :src="selfAvatar"
+                  mode="aspectFill" />
+                <text class="text-[10px] font-bold tracking-[0.15em] text-on-surface-variant uppercase">{{
+                  selfNickname
+                }}</text>
+              </view>
+              <text
+                class="px-2.5 py-1 rounded-full bg-primary/10 text-[9px] font-bold text-primary tracking-widest uppercase">
+                待审核
               </text>
+            </view>
+            <view class="text-[13px] font-body theme-color-6 text-on-surface-variant mb-6 leading-relaxed whitespace-pre-wrap">
+              {{ (post.content || "").trim() || "（无正文）" }}
+            </view>
+            <view v-if="post.images?.length" class="grid grid-cols-2 gap-2.5 mb-6">
+              <image
+                v-for="(img, imgIdx) in post.images.slice(0, 4)"
+                :key="imgIdx"
+                class="rounded-xl h-32 w-full object-cover"
+                mode="aspectFill"
+                :src="resolveMediaUrl(img)" />
             </view>
             <view class="flex gap-3" @click.stop>
               <view
-                class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-theme-13 text-on-surface-variant active:opacity-80"
-                @click.stop="goPostDetail(post.id)">
-                <text class="iconfont icon-a-EditSquare-Light text-[36rpx]"></text>
-                <text class="text-[10px] font-bold tracking-widest">编辑</text>
+                class="flex-1 py-3 rounded-full bg-primary text-white text-[11px] font-bold tracking-[0.2em] flex items-center justify-center gap-2 shadow-md shadow-primary/10 transition-transform active:scale-95"
+                @tap.stop="onPendingPostFlagTap(post.id)"
+                @click.stop="onPendingPostFlagTap(post.id)">
+                <text class="iconfont icon-check-circle text-[36rpx]"></text>
+                批准发布
               </view>
               <view
-                class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-red-500/10 text-[#ef4444] active:opacity-80"
-                @click.stop="openDeletePostConfirm(post)">
-                <text class="iconfont icon-trash-2 text-[36rpx]"></text>
-                <text class="text-[10px] font-bold tracking-widest">删除</text>
+                class="w-12 h-12 rounded-full border border-primary/10 bg-primary/5 flex items-center justify-center text-on-surface-variant/60 shrink-0"
+                @tap.stop="onPendingPostFlagTap(post.id)"
+                @click.stop="onPendingPostFlagTap(post.id)">
+                <text class="iconfont icon-flag text-[36rpx]"></text>
               </view>
             </view>
           </view>
-        </view>
+          <!-- 已发布 / 草稿等：原卡片 -->
+          <view
+            v-else
+            class="rounded-[2rem] p-5 shadow-sm border border-primary/10 bg-[#ffffffcc]"
+            @click="goPostDetail(post.id)">
+            <view class="flex items-center justify-between mb-4">
+              <view class="flex items-center gap-3">
+                <image
+                  class="w-8 h-8 rounded-full object-cover ring-2 ring-primary/10"
+                  :src="selfAvatar"
+                  mode="aspectFill" />
+                <text class="text-[10px] font-bold tracking-[0.15em] text-on-surface-variant uppercase">{{
+                  selfNickname
+                }}</text>
+              </view>
+              <text
+                class="px-2.5 py-1 rounded-full bg-primary/10 text-[9px] font-bold text-primary tracking-widest uppercase">
+                {{ postStatusLabel(post.status) }}
+              </text>
+            </view>
+            <view class="text-[26rpx] font-body theme-color-6 leading-relaxed mb-4 line-clamp-4 whitespace-pre-wrap">
+              {{ (post.content || "").trim() || "（无正文）" }}
+            </view>
+            <view v-if="post.images?.length" class="grid grid-cols-2 gap-2.5 mb-4">
+              <image
+                v-for="(img, imgIdx) in post.images.slice(0, 4)"
+                :key="imgIdx"
+                class="rounded-xl h-32 w-full object-cover"
+                mode="aspectFill"
+                :src="resolveMediaUrl(img)" />
+            </view>
+            <view class="flex items-center justify-between pt-4 border-t border-primary/5">
+              <view class="flex gap-5">
+                <text class="flex items-center gap-1 text-[24rpx] theme-color-8">
+                  <text class="iconfont icon-heart-fill text-[36rpx]"></text>
+                  {{ post.likeCount ?? 0 }}
+                </text>
+              </view>
+              <view class="flex gap-3" @click.stop>
+                <view
+                  class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-theme-13 text-on-surface-variant active:opacity-80"
+                  @tap.stop="goPostDetail(post.id)"
+                  @click.stop="goPostDetail(post.id)">
+                  <text class="iconfont icon-a-EditSquare-Light text-[36rpx]"></text>
+                  <text class="text-[10px] font-bold tracking-widest">编辑</text>
+                </view>
+                <view
+                  class="flex items-center gap-1.5 px-3 py-2 rounded-full bg-red-500/10 text-[#ef4444] active:opacity-80"
+                  @tap.stop="openDeletePostConfirm(post)"
+                  @click.stop="openDeletePostConfirm(post)">
+                  <text class="iconfont icon-trash-2 text-[36rpx]"></text>
+                  <text class="text-[10px] font-bold tracking-widest">删除</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </template>
       </view>
       <view v-if="posts.length > 0" class="py-6 text-center text-xs theme-color-8">
         <text v-if="loadMoreStatus === 'loading'">加载更多…</text>
@@ -191,6 +242,11 @@ function goPostDetail(postId: number) {
   uni.navigateTo({
     url: `/pages/post/detail?id=${postId}&type=allPost`,
   });
+}
+
+/** 待审核卡片右侧标记：占位，避免触发整卡跳转详情 */
+function onPendingPostFlagTap(postId: number) {
+  uni.showToast({ title: "功能暂未开放", icon: "none" });
 }
 
 function goNewPost() {

@@ -1,5 +1,6 @@
 /**
  * 活动模块接口契约（`/app/activity/*`）。
+ * 与后端 `Activity` 模块 DTO 对齐。
  */
 
 /** POST `/app/activity/page` Body */
@@ -10,11 +11,12 @@ export interface ActivityPageQuery {
   size?: number;
 }
 
-/** 活动分页列表单行（后端 raw select 固定字段） */
+/**
+ * 活动分页列表单行（后端 raw select 固定字段）。
+ */
 export interface ActivityPageListItem {
   id: number;
   title: string;
-  /** 开始时间，格式以后端为准 */
   startDate?: string | null;
   endDate?: string | null;
   content?: string | null;
@@ -22,11 +24,17 @@ export interface ActivityPageListItem {
   isTop: number;
   templateId: number;
   teamId?: number | null;
+  /** 打卡模式，业务码以后端为准 */
+  checkinMode: number;
   templateName?: string | null;
   templateIcon?: string | null;
+  /** 目标冥想时间（秒） */
+  targetMeditationSeconds: number;
+  /** 通过百分比 */
+  passPercent: number;
 }
 
-/** 通用分页信息（与 Post 流一致） */
+/** 分页信息 */
 export interface ActivityPagination {
   page?: number;
   size?: number;
@@ -39,13 +47,7 @@ export interface ActivityPage {
   pagination: ActivityPagination;
 }
 
-/** 活动详情中的打卡统计 */
-export interface ActivityCheckinStats {
-  totalParticipants: number;
-  todayCheckinCount: number;
-  checkinList: ActivityCheckinListItem[];
-}
-
+/** 打卡排行榜/列表项（`checkinStats.checkinList`） */
 export interface ActivityCheckinListItem {
   userId: number;
   userName: string;
@@ -53,7 +55,21 @@ export interface ActivityCheckinListItem {
   todayChecked: boolean;
 }
 
-/** GET `/app/activity/info` 的 data */
+/** 活动详情 / 独立接口中的打卡统计 */
+export interface ActivityCheckinStats {
+  totalParticipants: number;
+  todayCheckinCount: number;
+  checkinList: ActivityCheckinListItem[];
+}
+
+/** GET `/app/activity/info` Query */
+export interface ActivityInfoQuery {
+  id: number;
+}
+
+/**
+ * GET `/app/activity/info` 的 data。
+ */
 export interface ActivityDetail {
   id: number;
   templateId: number;
@@ -66,41 +82,73 @@ export interface ActivityDetail {
   authorId: number;
   /** 活动状态，业务码以后端为准 */
   status: number;
+  /** 打卡模式，业务码以后端为准 */
+  checkinMode: number;
   templateName?: string | null;
   templateIcon?: string | null;
   checkinStats: ActivityCheckinStats;
+  passPercent: number;
+  targetMeditationSeconds: number;
 }
 
 /** GET `/app/activity/checkinStats` Query */
 export interface ActivityCheckinStatsQuery {
-  /** 活动 id */
   id: number;
 }
 
-/** GET `/app/activity/info` Query */
-export interface ActivityInfoQuery {
-  id: number;
-}
+/** GET `/app/activity/checkinStats` 的 data（与详情内 `checkinStats` 同结构） */
+export type ActivityCheckinStatsPayload = ActivityCheckinStats;
 
 /** POST `/app/activity/join` Body */
 export interface ActivityJoinDTO {
   id: number;
 }
 
-/** POST `/app/activity/checkin` Body */
-export interface ActivityCheckinDTO {
-  id: number;
-}
-
-/** POST `/app/activity/join` 的 data */
+/**
+ * POST `/app/activity/join` 的 data。
+ * `checkins` 为参与记录上的聚合打卡态，结构以后端为准。
+ */
 export interface ActivityParticipation {
   id: number;
   userId: number;
   activityId: number;
   applyTime?: string | null;
   status: number;
-  /** 后端结构不定，按实际解析 */
   checkins?: unknown[] | null;
   createTime: string;
   updateTime: string;
 }
+
+/**
+ * POST `/app/activity/checkin` Body。
+ * - `lat`/`lng`/`accuracy`：线下场景建议上报；未取到定位时仍可仅传 `id`（依活动配置与后端校验）。
+ * - `province`/`city`：展示用，可选；服务端亦可逆地理填充。
+ */
+export interface ActivityCheckinDTO {
+  id: number;
+  lat?: number;
+  lng?: number;
+  accuracy?: number;
+  province?: string;
+  city?: string;
+}
+
+
+export interface HomeActivityCard {
+  id: number;
+  templateId: number;
+  title: string;
+  subtitle: string;
+  sceneType: SceneType;
+  bgClass: string;
+  h2Class: string;
+  spanClass: string;
+  btnClass: string;
+  imgUrl: string;
+  endTime: string;
+  totalTime?: string;
+  passPercent?: number;
+}
+
+
+export type SceneType = "dark" | "light" | "simple";

@@ -153,7 +153,6 @@ export function isApiDomainAllowed(url: string): boolean {
         const host = parsed.hostname;
         return config.domainWhitelist.some((allowedHost) => {
             const normalized = allowedHost;
-            console.log('检查域名:', host, ' against whitelist entry:', normalized);
             return host === normalized || host.endsWith(`.${normalized}`);
         });
     } catch (error) {

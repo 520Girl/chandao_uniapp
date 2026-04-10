@@ -34,6 +34,34 @@ export interface MessageListItem {
   readTime?: string | null;
 }
 
+/**
+ * GET `/app/message/info` 的 `data`（单条详情，可能为 `null`）。
+ * `contentData` 为结构化扩展（多为 JSON 对象），用于图文 URL、外链等。
+ */
+export interface MessageInfo {
+  id: number;
+  title: string;
+  content?: string;
+  /** 0 纯文本 1 图文 2 图文链接 3 文本链接 */
+  contentType: number;
+  contentData?: Record<string, unknown> | string | null;
+  templateKey?: string | null;
+  bizType?: string | null;
+  bizId?: number | null;
+  /** 投递范围：0 全体 1 指定用户 2 团队成员 3 团队负责人 */
+  targetType: number;
+  teamId?: number | null;
+  /** 发送者类型：0 系统 1 管理员 2 用户 */
+  senderType: number;
+  senderId?: number | null;
+  /** 发送时间（ISO 或后端约定格式） */
+  sendTime: string;
+  createTime: string;
+  /** 0 未读 1 已读 */
+  readStatus: number;
+  readTime?: string | null;
+}
+
 /** 分页 data 结构 */
 export interface MessagePage {
   list: MessageListItem[];

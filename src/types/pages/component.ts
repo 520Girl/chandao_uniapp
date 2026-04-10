@@ -20,18 +20,21 @@ export interface ToastProps {
     required?: boolean;
 };
 
-/** 确定 / 取消 文案弹窗（无输入） */
+/**
+ * 确定 / 取消 文案弹窗（无输入）。
+ * 点遮罩或右上角关闭触发 `dismiss`；左侧按钮触发 `cancel`；右侧触发 `confirm`。
+ */
 export interface ConfirmDialogProps {
-    show?: boolean;
-    title?: string;
-    /** 正文，支持换行（\n） */
-    message?: string;
-    cancelText?: string;
-    confirmText?: string;
-    /** 点遮罩是否关闭（默认 false，避免误触） */
-    maskClosable?: boolean;
-    /** 是否显示右上角关闭 */
-    showClose?: boolean;
+  show?: boolean;
+  title?: string;
+  /** 正文，支持换行（\n） */
+  message?: string;
+  cancelText?: string;
+  confirmText?: string;
+  /** 点遮罩是否关闭（默认 false，避免误触）；关闭时发 `dismiss` */
+  maskClosable?: boolean;
+  /** 是否显示右上角关闭；点击发 `dismiss` */
+  showClose?: boolean;
 }
 
 /** 全屏或居中加载遮罩 */

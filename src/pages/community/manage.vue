@@ -314,8 +314,14 @@ const isTeamOwner = computed(() => {
   return team != null && team.ownerId === uid;
 });
 
+/** 仅负责人可操作移出；不可移出负责人；不可移出自己 */
 function canRemoveMember(m: TeamMemberRow): boolean {
-  return isTeamOwner.value && m.isOwner != 1;
+  if (!isTeamOwner.value) return false;
+  if (m.isOwner === 1) return false;
+  const selfId = userStore.currentUser?.id;
+  if (selfId == null) return false;
+  if (m.userId === selfId) return false;
+  return true;
 }
 
 function openDeletePostConfirm(post: PostInfo) {

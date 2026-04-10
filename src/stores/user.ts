@@ -2,6 +2,7 @@
 import { defineStore } from 'pinia'
 import type { AuthTokenPayload, LoginPayload, UserPayload, UserState } from "@/types/api/user";
 import { passwordLogin ,fetchUserProfile ,logoutUser,updateUserProfile} from '@/assets/js/api/user'
+import { useMeditationStore } from '@/stores/meditation'
 import { useTeamStore } from '@/stores/team'
 import { fetchMessageUnreadCount } from '@/assets/js/api/message'
 import { config } from '@/assets/js/config'
@@ -46,6 +47,7 @@ export const useUserStore = defineStore('user', {
         // 清除用户信息
         clearUser() {
             useTeamStore().clearTeams();
+            useMeditationStore().clearHomeActivityPreference();
             this.$patch({
                 currentUser: null,
                 token: null,

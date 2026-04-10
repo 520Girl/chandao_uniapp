@@ -102,14 +102,14 @@
                 </view>
               </view>
               <view v-show="audioExpanded" class="px-4 pb-4">
-                <up-list class="music-up-list" height="420rpx" :lower-threshold="100" :show-scrollbar="false"
+                <up-list class="music-up-list" height="420rpx" :lower-threshold="100" :show-scrollbar="true"
                   @scrolltolower="onMusicScrollToLower">
                   <up-list-item v-for="item in audioTracks" :key="item.id" :anchor="String(item.id)">
                     <view class="flex items-center gap-3 p-2 rounded-xl border transition-colors mb-2" :class="playingId === item.id
                         ? 'bg-primary/5 border-primary/10'
                         : 'border-transparent active:bg-white/40 dark:active:bg-white/5'
                       " @click="togglePlay(item)">
-                      <view class="size-10 rounded-lg flex items-center justify-center shrink-0" :class="item.coverClass" :style="{ backgroundImage: `url(${item.coverUrl})` }">
+                      <view class="size-10 rounded-lg flex items-center justify-center shrink-0" :class="item.coverClass">
                         <text :class="playingId === item.id ? 'iconfont icon-pause' : 'iconfont icon-round-play_arrow-p'"
                           class="theme-color-1 text-[30rpx]" />
                       </view>
@@ -134,105 +134,145 @@
       </view>
       <view class="px-6 space-y-6 mt-8">
         <view class="text-[28rpx] font-bold uppercase tracking-widest theme-color-8 px-2">场景化冥想</view>
-        <scroll-view
-          scroll-x
-          class="w-full whitespace-nowrap"
-          :show-scrollbar="false"
-          enable-flex
-          :scroll-into-view="activityScrollIntoView"
-          scroll-with-animation>
-          <view class="inline-flex flex-row gap-6 pb-10 pt-2 pl-2 pr-2 snap-x">
-            <view
-              v-for="item in homeActivityCards"
-              :key="item.id"
-              :id="'hm-act-' + item.id"
-              class="relative flex-shrink-0 w-[70vw] h-64 cloud-card shadow-2xl shadow-indigo-900/10 snap-center overflow-hidden">
-              <view :class="item.bgClass" class="absolute inset-0 bg-gradient-to-tr to-transparent z-0" />
-              <view
-                v-if="item.imgUrl"
-                class="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-overlay z-[1]"
-                :style="{ backgroundImage: `url('${item.imgUrl}')` }" />
-              <view
-                class="absolute inset-0 p-8 flex flex-col justify-end z-10"
-                :class="item.sceneType === 'dark' ? 'text-white' : ''">
-                <view class="mb-3">
-                  <text
-                    :class="item.btnClass"
-                    class="px-3 py-1 rounded-full text-[20rpx] font-medium tracking-widest border border-white/20">
-                    {{ item.endTime }}
-                  </text>
-                </view>
-                <view :class="item.h2Class" class="text-2xl font-medium mb-3 tracking-tight break-words">{{ item.title }}</view>
-                <view :class="item.spanClass" class="text-xs leading-relaxed font-light mb-6 line-clamp-3">{{
-                  item.subtitle
-                }}</view>
-                <view class="flex items-center justify-between">
-                  <view
-                    hover-class="opacity-90"
-                    class="px-[48rpx] py-[20rpx] bg-theme-1 text-white rounded-full text-[20rpx] font-bold uppercase tracking-widest shadow-lg shadow-primary/20 backdrop-blur-sm"
-                    @click.stop="startMeditationFromActivity(item)">
-                    开启心流
-                  </view>
-                  <view>
-                    <view
-                    :class="item.sceneType === 'dark' ? 'text-white/40' : 'text-[#918355]/60'"
-                    class="text-[20rpx] tracking-widest">
-                    达标：{{ item.passPercent }}%
-                  </view>
-                  <view
-                    :class="item.sceneType === 'dark' ? 'text-white/40' : 'text-[#918355]/60'"
-                    class="text-[20rpx] tracking-widest">
-                    总时长：{{ item.totalTime }}
-                  </view>
-                  </view>
-                  
-                </view>
+        <view class="flex gap-6 overflow-x-auto pb-10 pt-2 px-2 snap-x no-scrollbar">
+          <view v-for="(item, index) in activeList" :key="index"
+            class="relative flex-shrink-0 w-[85%] h-64 cloud-card shadow-2xl shadow-indigo-900/10 snap-center overflow-hidden">
+            <view :class="item.bgClass" class="absolute inset-0 bg-gradient-to-tr to-transparent z-0">
+            </view>
+            <view :class="'bg-[url(\'' + item.imgUrl + '\')]'"
+              class="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-overlay">
+            </view>
+            <view class="absolute inset-0 p-8 flex flex-col justify-end text-white z-10">
+              <view class="mb-3">
+                <text :class="item.btnClass"
+                  class="px-3 py-1 rounded-full  text-[20rpx] font-medium tracking-widest border border-white/20">
+                  {{ item.endTime }}</text>
+              </view>
+              <view :class="item.h2Class" class="text-2xl font-medium mb-3 tracking-tight ">{{ item.title }}</view>
+              <view :class="item.spanClass" class="text-xs leading-relaxed font-light mb-6">{{ item.subtitle }}</view>
+              <view class="flex items-center justify-between">
+                <button @click="startMeditation(item)"
+                  class="px-[48rpx] py-[20rpx] bg-theme-1 text-white rounded-full text-[20rpx] font-bold uppercase tracking-widest shadow-lg shadow-primary/20 backdrop-blur-sm">
+                  开启心流
+                </button>
+                <view class="text-[20rpx] text-white/40 tracking-widest">{{ item.totalTime }}</view>
               </view>
             </view>
           </view>
-        </scroll-view>
-        <view v-if="activitiesLoading" class="text-center text-xs theme-color-8 -mt-6 pb-2">活动加载中…</view>
+          <view
+            class="relative flex-shrink-0 w-[85%] h-64 cloud-card shadow-2xl shadow-indigo-900/10 snap-center overflow-hidden">
+            <view class="absolute inset-0 bg-gradient-to-tr from-indigo-950/100 via-slate-10/60 to-transparent z-0">
+            </view>
+            <view
+              class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1532767153582-b1a0e5145009')] bg-cover bg-center opacity-30 mix-blend-overlay">
+            </view>
+            <view class="absolute inset-0 p-8 flex flex-col justify-end text-white z-10">
+              <view class="mb-3">
+                <text
+                  class="px-3 py-1 rounded-full bg-white/10 backdrop-blur-xl  text-[20rpx] font-medium tracking-widest border border-white/20">
+                  22:00
+                  今晚</text>
+              </view>
+              <view class="text-2xl font-medium mb-3 tracking-tight text-white">深夜觉察111</view>
+              <view class="text-xs text-white/60 leading-relaxed font-light mb-6">静坐于此，观照情绪如深夜之云悄然飘过。</view>
+              <view class="flex items-center justify-between">
+                <button
+                  class="px-[48rpx] py-[10rpx] bg-theme-1 text-white rounded-full text-[20rpx] font-bold uppercase tracking-widest shadow-lg shadow-primary/20 backdrop-blur-sm">
+                  开启心流
+                </button>
+                <view class="text-[20rpx] text-white/40 tracking-widest">12 MINS</view>
+              </view>
+            </view>
+          </view>
+          <view
+            class="relative flex-shrink-0 w-[85%] h-64 cloud-card shadow-2xl shadow-orange-900/5 snap-center overflow-hidden">
+            <view class="absolute inset-0 bg-gradient-to-br from-amber-50/100 via-orange-100/60 to-white/10 z-0">
+            </view>
+            <view
+              class="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1470252649378-9c29740c9fa8')] bg-cover bg-center opacity-20 mix-blend-multiply">
+            </view>
+            <view class="absolute inset-0 p-8 flex flex-col justify-end z-10">
+              <view class="mb-3">
+                <text
+                  class="px-3 py-1 rounded-full bg-theme-10 theme-color-1 text-[20rpx] font-medium tracking-widest border border-primary/10">08:00
+                  清晨</text>
+              </view>
+              <text class="text-2xl font-medium mb-3 tracking-tight text-[#4a4538]">晨间安宁</text>
+              <text class="text-xs text-[#1a170f]/80 leading-relaxed font-light mb-6">旭日东升，呼吸之间，回归你本自具足的宁静。</text>
+              <view class="flex items-center justify-between">
+                <button
+                  class="px-[48rpx] py-[10rpx] bg-theme-1 text-white rounded-full text-[20rpx] font-bold uppercase tracking-widest shadow-lg shadow-primary/20 backdrop-blur-sm">
+                  开启心流
+                </button>
+                <text class="text-[20rpx] text-[#918355]/60 tracking-widest">15 MINS</text>
+              </view>
+            </view>
+          </view>
+          <view
+            class="relative flex-shrink-0 w-[85%] h-64 cloud-card shadow-2xl shadow-blue-900/5 snap-center overflow-hidden">
+            <view class="absolute inset-0 bg-gradient-to-tr from-blue-50/50 via-white/40 to-transparent z-0">
+            </view>
+            <view class="absolute inset-0 p-8 flex flex-col justify-end z-10">
+              <view class="mb-3">
+                <text
+                  class="px-3 py-1 rounded-full bg-blue-500/10 text-blue-600 text-[10px] font-bold tracking-widest border border-blue-500/10">12:00
+                  午间</text>
+              </view>
+              <h3 class="text-2xl font-medium mb-3 tracking-tight text-[#4a4538]">午间小憩</h3>
+              <view class="text-xs text-[#1a170f]/80 leading-relaxed font-light mb-6">于白昼繁杂中，寻得一处内心清明之地。
+              </view>
+              <view class="flex items-center justify-between">
+                <button
+                  class="px-[48rpx] py-[10rpx] bg-theme-1 text-white rounded-full text-[20rpx] font-bold uppercase tracking-widest shadow-lg shadow-primary/20 backdrop-blur-sm">
+                  开启心流
+                </button>
+                <text class="text-[20rpx] text-[#918355]/60 tracking-widest">5 MINS</text>
+              </view>
+            </view>
+          </view>
+          <!-- <view @click="onNavigate('meditation')"
+                      class="relative flex-shrink-0 w-80 h-64 rounded-2xl overflow-hidden snap-center group cursor-pointer">
+                      <image src="https://picsum.photos/seed/night/800/600"
+                          class="absolute inset-0 w-full h-full object-cover opacity-60 group-hover:scale-105 transition-transform duration-700"
+                          referrerPolicy="no-referrer" />
+                      <view
+                          class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-6 flex flex-col justify-end text-white">
+                          <span
+                              class="w-fit px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-[10px] font-bold mb-3">22:00
+                              今晚</span>
+                          <text class="text-xl font-bold mb-2">深夜觉察</text>
+                          <view class="text-sm text-white/70 leading-relaxed font-light">静坐于此，观照情绪如深夜之云悄然飘过。</view>
+                          <view class="mt-4 flex items-center gap-4">
+                              <button
+                                  class="px-6 py-2 bg-[#d4af35] rounded-full text-black text-xs font-bold uppercase tracking-wider">开启心流</button>
+                              <span class="text-xs text-white/50">12 mins</span>
+                          </view>
+                      </view>
+                  </view> -->
+        </view>
       </view>
       <!-- //开始按钮 -->
       <view class="fixed bottom-24 right-6 flex flex-col gap-3">
         <button
         @click="onStartMeditation()"
           class="flex items-center justify-center w-[112rpx] h-[112rpx] rounded-full  bg-theme-2 text-background-dark shadow-lg shadow-primary/20 active:scale-95 transition-transform">
-          <text class="iconfont icon-Wind text-[50rpx] text-white"></text>
+          <text class="iconfont icon-zap-fast text-[50rpx] text-white"></text>
         </button>
       </view>
-
-      <ConfirmDialog
-        v-model:show="showMeditationDevicePopup"
-        title="选择禅修方式"
-        message="是否已连接心率/体动等设备？"
-        cancel-text="无设备"
-        confirm-text="有设备"
-        :mask-closable="true"
-        :show-close="true"
-        @cancel="confirmStartMeditationWithDevice(false)"
-        @confirm="confirmStartMeditationWithDevice(true)" />
     </view>
   </template>
   
   <script setup lang="ts">
-  import { getCurrentInstance, nextTick } from 'vue';
-  import { fetchActivityPage } from '@/assets/js/api/activity';
+  import { getCurrentInstance } from 'vue';
   import { fetchMessageUnreadCount } from '@/assets/js/api/message';
   import { getMusicPage } from '@/assets/js/api/user';
-  import { config } from '@/assets/js/config';
-  import ConfirmDialog from '@/components/common/confirmDialog.vue';
   import HomeBar from '@/components/homeBar.vue';
-  import { useMeditationStore } from '@/stores/meditation';
-  import { useUserStore } from '@/stores/user';
-  import type { ActivityPage, ActivityPageListItem, HomeActivityCard, SceneType } from '@/types/api/activity';
   import type { MusicPageData } from '@/types/api/music';
   import { unwrapApiData } from '@/utils/apiResponse';
-  import { formatDate } from '@/utils/common';
   import { mapMusicListItemToRow, resolveMusicAssetUrl } from '@/utils/musicPage';
   
   /** 分钟范围（与 UI 文案 05–60 一致） */
-  const minMinutes = 1;
+  const minMinutes = 5;
   const maxMinutes = 60;
   const stepMinutes = 1;
   
@@ -241,10 +281,7 @@
   const audioExpanded = ref(false);
   
   const barDragging = ref(false);
-
-  /** 右下角开始禅修：先选有/无设备 */
-  const showMeditationDevicePopup = ref(false);
-
+  
   const ringProgress = computed(() => {
     const span = maxMinutes - minMinutes;
     if (span <= 0) return 0;
@@ -282,230 +319,19 @@
     });
   };
 
-  const userStore = useUserStore();
-  const meditationStore = useMeditationStore();
-
-  /** 接口无数据时的占位（与旧版三卡视觉一致） */
-  const FALLBACK_HOME_ACTIVITIES: ActivityPageListItem[] = [
-    {
-      id: 90001,
-      title: "深夜觉察",
-      startDate: null,
-      endDate: null,
-      content: "静坐于此，观照情绪如深夜之云悄然飘过。",
-      isTop: 0,
-      templateId: 0,
-      teamId: null,
-      checkinMode: 0,
-      templateName: null,
-      templateIcon: null,
-      targetMeditationSeconds: 0,
-      passPercent: 0,
-    },
-    {
-      id: 90002,
-      title: "晨间安宁",
-      startDate: null,
-      endDate: null,
-      content: "旭日东升，呼吸之间，回归你本自具足的宁静。",
-      isTop: 0,
-      templateId: 1,
-      teamId: null,
-      checkinMode: 0,
-      templateName: null,
-      templateIcon: null,
-      targetMeditationSeconds: 0,
-      passPercent: 0,
-    },
-    {
-      id: 90003,
-      title: "午间小憩",
-      startDate: null,
-      endDate: null,
-      content: "于白昼繁杂中，寻得一处内心清明之地。",
-      isTop: 0,
-      templateId: 2,
-      teamId: null,
-      checkinMode: 0,
-      templateName: null,
-      templateIcon: null,
-      targetMeditationSeconds: 0,
-      passPercent: 0,
-    },
-  ];
-
-  const DEFAULT_SCENE_IMAGES = [
-    "https://images.unsplash.com/photo-1532767153582-b1a0e5145009",
-    "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8",
-    "",
-  ] as const;
-
-
-  const SCENE_STYLES: Record<
-    SceneType,
-    { bgClass: string; h2Class: string; spanClass: string; btnClass: string }
-  > = {
-    dark: {
-      bgClass: "from-indigo-950/100 via-slate-10/60",
-      h2Class: "text-white",
-      spanClass: "text-white/60",
-      btnClass: "bg-white/10 backdrop-blur-xl",
-    },
-    light: {
-      bgClass: "from-amber-50/100 via-orange-100/60",
-      h2Class: "text-[#4a4538]",
-      spanClass: "text-[#1a170f]/80",
-      btnClass: "bg-theme-10 theme-color-1 border border-primary/10",
-    },
-    simple: {
-      bgClass: "from-blue-50/50 via-white/40",
-      h2Class: "text-[#4a4538]",
-      spanClass: "text-[#1a170f]/80",
-      btnClass: "bg-blue-500/10 text-blue-600 border border-blue-500/10",
-    },
+  const activeList = reactive([
+      { id: 1, type:"dark" ,imgUrl:"https://images.unsplash.com/photo-1532767153582-b1a0e5145009",totalTime:"25 MINS",endTime:"22:00 今晚", title: '深夜觉察',url:"",subtitle:"静坐于此，观照情绪如深夜之云悄然飘过。", h2Class:"text-white",spanClass:"text-white/60", bgClass: 'from-indigo-950/100 via-slate-10/60', btnClass: 'bg-white/10 backdrop-blur-xl', icon: 'meditation' },
+      { id: 2, type:"light" , imgUrl:"https://images.unsplash.com/photo-1470252649378-9c29740c9fa8",totalTime:"15 MINS",endTime:"08:00 清晨", title: '晨间安宁',url:"",subtitle:"旭日东升，呼吸之间，回归你本自具足的宁静。",  h2Class:"text-[#4a4538]",spanClass:"text-[#1a170f]/80",  bgClass: 'from-amber-50/100 via-orange-100/60', btnClass: 'bg-theme-10 theme-color-1', icon: 'question' },
+      { id: 3, type:"simple", imgUrl:"",totalTime:"5 MINS",endTime:"12:00 午间", title: '午间小憩',url:"",subtitle:"于白昼繁杂中，寻得一处内心清明之地。",  h2Class:"text-[#4a4538]",spanClass:"text-[#1a170f]/80",  bgClass: 'from-blue-50/50 via-white/40', btnClass: 'bg-blue-500/10 text-blue-600 ', icon: 'answer' },
+  ]);
+  //开始禅修
+  const startMeditation = (item: any) => {
+      console.log("开始禅修：", item);
+      uni.switchTab({
+          url: `/pages/index/meditation?scene=${item.type}`
+      });
+      // 这里可以添加实际的导航或功能逻辑
   };
-
-  function sceneTypeForTemplate(templateId: number): SceneType {
-    const m = templateId;
-    return m === 1 ? "dark" : m === 2 ? "light" : "simple";
-  }
-
-  function resolveActivityMediaUrl(raw: string | null | undefined): string {
-    const u = (raw || "").trim();
-    if (!u) return "";
-    if (/^https?:\/\//i.test(u)) return u;
-    if (u.startsWith("//")) return `https:${u}`;
-    const base = config.baseURL.replace(/\/+$/, "");
-    const path = u.startsWith("/") ? u : `/${u}`;
-    return `${base}${path}`;
-  }
-
-  function activityTimeBadge(item: ActivityPageListItem): string {
-    const s = item.startDate?.trim();
-    const e = item.endDate?.trim();
-    if (s && e) {
-      return `${formatDate(s, "MM-DD HH:mm")} - ${formatDate(e, "MM-DD HH:mm")}`;
-    }
-    if (s) return formatDate(s, "MM-DD HH:mm");
-    return "随时共修";
-  }
-
-  function activityDurationLabel(item: ActivityPageListItem): string {
-    const time = item.targetMeditationSeconds;
-    if (!time) return "自定分钟";
-    try {
-      return `${time / 60} 分钟`;
-    } catch {
-      return "自定时间";
-    }
-  }
-
-  function sortHomeActivities(
-    list: ActivityPageListItem[],
-    prefId: number | null,
-    prefTid: number | null,
-  ): ActivityPageListItem[] {
-    return [...list].sort((a, b) => {
-      if (prefId != null) {
-        const ah = a.id === prefId ? 1 : 0;
-        const bh = b.id === prefId ? 1 : 0;
-        if (ah !== bh) return bh - ah;
-      }
-      if (prefTid != null) {
-        const at = a.templateId === prefTid ? 1 : 0;
-        const bt = b.templateId === prefTid ? 1 : 0;
-        if (at !== bt) return bt - at;
-      }
-      const top = (b.isTop ?? 0) - (a.isTop ?? 0);
-      if (top !== 0) return top;
-      return a.id - b.id;
-    });
-  }
-
-
-
-  function mapToHomeCard(item: ActivityPageListItem): HomeActivityCard {
-    const sceneType = sceneTypeForTemplate(item.templateId);
-    const st = SCENE_STYLES[sceneType];
-    const icon = resolveActivityMediaUrl(item.templateIcon ?? null);
-    const fallbackImg = DEFAULT_SCENE_IMAGES[Math.abs(item.templateId) % DEFAULT_SCENE_IMAGES.length];
-    return {
-      id: item.id,
-      templateId: item.templateId,
-      title: item.title?.trim() || "共修活动",
-      subtitle: (item.content || "").trim() || "安住当下，与社群一同共修。",
-      sceneType,
-      bgClass: st.bgClass,
-      h2Class: st.h2Class,
-      spanClass: st.spanClass,
-      btnClass: st.btnClass,
-      imgUrl: icon || fallbackImg,
-      endTime: activityTimeBadge(item),
-      totalTime: activityDurationLabel(item),
-      passPercent: item.passPercent,
-    };
-  }
-
-  const activitiesRaw = ref<ActivityPageListItem[]>([]);
-  const activitiesLoading = ref(false);
-  const activityScrollIntoView = ref("");
-
-  const homeActivityCards = computed((): HomeActivityCard[] => {
-    const base =
-      activitiesRaw.value.length > 0 ? activitiesRaw.value : FALLBACK_HOME_ACTIVITIES;
-    const sorted = sortHomeActivities(
-      base,
-      meditationStore.homePreferredActivityId,
-      meditationStore.homePreferredActivityTemplateId,
-    );
-    return sorted.map(mapToHomeCard);
-  });
-
-  async function scrollPreferredActivityIntoView() {
-    await nextTick();
-    const cards = homeActivityCards.value;
-    if (!cards.length) return;
-    const pref = meditationStore.homePreferredActivityId;
-    const target =
-      pref != null && cards.some((c) => c.id === pref) ? pref : cards[0].id;
-    activityScrollIntoView.value = `hm-act-${target}`;
-    setTimeout(() => {
-      activityScrollIntoView.value = "";
-    }, 500);
-  }
-                                                                                                                                                      
-  async function loadHomeActivities() {
-    activitiesLoading.value = true;
-    try {
-      const res = await fetchActivityPage({ page: 1, size: 7 });
-      const data = unwrapApiData<ActivityPage>(res);
-      activitiesRaw.value = data?.list?.length ? data.list : [];
-    } catch (e) {
-      console.error("fetchActivityPage", e);
-      activitiesRaw.value = [];
-    } finally {
-      activitiesLoading.value = false;
-      await scrollPreferredActivityIntoView();
-    }
-  }
-
-  /** 从场景卡进入禅修：参数写入 Pinia，避免超长 URL；先停首页试听，禅修页从头播 */
-  function startMeditationFromActivity(item: HomeActivityCard) {
-    const selected = audioTracks.value.find((x) => x.id === playingId.value) || audioTracks.value[0];
-    stopAudio();
-    playingId.value = null;
-    meditationStore.applyNextMeditationLaunch({
-      durationMinutes: clampMinutes(Number(durationMinutes.value)),
-      trackId: selected?.id ? String(selected.id) : "",
-      trackTitle: selected?.title?.trim() || item.title,
-      trackUrl: selected?.url || "",
-      activityId: item.id,
-      activityTemplateId: item.templateId,
-    });
-    uni.navigateTo({
-      url: "/pages/meditation/startMeditaiton",
-    });
-  }
   
   /** conic-gradient：from -90deg 从 12 点顺时针，与触摸 atan2 一致 */
   const ringConicStyle = computed(() => {
@@ -556,13 +382,12 @@
     /** 须为 https 或同源可播地址，小程序要求 */
     url: string;
     coverClass: string;
-    coverUrl: string;
   };
   
-  const MUSIC_PAGE_SIZE = 20;
-
-  /** 为 true 时使用本地模拟数据（分页仍走滚动加载） */
-  const USE_MUSIC_MOCK = false;
+  const MUSIC_PAGE_SIZE = 10;
+  
+  /** 为 true 时使用本地模拟数据（分页仍走滚动加载）；接好接口后改为 false */
+  const USE_MUSIC_MOCK = true;
   
   /** 模拟列表（字段与 mapMusicItem 兼容；url 需为 https 以便小程序播放） */
   const MOCK_MUSIC_LIST: Record<string, unknown>[] = [
@@ -570,22 +395,19 @@
       id: 'mock-1',
       title: 'Return to Stability',
       subtitle: 'Nature & Flow',
-      url: 'http://127.0.0.1:8001/upload/20260410/sssssssss_ab1f2f7659d74396aa142d9baab777fb.m4a',
-      coverUrl: ''
+      url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3'
     },
     {
       id: 'mock-2',
       title: 'Emotion like clouds',
       subtitle: 'Soft Ambient',
-      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
-      coverUrl: ''
+      url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
     },
     {
       id: 'mock-3',
       title: 'Forest Whisper',
       subtitle: 'Organic Echoes',
-      url: 'https://www2.cs.uic.edu/~i101/SoundFiles/BabyElephantWalk60.wav',
-      coverUrl: ''
+      url: 'https://www2.cs.uic.edu/~i101/SoundFiles/BabyElephantWalk60.wav'
     },
     ...Array.from({ length: 21 }, (_, i) => ({
       id: `mock-${i + 4}`,
@@ -596,8 +418,7 @@
           ? 'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3'
           : i % 3 === 1
             ? 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
-            : 'https://www2.cs.uic.edu/~i101/SoundFiles/BabyElephantWalk60.wav',
-      coverUrl: ''
+            : 'https://www2.cs.uic.edu/~i101/SoundFiles/BabyElephantWalk60.wav'
     }))
   ];
   
@@ -618,7 +439,6 @@
   function mapMusicItem(raw: Record<string, unknown>, index: number): AudioTrack {
     const id = String(raw.id ?? raw.musicId ?? `idx-${index}`);
     const title = String(raw.title ?? raw.name ?? '未命名');
-    const coverUrl = String(raw.coverUrl ?? '');
     const subtitle = String(raw.subtitle ?? raw.artist ?? raw.remark ?? raw.description ?? '');
     const url = resolveMusicAssetUrl(
       (raw.url ?? raw.audioUrl ?? raw.fileUrl ?? raw.src ?? raw.path) as string | undefined
@@ -628,7 +448,6 @@
       title,
       subtitle,
       url,
-      coverUrl,
       coverClass: COVER_CLASS_CYCLE[index % COVER_CLASS_CYCLE.length]
     };
   }
@@ -698,7 +517,6 @@
       uni.showToast({ title: '音乐列表加载失败', icon: 'none' });
     } finally {
       musicFetching.value = false;
-      applyLastMeditationTrackSelection();
     }
   }
   
@@ -714,45 +532,12 @@
     }
   }
   
-  /** 列表加载后尽量选中上次禅修使用的音乐（按 trackId，其次 url） */
-  function applyLastMeditationTrackSelection() {
-    if (!audioTracks.value.length) return;
-    const id = meditationStore.lastMeditationTrackId;
-    const url = meditationStore.lastMeditationTrackUrl;
-    if (id) {
-      const hit = audioTracks.value.find((t) => t.id === id);
-      if (hit) {
-        playingId.value = hit.id;
-        return;
-      }
-    }
-    if (url) {
-      const byUrl = audioTracks.value.find((t) => t.url === url);
-      if (byUrl) playingId.value = byUrl.id;
-    }
-  }
-
   onMounted(() => {
-    const m = meditationStore.lastMeditationPlannedMinutes;
-    if (m != null && m >= minMinutes && m <= maxMinutes) {
-      durationMinutes.value = m;
-    } else {
-      try {
-        const legacy = uni.getStorageSync("meditation_duration_minutes");
-        const n = Number(legacy);
-        if (!Number.isNaN(n) && n >= minMinutes && n <= maxMinutes) {
-          durationMinutes.value = n;
-        }
-      } catch {
-        /* noop */
-      }
-    }
     fetchMusicPage(true);
   });
 
   onShow(() => {
     loadMessageUnreadCount();
-    void loadHomeActivities();
   });
   
   const playingId = ref<string | null>(null);
@@ -805,22 +590,23 @@
   }
   
   function onStartMeditation() {
-    showMeditationDevicePopup.value = true;
-  }
-
-  /** 有设备 / 无设备：写入 Pinia 后进入禅修页；先停首页试听，禅修内重新从头播放 */
-  function confirmStartMeditationWithDevice(hasDevice: boolean) {
     const selected = audioTracks.value.find((x) => x.id === playingId.value) || audioTracks.value[0];
-    stopAudio();
-    playingId.value = null;
-    meditationStore.applyNextMeditationLaunch({
-      durationMinutes: clampMinutes(Number(durationMinutes.value)),
-      trackId: selected?.id ? String(selected.id) : "",
-      trackTitle: selected?.title?.trim() || "疗愈音频",
-      trackUrl: selected?.url || "",
-    });
+    const query = [
+      `duration=${Number(durationMinutes.value)}`,
+      selected?.id ? `trackId=${encodeURIComponent(selected.id)}` : '',
+      selected?.title ? `trackTitle=${encodeURIComponent(selected.title)}` : '',
+      selected?.url ? `trackUrl=${encodeURIComponent(selected.url)}` : ''
+    ]
+      .filter(Boolean)
+      .join('&');
+  
+    try {
+      uni.setStorageSync('meditation_duration_minutes', Number(durationMinutes.value));
+    } catch {
+      /* noop */
+    }
     uni.navigateTo({
-      url: hasDevice ? "/pages/meditation/startMeditaiton" : "/pages/meditation/startMeditaiton?d=0",
+      url: `/pages/meditation/startMeditaiton?${query}`
     });
   }
   

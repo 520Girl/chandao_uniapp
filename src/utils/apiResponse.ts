@@ -42,20 +42,26 @@ export function unwrapApiPageList(res: unknown): unknown[] {
  * 解析分页列表与总数（兼容 `pagination.total` 或根级 `total`）。
  * @param res 接口 resolve 值
  */
-export function unwrapApiPagedResult<T = unknown>(res: unknown): { list: T[]; total?: number } {
+export function unwrapApiPagedResult<T = unknown>(res: unknown): { list: T[]; total?: number, unread?: number, read?: number, system?: number } {
   const inner = unwrapApiData(res);
-  if (inner == null) return { list: [] };
-  if (Array.isArray(inner)) return { list: inner as T[] };
-  if (typeof inner !== "object") return { list: [] };
+  if (inner == null) return { list: [], unread: 0, read: 0, system: 0 };
+  if (Array.isArray(inner)) return { list: inner as T[], unread: 0, read: 0, system: 0 };
+  if (typeof inner !== "object") return { list: [], unread: 0, read: 0, system: 0 };
   const o = inner as Record<string, unknown>;
   const rawList = o.list ?? o.records ?? o.rows ?? o.items;
   const list = (Array.isArray(rawList) ? rawList : []) as T[];
   let total: number | undefined;
-  const pag = o.pagination;
+  let unread: number | undefined;
+  let read: number | undefined;
+  let system: number | undefined;
+  const pag = o.counts;
   if (pag && typeof pag === "object") {
     const p = pag as Record<string, unknown>;
     if (typeof p.total === "number") total = p.total;
+    if (typeof p.unread === "number") unread = p.unread;
+    if (typeof p.read === "number") read = p.read;
+    if (typeof p.system === "number") system = p.system;
   }
   if (total === undefined && typeof o.total === "number") total = o.total;
-  return { list, total };
+  return { list, total,unread, read, system };
 }

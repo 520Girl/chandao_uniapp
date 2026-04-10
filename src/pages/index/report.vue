@@ -127,9 +127,14 @@
 
 <script setup lang="ts">
 import { getCurrentInstance } from 'vue';
-import { getMusicList } from '@/assets/js/api/user';
-import { config } from '@/assets/js/config';
+import { getMusicPage } from '@/assets/js/api/user';
+import type { MusicPageData } from '@/types/api/music';
+import { unwrapApiData } from '@/utils/apiResponse';
+import { mapMusicListItemToRow, resolveMusicAssetUrl } from '@/utils/musicPage';
+import { useMeditationStore } from '@/stores/meditation';
 import HomeBar from '@/components/homeBar.vue';
+
+const meditationStore = useMeditationStore();
 
 const weeklyDurationCategories = ['05.10', '05.11', '05.12', '05.13', '05.14', '05.15', '05.16'];
 const weeklyDurationSeries = [
@@ -351,21 +356,11 @@ const COVER_CLASS_CYCLE = [
     'bg-purple-100 dark:bg-purple-900/20'
 ];
 
-function resolveAudioUrl(raw: string | undefined | null): string {
-    const u = (raw || '').trim();
-    if (!u) return '';
-    if (/^https?:\/\//i.test(u)) return u;
-    if (u.startsWith('//')) return `https:${u}`;
-    const base = config.baseURL.replace(/\/+$/, '');
-    const path = u.startsWith('/') ? u : `/${u}`;
-    return `${base}${path}`;
-}
-
 function mapMusicItem(raw: Record<string, unknown>, index: number): AudioTrack {
     const id = String(raw.id ?? raw.musicId ?? `idx-${index}`);
     const title = String(raw.title ?? raw.name ?? '未命名');
     const subtitle = String(raw.subtitle ?? raw.artist ?? raw.remark ?? raw.description ?? '');
-    const url = resolveAudioUrl(
+    const url = resolveMusicAssetUrl(
         (raw.url ?? raw.audioUrl ?? raw.fileUrl ?? raw.src ?? raw.path) as string | undefined
     );
     return {
@@ -374,32 +369,6 @@ function mapMusicItem(raw: Record<string, unknown>, index: number): AudioTrack {
         subtitle,
         url,
         coverClass: COVER_CLASS_CYCLE[index % COVER_CLASS_CYCLE.length]
-    };
-}
-
-function extractMusicListPayload(res: unknown): {
-    list: Record<string, unknown>[];
-    total?: number;
-    hasNext?: boolean;
-} {
-    if (res == null) return { list: [] };
-    const body = res as Record<string, unknown>;
-    const inner = body.data !== undefined ? body.data : body;
-    if (Array.isArray(inner)) {
-        return { list: inner as Record<string, unknown>[] };
-    }
-    const d = inner as Record<string, unknown>;
-    const list = (d?.list ?? d?.records ?? d?.rows ?? d?.items ?? d?.data ?? []) as unknown[];
-    const total = d?.total ?? d?.totalCount;
-    const hasNext = d?.hasNext;
-    const hasMore = d?.hasMore;
-    let hasNextFlag: boolean | undefined;
-    if (typeof hasNext === 'boolean') hasNextFlag = hasNext;
-    else if (typeof hasMore === 'boolean') hasNextFlag = hasMore;
-    return {
-        list: (Array.isArray(list) ? list : []) as Record<string, unknown>[],
-        total: typeof total === 'number' ? total : undefined,
-        hasNext: hasNextFlag
     };
 }
 
@@ -436,19 +405,23 @@ async function fetchMusicPage(reset: boolean) {
                 musicLoadStatus.value = 'loadmore';
             }
         } else {
-            const res = await getMusicList({ page, pageSize: MUSIC_PAGE_SIZE });
-            const { list: rawList, total, hasNext } = extractMusicListPayload(res);
+            const res = await getMusicPage({ page, size: MUSIC_PAGE_SIZE });
+            const data = unwrapApiData<MusicPageData>(res);
+            if (!data || !Array.isArray(data.list)) {
+                throw new Error('music page: invalid data');
+            }
             const startIdx = audioTracks.value.length;
-            const mapped = rawList.map((raw, i) => mapMusicItem(raw, startIdx + i));
+            const mapped = data.list.map((item, i) =>
+                mapMusicListItemToRow(item, startIdx + i, COVER_CLASS_CYCLE),
+            );
             audioTracks.value = audioTracks.value.concat(mapped);
 
             const got = mapped.length;
-            const reachedTotal = total != null && audioTracks.value.length >= total;
+            const total = data.pagination?.total;
             const noMore =
-                hasNext === false ||
                 got === 0 ||
                 got < MUSIC_PAGE_SIZE ||
-                reachedTotal;
+                (typeof total === 'number' && total >= 0 && audioTracks.value.length >= total);
 
             if (noMore) {
                 musicListFinished.value = true;
@@ -459,7 +432,7 @@ async function fetchMusicPage(reset: boolean) {
             }
         }
     } catch (e) {
-        console.error('getMusicList', e);
+        console.error('getMusicPage', e);
         musicLoadStatus.value = audioTracks.value.length ? 'nomore' : 'loadmore';
         uni.showToast({ title: '音乐列表加载失败', icon: 'none' });
     } finally {
@@ -534,22 +507,16 @@ function togglePlay(track: AudioTrack) {
 
 function onStartMeditation() {
     const selected = audioTracks.value.find((x) => x.id === playingId.value) || audioTracks.value[0];
-    const query = [
-        `duration=${Number(durationMinutes.value)}`,
-        selected?.id ? `trackId=${encodeURIComponent(selected.id)}` : '',
-        selected?.title ? `trackTitle=${encodeURIComponent(selected.title)}` : '',
-        selected?.url ? `trackUrl=${encodeURIComponent(selected.url)}` : ''
-    ]
-        .filter(Boolean)
-        .join('&');
-
-    try {
-        uni.setStorageSync('meditation_duration_minutes', Number(durationMinutes.value));
-    } catch {
-        /* noop */
-    }
+    stopAudio();
+    playingId.value = null;
+    meditationStore.applyNextMeditationLaunch({
+        durationMinutes: clampMinutes(Number(durationMinutes.value)),
+        trackId: selected?.id ? String(selected.id) : '',
+        trackTitle: selected?.title?.trim() || '疗愈音频',
+        trackUrl: selected?.url || ''
+    });
     uni.navigateTo({
-        url: `/pages/meditation/startMeditaiton?${query}`
+        url: '/pages/meditation/startMeditaiton'
     });
 }
 

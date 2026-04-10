@@ -41,7 +41,7 @@
                     :show-scrollbar="false" @scrolltolower="onScrollToLower">
                     <up-list-item v-for="m in messages" :key="m.id" :anchor="String(m.id)" class="no-scrollbar">
                         <!-- 复用原来的卡片样式，只是内容绑定后端数据 -->
-                        <view class="group cursor-pointer" @click="gotoDetail(m.id)">
+                        <view class="group cursor-pointer" @click="gotoDetail(m)">
                             <view class=" flex items-start gap-4">
                                 <view class="relative shrink-0">
                                     <view
@@ -84,7 +84,7 @@
             <view v-show="false" class="space-y-8 opacity-0 max-h-0 overflow-hidden pointer-events-none"
                 aria-hidden="true">
                 <!-- Message Item 1: System -->
-                <view class="group cursor-pointer" @click="gotoDetail('1')">
+                <view class="group cursor-pointer">
                     <view class="flex items-start gap-4">
                         <view
                             class="w-12 h-12 rounded-full flex items-center justify-center bg-primary/10 text-primary shrink-0">
@@ -104,7 +104,7 @@
                     <view class="message-viewider mt-6"></view>
                 </view>
                 <!-- Message Item 2: Direct -->
-                <view class="group cursor-pointer" @click="gotoDetail('2')">
+                <view class="group cursor-pointer" >
                     <view class="flex items-start gap-4">
                         <view class="relative shrink-0">
                             <img alt="Portrait of a serene woman"
@@ -141,10 +141,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { onShow } from '@dcloudio/uni-app';
+import { markMessageRead } from '@/assets/js/api/message';
 import { navigateBack, formatRelativeTime } from '@/utils';
 import lcrBar from '@/components/lcrBar.vue';
+import { useDictStore } from '@/stores/dict';
 import type { MessageListItem, MessagePageDTO } from '@/types/api/message';
 import { fetchMessagePage } from '@/assets/js/api/message';
 import { unwrapApiPagedResult } from '@/utils/apiResponse';
@@ -157,6 +157,8 @@ type MessageTab = 'all' | 'system' | 'read' | 'unread';
 const onBack = () => {
     navigateBack();
 };
+
+const dictStore = useDictStore();
 
 const messages = ref<MessageListItem[]>([]);
 const page = ref(1);
@@ -185,13 +187,15 @@ function pillClass(tab: MessageTab) {
         : 'theme-color-8 bg-[#f1efed] text-on-surface-variant hover:bg-outline/10';
 }
 
-function updateTabTotal(total: number | undefined) {
-    const n = typeof total === 'number' ? total : undefined;
-    if (n === undefined) return;
-    if (activeTab.value === 'all') allMessageCount.value = n;
-    else if (activeTab.value === 'system') systemMessageCount.value = n;
-    else if (activeTab.value === 'read') readMessageCount.value = n;
-    else if (activeTab.value === 'unread') unreadMessageCount.value = n;
+function updateTabTotal(total: number | undefined, unread: number | undefined, read: number | undefined, system: number | undefined) {
+    const t = typeof total === 'number' ? total : 0;
+    const u = typeof unread === 'number' ? unread : 0;
+    const r = typeof read === 'number' ? read : 0;
+    const s = typeof system === 'number' ? system : 0;
+    allMessageCount.value = t;
+    systemMessageCount.value = s;
+    readMessageCount.value = r;
+    unreadMessageCount.value = u;
 }
 
 function setTab(tab: MessageTab) {
@@ -221,21 +225,25 @@ const displayContentType = (m: MessageListItem) => {
             return 'icon-auto_awesome';
     }
 };
+/** 依据 Pinia `message_biz_type` 字典与 `bizType` 字段匹配图标类名 */
 const displayAvatar = (m: MessageListItem) => {
-
-    if (m.bizType?.includes('medal')) {
+    const h = dictStore.messageBizTypeMatchHint(m.bizType);
+    if (h.includes('medal') || h.includes('勋章')) {
         return 'icon-xunzhang';
-    } else if (m.bizType?.includes('activity')) {
-        return 'icon-flag';
-    } else if (m.bizType?.includes('team_invite_joined')) {
-        return 'icon-ic_group_add_px';
-    } else if (m.bizType?.includes('team_member')) {
-        return 'icon-danyilaiyuan';
-    } else if (m.bizType?.includes('post')) {
-        return 'icon-huifudetiezi';
-    } else {
-        return 'icon-notifications_active';
     }
+    if (h.includes('activity') || h.includes('活动')) {
+        return 'icon-flag';
+    }
+    if (h.includes('team_invite_joined') || h.includes('邀请入队') || h.includes('入队')) {
+        return 'icon-ic_group_add_px';
+    }
+    if (h.includes('team_member') || h.includes('团队成员') || h.includes('成员')) {
+        return 'icon-danyilaiyuan';
+    }
+    if (h.includes('post') || h.includes('帖子') || h.includes('动态')) {
+        return 'icon-huifudetiezi';
+    }
+    return 'icon-notifications_active';
 };
 const displaySummary = (m: MessageListItem) => {
     if (m.content) return m.content;
@@ -259,9 +267,9 @@ async function loadPage(reset = false) {
     loadStatus.value = 'loading';
     try {
         const res = await fetchMessagePage(buildPageQuery());
-        const { list, total } = unwrapApiPagedResult<MessageListItem>(res);
+        const { list, total, unread, read, system } = unwrapApiPagedResult<MessageListItem>(res);
         messages.value = messages.value.concat(list);
-        if (page.value === 1) updateTabTotal(total);
+        if (page.value === 1) updateTabTotal(total, unread, read, system);
         if (list.length < pageSize) {
             finished.value = true;
             loadStatus.value = 'nomore';
@@ -289,13 +297,37 @@ function loadMore() {
     }
 }
 
-const gotoDetail = (id: number | string) => {
+const gotoDetail = async (m: MessageListItem) => {
+    const h = dictStore.messageBizTypeMatchHint(m.bizType);
+    if ((h.includes('activity') || h.includes('活动')) && m.bizId != null) {
+        if (m.readStatus === 0) {
+            try {
+                await markMessageRead({ messageId: m.id });
+            } catch {
+                /* 忽略 */
+            }
+        }
+        uni.navigateTo({
+            url: `/pages/post/activity?id=${m.bizId}&type=message&joined=1`,
+        });
+        return;
+    }
+    const ct = m.contentType;
+    if (ct === 0 || ct === 1 || ct === 2 || ct === 3) {
+        uni.navigateTo({
+            url: `/pages/message/detailPhotoText?id=${m.id}`,
+        });
+        return;
+    }
     uni.navigateTo({
-        url: `/pages/message/detail?id=${id}`,
+        url: `/pages/message/detail?id=${m.id}`,
     });
 };
 
-onShow(() => {
+onShow(async () => {
+    if (dictStore.message_biz_type.size === 0) {
+        await dictStore.fetchMessageBizType();
+    }
     loadPage(true);
 });
 </script>

@@ -6,6 +6,13 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "386507",
+      "name": "图钉",
+      "font_class": "tuding",
+      "unicode": "e637",
+      "unicode_decimal": 58935
+    },
+    {
       "icon_id": "11078219",
       "name": "TOP",
       "font_class": "TOP",

@@ -17,7 +17,7 @@
                 <view
                     v-if="showClose"
                     class="absolute right-4 top-4 z-10 size-8 flex items-center justify-center rounded-full bg-black/5 active:bg-black/10"
-                    @tap="handleCancel">
+                    @tap="handleDismiss">
                     <text class="iconfont icon-close text-lg theme-color-7 text-on-surface-variant/70" />
                 </view>
                 <view class="relative z-[1] w-full pt-2 shrink-0 px-1">
@@ -60,8 +60,11 @@ const props = withDefaults(defineProps<ConfirmDialogProps>(), {
 
 const emit = defineEmits<{
     "update:show": [value: boolean];
+    /** 左侧取消按钮 */
     cancel: [];
     confirm: [];
+    /** 遮罩或右上角关闭 */
+    dismiss: [];
 }>();
 
 const visible = computed({
@@ -81,9 +84,14 @@ function handleConfirm() {
     visible.value = false;
 }
 
+function handleDismiss() {
+    visible.value = false;
+    emit("dismiss");
+}
+
 function onMaskTap() {
     if (!props.maskClosable) return;
-    handleCancel();
+    handleDismiss();
 }
 </script>
 

@@ -9,6 +9,7 @@ import type {
 } from '@/types/api/message';
 
 const PAGE_PATH = '/app/message/page';
+const INFO_PATH = '/app/message/info';
 const UNREAD_COUNT_PATH = '/app/message/unread-count';
 const READ_PATH = '/app/message/read';
 const DELETE_PATH = '/app/message/delete';
@@ -19,6 +20,15 @@ const ACTION_PATH = '/app/message/action';
  */
 export const fetchMessagePage = (body?: MessagePageDTO) => {
   return post(PAGE_PATH, body ?? {});
+};
+
+/**
+ * 消息详情（需登录）。
+ * @param params.messageId 消息主键 ID
+ * @returns 业务包；`data` 为 `MessageInfo | null`
+ */
+export const fetchMessageInfo = (params: { messageId: number }) => {
+  return get(INFO_PATH, params);
 };
 
 /**

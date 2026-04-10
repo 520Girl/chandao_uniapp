@@ -29,47 +29,47 @@
             </view>
             <view v-else class="space-y-6">
                 <view v-for="m in members" :key="m.userId" class="group">
-                   
-                        <view class="flex items-center justify-between gap-4">
-                            <view class="flex">
-                                <view class="relative">
-                                    <view class="w-14 h-14 rounded-full p-0.5 border border-primary/30">
-                                        <image class="w-full h-full rounded-full object-cover"
-                                            :src="resolveMediaUrl(m.avatarUrl)" mode="aspectFill" />
-                                    </view>
-                                    <view v-if="m.isOwner == 1"
-                                        class="absolute bottom-0 right-0 w-4 h-4 bg-primary rounded-full border-2 border-surface flex items-center justify-center">
-                                        <text class="icon-verified iconfont text-[20rpx] text-on-primary font-bold"
-                                            style="font-variation-settings: 'FILL' 1"></text>
-                                    </view>
+                    <view class="flex items-center justify-between gap-4">
+                        <view class="flex min-w-0 flex-1">
+                            <view class="relative shrink-0">
+                                <view class="w-14 h-14 rounded-full p-0.5 border border-primary/30">
+                                    <image
+                                        class="w-full h-full rounded-full object-cover"
+                                        :src="resolveMediaUrl(m.avatarUrl)"
+                                        mode="aspectFill" />
                                 </view>
-                                <view>
-                                    <view
-                                        class="font-headline text-lg text-on-surface flex items-center gap-2 flex-wrap">
-                                        {{ m.nickName?.trim() || "云友" }}
-                                        <text v-if="m.isOwner == 1"
-                                            class="px-2 py-0.5 rounded-full bg-theme-3 text-[20rpx] theme-color-1 font-bold">
-                                            负责人
-                                        </text>
-                                    </view>
-                                    <view class="font-label text-[10px] tracking-widest text-on-surface-variant mt-1">
-                                        {{ memberSubline(m) }}
-                                    </view>
+                                <view
+                                    v-if="m.isOwner === 1"
+                                    class="absolute bottom-0 right-0 w-4 h-4 bg-primary rounded-full border-2 border-surface flex items-center justify-center">
+                                    <text
+                                        class="icon-verified iconfont text-[20rpx] text-on-primary font-bold"
+                                        style="font-variation-settings: 'FILL' 1"></text>
                                 </view>
                             </view>
-                            <view
-                            v-if="canRemoveMember(m)"
-                                class="flex items-center gap-1 px-[24rpx] text-[24rpx] py-[12rpx] rounded-full bg-red-500/10 text-[#ef4444] font-bold transition-transform active:scale-95">
-                                <text class="iconfont icon-trash-2 text-[24rpx]"></text> 删除
+                            <view class="min-w-0 pl-3">
+                                <view class="font-headline text-lg text-on-surface flex items-center gap-2 flex-wrap">
+                                    {{ m.nickName?.trim() || "云友" }}
+                                    <text
+                                        v-if="m.isOwner === 1"
+                                        class="px-2 py-0.5 rounded-full bg-theme-3 text-[20rpx] theme-color-1 font-bold">
+                                        负责人
+                                    </text>
+                                </view>
+                                <view class="font-label text-[10px] tracking-widest text-on-surface-variant mt-1">
+                                    {{ memberSubline(m) }}
+                                </view>
                             </view>
                         </view>
-                        <view v-if="canRemoveMember(m)"
-                            class="flex items-center gap-1 px-[24rpx] text-[24rpx] py-[12rpx] rounded-full bg-red-500/10 text-[#ef4444] font-bold transition-transform active:scale-95"
+                        <view
+                            v-if="canRemoveMember(m)"
+                            hover-class="opacity-90"
+                            class="shrink-0 flex items-center gap-1 px-[24rpx] text-[24rpx] py-[12rpx] rounded-full bg-red-500/10 text-[#ef4444] font-bold transition-transform active:scale-95"
+                            @tap="openRemoveMemberConfirm(m)"
                             @click="openRemoveMemberConfirm(m)">
                             <text class="iconfont icon-trash-2 text-[24rpx]"></text>
                             移出
                         </view>
-                  
+                    </view>
                 </view>
             </view>
             <view v-if="members.length > 0" class="py-6 text-center text-xs theme-color-8">
@@ -161,8 +161,16 @@ function memberSubline(m: TeamMemberRow): string {
     return parts.join(" · ");
 }
 
+/**
+ * 仅团队负责人可操作；不可移出负责人；不可移出自己。
+ */
 function canRemoveMember(m: TeamMemberRow): boolean {
-    return isTeamOwner.value && m.isOwner != 1;
+    if (!isTeamOwner.value) return false;
+    if (m.isOwner === 1) return false;
+    const selfId = userStore.currentUser?.id;
+    if (selfId == null) return false;
+    if (m.userId === selfId) return false;
+    return true;
 }
 
 function openRemoveMemberConfirm(m: TeamMemberRow) {

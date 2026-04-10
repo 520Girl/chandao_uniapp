@@ -1,8 +1,9 @@
 /**
- * 用户登录、资料、团队、定位等 HTTP（`/app/user/*`）。
+ * 用户登录、资料、团队、定位、疗愈音乐分页等 HTTP（`/app/user/*`、`/app/music/*`）。
  */
 import { post, get } from "../request";
 import { config } from "../config";
+import type { MusicPageQuery } from "@/types/api/music";
 import type {
   BindPhoneDTO,
   JoinByInviteDTO,
@@ -361,16 +362,17 @@ export const clearAuth = (): void => {
 
 
 
-/** 音乐列表分页（字段名与后端约定一致时可调整） */
-export interface GetMusicListParams {
-    page?: number
-    pageSize?: number
-}
+const MUSIC_PAGE_PATH = "/app/music/page";
 
-// 获取音乐列表
-export const getMusicList = (params?: GetMusicListParams) => {
-    return get("/music/list", params)
-}
+/**
+ * 疗愈音乐分页列表；需登录。
+ *
+ * @param query `page` 默认 1，`size` 默认 20；业务码见全局约定
+ * @returns 业务包，`data` 为 `MusicPageData`（`list` + `pagination`）
+ */
+export const getMusicPage = (query?: MusicPageQuery) => {
+  return get(MUSIC_PAGE_PATH, query);
+};
 
 export interface GetMeditationRealtimeParams {
     sessionId?: string

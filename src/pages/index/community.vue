@@ -17,16 +17,19 @@
             </text>
           </view>
         </view>
-        <view class="relative max-w-[90%] mx-auto">
+        <!-- 小程序原生 input 层级最高，悬浮按钮盖在 input 上会点不到；改为横向排列 -->
+        <view class="flex max-w-[90%] mx-auto items-center gap-3 box-border">
           <input
             style="height: 132rpx; min-height: auto; line-height: 2"
             v-model="content"
-            class="w-full bg-white border border-theme-12 rounded-full text-center italic text-[#d4af35]/60 shadow-sm"
+            class="flex-1 min-w-0 bg-white border border-theme-12 rounded-full text-center italic text-[#d4af35]/60 shadow-sm box-border"
             placeholder="分享你的内心天空..."
           />
           <view
+            hover-class="opacity-90"
+            class="shrink-0 bg-theme-1 text-white w-[96rpx] h-[96rpx] rounded-full shadow-lg flex items-center justify-center"
+            @tap="goPublishPost"
             @click="goPublishPost"
-            class="absolute bg-theme-1 right-2 top-2 text-white w-[96rpx] h-[96rpx] rounded-full shadow-lg flex items-center justify-center"
           >
             <text class="iconfont icon-send text-[48rpx] bg-theme-1"></text>
           </view>
@@ -76,10 +79,6 @@
         <view v-for="(item, index) in feedList" :key="`${item.itemType}-${item.id}`" class="block">
           <view :class="index % 2 === 0 ? 'bg-[#ffffff80] shadow-md' : 'bg-[#d4af350d] shadow-sm'"
             class="relative border border-[#d4af35]/5 p-6 rounded-[2rem]">
-            <view v-if="item.itemType === 'activity' && item.isTop === 1"
-              class="absolute top-4 right-4 text-[20rpx] theme-color-1 font-bold">
-              置顶
-            </view>
             <view class="flex items-center gap-3 mb-6 ">
               <up-image :src="feedAvatar(item, index)" :lazy-load="true" width="90rpx" height="90rpx"
                 class="w-[90rpx] h-[90rpx] rounded-full border-2 border-theme-3 overflow-hidden" mode="aspectFill" />
@@ -102,8 +101,10 @@
                   </template>
                 </view>
               </view>
-              <text class="iconfont text-[28rpx] theme-color-1 ml-auto shrink-0"
+              <text v-if="item.itemType === 'activity' && item.isTop == 1" class="iconfont icon-tuding text-[28rpx] theme-color-1" />
+              <text v-else class="iconfont text-[28rpx] theme-color-1 ml-auto shrink-0"
                 :class="'icon-' + feedMoodIcon(item)"></text>
+              
             </view>
             <template v-if="item.itemType === 'activity'">
               <text
@@ -218,7 +219,7 @@ const showBackToTop = computed(() => pageScrollTop.value >= BACK_TOP_AFTER);
 /** 避开 tabBar + 安全区，与页面底部留白一致思路 */
 const backTopBottom = "calc(120rpx + env(safe-area-inset-bottom) + 32rpx)";
 
-const FEED_PAGE_SIZE = 20;
+const FEED_PAGE_SIZE = 5;
 const feedList = ref<MixedFeedItem[]>([]);
 const feedPage = ref(1);
 const feedLoadStatus = ref<FeedLoadStatus>("loadmore");

@@ -6,6 +6,27 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "27002048",
+      "name": "bed",
+      "font_class": "bed",
+      "unicode": "e774",
+      "unicode_decimal": 59252
+    },
+    {
+      "icon_id": "46243816",
+      "name": "体动",
+      "font_class": "tidong",
+      "unicode": "e693",
+      "unicode_decimal": 59027
+    },
+    {
+      "icon_id": "46243805",
+      "name": "离床时间",
+      "font_class": "lichuangshijian",
+      "unicode": "e690",
+      "unicode_decimal": 59024
+    },
+    {
       "icon_id": "386507",
       "name": "图钉",
       "font_class": "tuding",

@@ -191,7 +191,7 @@ const rank = reactive({
   total: 0,
 });
 
-const listSectionTitle = "本周修行排行";
+const listSectionTitle = "修行总排行";
 
 function vacantPodiumSlot(rankNum: 1 | 2 | 3): RankRow {
   return {

@@ -212,7 +212,7 @@
       </view>
     </view>
 
-    <Toast
+    <ToastConfirm
       v-model:show="manageToastShow"
       :title="manageToastTitle"
       :message="manageToastMessage"
@@ -237,7 +237,7 @@ import { unwrapApiData } from "@/utils/apiResponse";
 import { formatRelativeTime } from "@/utils/common";
 import { getNavbarHeight } from "@/utils/system";
 import LcrBar from "@/components/lcrBar.vue";
-import Toast from "@/components/common/toast.vue";
+import {ToastConfirm} from "@/components";
 import { useTeamStore } from "@/stores/team";
 import { useUserStore } from "@/stores/user";
 

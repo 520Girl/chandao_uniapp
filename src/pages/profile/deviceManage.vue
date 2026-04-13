@@ -70,7 +70,7 @@
                     当前支持绑定最多{{ MAX_DEVICES }}个设备<br />确保数据精准采集
                 </view>
             </view>
-            <Toast
+            <ToastConfirm
                 v-model:show="showToast"
                 :title="toastParams.title"
                 :fields="toastParams.fields"
@@ -91,19 +91,23 @@
     </view>
 </template>
 <script setup lang="ts">
+import { storeToRefs } from 'pinia';
 import { navigateBack } from '@/utils/navigation';
-import { LcrBar, Toast, ConfirmDialog ,LoadingOverlay, PopupList} from '@/components';
+import { showSuccessToast } from '@/utils/toast';
+import { LcrBar, ToastConfirm, ConfirmDialog } from '@/components';
 import type { ToastInputField } from '@/types/pages/component';
 import type { DeviceItem } from '@/types/pages/device';
-import { fetchDeviceList, addDevice, removeDevice, fetchDeviceDetails } from '@/assets/js/api/device';
+import { addDevice, removeDevice, fetchDeviceDetails } from '@/assets/js/api/device';
+import { useDeviceStore, DEVICE_BIND_SLOT_MAX } from '@/stores/device';
+import { extractDeviceDetailPayload } from '@/utils/deviceMap';
 
 const showExit = ref(false);
-const MAX_DEVICES = 3;
+const MAX_DEVICES = DEVICE_BIND_SLOT_MAX;
 const showToast = ref(false);
-const listLoading = ref(false);
 const submitLoading = ref(false);
 
-const deviceList = ref<DeviceItem[]>([]);
+const deviceStore = useDeviceStore();
+const { devices: deviceList, listLoading } = storeToRefs(deviceStore);
 
 const remainingSlots = computed(() => Math.max(0, MAX_DEVICES - deviceList.value.length));
 
@@ -120,41 +124,6 @@ const toastParams = reactive({
 });
 //当前设备名称
 const currentDevice = ref<DeviceItem | null>(null);
-function extractListPayload(res: unknown): Record<string, unknown>[] {
-    if (res == null) return [];
-    const body = res as Record<string, unknown>;
-    const inner = body.data !== undefined ? body.data : body;
-    if (Array.isArray(inner)) return inner as Record<string, unknown>[];
-    const d = inner as Record<string, unknown>;
-    const list = (d?.list ?? d?.records ?? d?.rows ?? d?.items ?? d?.data ?? []) as unknown[];
-    return Array.isArray(list) ? (list as Record<string, unknown>[]) : [];
-}
-
-function extractDetailPayload(res: unknown): Record<string, unknown> | null {
-    if (res == null) return null;
-    const body = res as Record<string, unknown>;
-    const inner = body.data !== undefined ? body.data : body;
-    if (inner && typeof inner === 'object' && !Array.isArray(inner)) {
-        return inner as Record<string, unknown>;
-    }
-    return null;
-}
-
-/** 接口 status：0 未激活，1 使用中，2 无人使用 */
-function mapApiStatusToLabel(code: number): string {
-    if (code === 0) return '未激活';
-    if (code === 1) return '使用中';
-    if (code === 2) return '无人使用';
-    if (code === 3) return '离床';
-    if (code === 4) return '离线';
-    return '未知';
-}
-
-function normalizeStatusCode(raw: unknown): number {
-    const n = Number(raw);
-    if (n === 0 || n === 1 || n === 2 || n === 3 || n === 4) return n;
-    return -1;
-}
 
 function statusDotClass(code: number) {
     if (code === 1) return 'bg-green-500';
@@ -174,40 +143,8 @@ function statusTextClass(code: number) {
     return 'theme-color-12';
 }
 
-function mapApiToDeviceItem(raw: Record<string, unknown>): DeviceItem {
-    const iface = raw.interface as Record<string, unknown> | undefined;
-    const name = String(raw.name ?? iface?.name ?? raw.model ?? raw.sn ?? '设备');
-    const statusCode = normalizeStatusCode(raw.status);
-    const status = mapApiStatusToLabel(statusCode);
-    return {
-        id: Number(raw.id ?? 0),
-        sn: String(raw.sn ?? ''),
-        model: String(raw.model ?? ''),
-        mac: String(raw.mac ?? ''),
-        name,
-        statusCode,
-        status,
-        remark: String(raw.remark ?? ''),
-        icon: 'icon-grid-view',
-        iconColor: 'theme-color-1'
-    };
-}
-
-async function loadDeviceList() {
-    listLoading.value = true;
-    try {
-        const res = await fetchDeviceList({ page: 1, size: MAX_DEVICES });
-        const rows = extractListPayload(res);
-        deviceList.value = rows.map(mapApiToDeviceItem);
-    } catch (e) {
-        console.error('fetchDeviceList', e);
-    } finally {
-        listLoading.value = false;
-    }
-}
-
 onMounted(() => {
-    loadDeviceList();
+    void deviceStore.refreshList(MAX_DEVICES);
 });
 
 /** 点击某一设备：拉详情后编辑展示名/备注（无后端修改接口时仅本地更新） */
@@ -221,16 +158,16 @@ async function openEditDeviceToast(item: DeviceItem) {
     let sn = item.sn;
     try {
         const res = await fetchDeviceDetails({ mac: item.mac });
-        const d = extractDetailPayload(res);
+        deviceStore.mergeDeviceFromDetailResponse(item.id, res);
+        const d = extractDeviceDetailPayload(res);
         if (d) {
-            const iface = d.interface as Record<string, unknown> | undefined;
-            name = String(d.model ?? iface?.model ?? name);
+            name = String(d.name ?? item.name);
             mac = String(d.mac ?? mac);
+            sn = String(d.sn ?? sn);
         }
     } catch (e) {
         console.error('fetchDeviceDetails', e);
     }
-console.log(name, mac, sn);
     toastParams.fields = [
         {
             key: 'name',
@@ -290,18 +227,11 @@ async function onToastConfirm(value: Record<string, string>) {
     const id = editingDeviceId.value;
 
     if (id != null) {
-        const idx = deviceList.value.findIndex((d) => d.id === id);
-        if (idx >= 0) {
-            const name = (value.name ?? '').trim();
-            const remark = (value.remark ?? '').trim();
-            deviceList.value[idx] = {
-                ...deviceList.value[idx],
-                name,
-                remark
-            };
-        }
+        const name = (value.name ?? '').trim();
+        const remark = (value.remark ?? '').trim();
+        deviceStore.patchLocalDevice(id, { name, remark });
         editingDeviceId.value = null;
-        uni.showToast({ title: '已保存', icon: 'none' });
+        showSuccessToast('已保存');
         return;
     }
 
@@ -312,8 +242,8 @@ async function onToastConfirm(value: Record<string, string>) {
     submitLoading.value = true;
     try {
         await addDevice({ sn, model, mac });
-        uni.showToast({ title: '绑定成功', icon: 'none' });
-        await loadDeviceList();
+        showSuccessToast('绑定成功');
+        await deviceStore.refreshList(MAX_DEVICES);
     } catch (e) {
         console.error('addDevice', e);
     } finally {
@@ -330,8 +260,8 @@ const onConfirm = async () => {
    
     try {
         await removeDevice({ sn: currentDevice.value?.sn ?? '' });
-        uni.showToast({ title: '已解绑', icon: 'none' });
-        await loadDeviceList();
+        showSuccessToast('已解绑');
+        await deviceStore.refreshList(MAX_DEVICES);
         showExit.value = false;
     } catch (e) {
         console.error('removeDevice', e);

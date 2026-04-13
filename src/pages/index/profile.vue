@@ -163,7 +163,7 @@ const loginOut = () => {
 // 前往商城
 const onGoToShop = () => {
   uni.navigateTo({
-    url: '/pages/shop/index'
+    url: '/pages/profile/rank'
   })
 }
 //前往管理页面

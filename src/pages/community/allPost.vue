@@ -164,7 +164,7 @@
       <text class="icon-add iconfont text-[56rpx]"></text>
     </view>
 
-    <Toast
+    <ToastConfirm
       v-model:show="toastShow"
       :title="toastTitle"
       :message="toastMessage"
@@ -186,7 +186,7 @@ import type { ToastInputField } from "@/types/pages/component";
 import { unwrapApiData } from "@/utils/apiResponse";
 import { navigateBack } from "@/utils/navigation";
 import lcrBar from "@/components/lcrBar.vue";
-import Toast from "@/components/common/toast.vue";
+import { ToastConfirm } from "@/components";
 import { useTeamStore } from "@/stores/team";
 import { useUserStore } from "@/stores/user";
 

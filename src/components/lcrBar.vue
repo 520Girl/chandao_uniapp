@@ -25,7 +25,7 @@
                     
                     
                     <view class=" flex items-center justify-center rounded-full flex-1">
-                        <h1 class="text-[36rpx] font-bold tracking-tight">{{title}}</h1>
+                        <text class="text-[36rpx] font-bold tracking-tight" :class="titleColor">{{title}}</text>
                     </view>
                 </view>
             </view>
@@ -61,6 +61,10 @@ defineProps({
             })
         }
     },
+    titleColor: {
+        type: String,
+        default: ""
+    }
 
 })
 

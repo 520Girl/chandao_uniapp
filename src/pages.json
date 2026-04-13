@@ -7,20 +7,6 @@
         "navigationStyle": "custom"
       }
     },
-     {
-      "path": "pages/index/home",
-      "style": {
-        "navigationBarTitleText": "首页",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/index/homecopy1",
-      "style": {
-        "navigationBarTitleText": "首页",
-        "navigationStyle": "custom"
-      }
-    },
     {
       "path": "pages/login/inputLogin",
       "style": {
@@ -29,9 +15,16 @@
       }
     },
     {
-      "path": "pages/shop/index",
+      "path": "pages/index/home",
       "style": {
-        "navigationBarTitleText": "商城",
+        "navigationBarTitleText": "首页",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/index/report",
+      "style": {
+        "navigationBarTitleText": "报告",
         "navigationStyle": "custom"
       }
     },
@@ -44,14 +37,6 @@
       }
     },
     {
-      "path": "pages/index/communitycopy",
-      "style": {
-        "navigationBarTitleText": "社区副本",
-        "navigationStyle": "custom",
-        "onReachBottomDistance": 120
-      }
-    },
-    {
       "path": "pages/index/profile",
       "style": {
         "navigationBarTitleText": "个人中心",
@@ -59,216 +44,290 @@
       }
     },
     {
-      "path": "pages/post/edit-post",
+      "path": "pages/index/homecopy1",
       "style": {
-        "navigationBarTitleText": "发布动态",
-        "navigationStyle":"custom"
-      }
-    },
-    {
-      "path": "pages/community/manage1",
-      "style": {
-        "navigationBarTitleText": "社群管理",
-        "navigationStyle":"custom"
-      }
-    },
-    {
-      "path": "pages/community/managecopy",
-      "style": {
-        "navigationBarTitleText": "社群管理",
-        "navigationStyle":"custom"
-      }
-    },
-    {
-      "path": "pages/community/allPost",
-      "style": {
-        "navigationBarTitleText": "全部动态",
-        "navigationStyle":"custom"
-      }
-    },
-    {
-      "path": "pages/community/allMember",
-      "style": {
-        "navigationBarTitleText": "成员管理",
-        "navigationStyle":"custom"
-      }
-    },
-    {
-      "path": "pages/community/manage",
-      "style": {
-        "navigationBarTitleText": "社群管理",
-        "navigationStyle":"custom"
-      }
-    },
-    {
-      "path": "pages/shop/confirm-order",
-      "style": {
-        "navigationBarTitleText": "确认订单",
-        "navigationStyle":"custom"
-      }
-    },
-    {
-      "path": "pages/shop/edit-address",
-      "style": {
-        "navigationBarTitleText": "编辑地址",
-        "navigationStyle":"custom"
-      }
-    },
-    {
-      "path": "pages/shop/list-address",
-      "style": {
-        "navigationBarTitleText": "收货地址",
-        "navigationStyle":"custom"
-      }
-    },
-    {
-      "path": "pages/launch/index",
-      "style": {
-        "navigationBarTitleText": "启动页"
-      }
-    },
-    {
-      "path": "pages/index/report",
-      "style": {
-        "navigationBarTitleText": "报告",
+        "navigationBarTitleText": "首页",
         "navigationStyle": "custom"
       }
     },
     {
-      "path": "pages/meditation/startMeditaiton",
+      "path": "pages/index/communitycopy",
       "style": {
-        "navigationBarTitleText": "开始冥想",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/meditation/report",
-      "style": {
-        "navigationBarTitleText": "冥想报告",
+        "navigationBarTitleText": "社区副本",
         "navigationStyle": "custom",
-        "enableShareAppMessage": true,
-        "enableShareTimeline": true
-      }
-    },
-    {
-      "path": "pages/post/detail",
-      "style": {
-        "navigationBarTitleText": "动态详情",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/post/detailCopy",
-      "style": {
-        "navigationBarTitleText": "动态详情副本",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/post/activity",
-      "style": {
-        "navigationBarTitleText": "活动详情",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/post/activity-edite",
-      "style": {
-        "navigationBarTitleText": "活动编辑",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/profile/accountManage",
-      "style": {
-        "navigationBarTitleText": "账户管理",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/profile/deviceManage",
-      "style": {
-        "navigationBarTitleText": "设备管理",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/profile/userAgent",
-      "style": {
-        "navigationBarTitleText": "用户协议",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/profile/privacyPolicy",
-      "style": {
-        "navigationBarTitleText": "隐私政策",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/profile/disclaimer",
-      "style": {
-        "navigationBarTitleText": "免责声明",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/message/indexcopy",
-      "style": {
-        "navigationBarTitleText": "消息中心",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/message/index",
-      "style": {
-        "navigationBarTitleText": "消息中心",
-        "navigationStyle": "custom"
-      }
-    },{
-      "path": "pages/message/detail",
-      "style": {
-        "navigationBarTitleText": "消息详情",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/message/detailPhotoText",
-      "style": {
-        "navigationBarTitleText": "消息详情(演示)",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/profile/rank",
-      "style": {
-        "navigationBarTitleText": "排行榜",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/profile/medal",
-      "style": {
-        "navigationBarTitleText": "勋章",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/shop/order",
-      "style": {
-        "navigationBarTitleText": "我的订单",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/shop/order-detail",
-      "style": {
-        "navigationBarTitleText": "订单状态",
-        "navigationStyle": "custom"
+        "onReachBottomDistance": 120
       }
     }
   ],
+  "subPackages": [
+    {
+      "root": "pages/shop",
+      "name": "shop",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationBarTitleText": "商城",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "confirm-order",
+          "style": {
+            "navigationBarTitleText": "确认订单",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "edit-address",
+          "style": {
+            "navigationBarTitleText": "编辑地址",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "list-address",
+          "style": {
+            "navigationBarTitleText": "收货地址",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "order",
+          "style": {
+            "navigationBarTitleText": "我的订单",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "order-detail",
+          "style": {
+            "navigationBarTitleText": "订单状态",
+            "navigationStyle": "custom"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/community",
+      "name": "community",
+      "pages": [
+        {
+          "path": "manage1",
+          "style": {
+            "navigationBarTitleText": "社群管理",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "managecopy",
+          "style": {
+            "navigationBarTitleText": "社群管理",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "allPost",
+          "style": {
+            "navigationBarTitleText": "全部动态",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "allMember",
+          "style": {
+            "navigationBarTitleText": "成员管理",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "manage",
+          "style": {
+            "navigationBarTitleText": "社群管理",
+            "navigationStyle": "custom"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/post",
+      "name": "post",
+      "pages": [
+        {
+          "path": "edit-post",
+          "style": {
+            "navigationBarTitleText": "发布动态",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "detail",
+          "style": {
+            "navigationBarTitleText": "动态详情",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "detailCopy",
+          "style": {
+            "navigationBarTitleText": "动态详情副本",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "activity",
+          "style": {
+            "navigationBarTitleText": "活动详情",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "activity-edite",
+          "style": {
+            "navigationBarTitleText": "活动编辑",
+            "navigationStyle": "custom"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/profile",
+      "name": "profile",
+      "pages": [
+        {
+          "path": "accountManage",
+          "style": {
+            "navigationBarTitleText": "账户管理",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "deviceManage",
+          "style": {
+            "navigationBarTitleText": "设备管理",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "userAgent",
+          "style": {
+            "navigationBarTitleText": "用户协议",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "privacyPolicy",
+          "style": {
+            "navigationBarTitleText": "隐私政策",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "disclaimer",
+          "style": {
+            "navigationBarTitleText": "免责声明",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "rank",
+          "style": {
+            "navigationBarTitleText": "排行榜",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "medal",
+          "style": {
+            "navigationBarTitleText": "勋章",
+            "navigationStyle": "custom"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/message",
+      "name": "message",
+      "pages": [
+        {
+          "path": "indexcopy",
+          "style": {
+            "navigationBarTitleText": "消息中心",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "index",
+          "style": {
+            "navigationBarTitleText": "消息中心",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "detail",
+          "style": {
+            "navigationBarTitleText": "消息详情",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "detailPhotoText",
+          "style": {
+            "navigationBarTitleText": "消息详情(演示)",
+            "navigationStyle": "custom"
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/meditation",
+      "name": "meditation",
+      "pages": [
+        {
+          "path": "startMeditaiton",
+          "style": {
+            "navigationBarTitleText": "开始冥想",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "report",
+          "style": {
+            "navigationBarTitleText": "冥想报告",
+            "navigationStyle": "custom",
+            "enableShareAppMessage": true,
+            "enableShareTimeline": true
+          }
+        }
+      ]
+    },
+    {
+      "root": "pages/launch",
+      "name": "launch",
+      "pages": [
+        {
+          "path": "index",
+          "style": {
+            "navigationBarTitleText": "启动页"
+          }
+        }
+      ]
+    }
+  ],
+  "preloadRule": {
+    "pages/index/home": {
+      "network": "all",
+      "packages": ["shop", "post"]
+    },
+    "pages/index/community": {
+      "network": "all",
+      "packages": ["post", "community"]
+    },
+    "pages/index/profile": {
+      "network": "all",
+      "packages": ["profile", "message"]
+    }
+  },
   "tabBar": {
     "color": "#918355",
     "selectedColor": "#D4AF35",
@@ -276,19 +335,19 @@
     "list": [
       {
         "pagePath": "pages/index/home",
-        "text": "首页",
+        "text": "静坐",
         "iconPath": "static/nav/wind.png",
         "selectedIconPath": "static/nav/windsle.png"
       },
       {
         "pagePath": "pages/index/report",
-        "text": "报告",
+        "text": "心迹",
         "iconPath": "static/nav/chaye.png",
         "selectedIconPath": "static/nav/chayesle.png"
       },
       {
         "pagePath": "pages/index/community",
-        "text": "社区",
+        "text": "共修",
         "iconPath": "static/nav/shequn.png",
         "selectedIconPath": "static/nav/shequnsle.png"
       },
@@ -313,8 +372,8 @@
     "navigationBarTitleText": "uni-app",
     "navigationBarBackgroundColor": "#F8F8F8",
     "backgroundColor": "#F8F8F8",
-    "rpxCalcMaxDeviceWidth": 960, // 最大支持的设备宽度（可选，默认960）
-    "rpxCalcBaseDeviceWidth": 750, // 设计稿基准宽度（必须配置，关键！）
-    "rpxCalcIncludeWidth": 750 // 包含的宽度（可选，默认与基准一致）
+    "rpxCalcMaxDeviceWidth": 960,
+    "rpxCalcBaseDeviceWidth": 750,
+    "rpxCalcIncludeWidth": 750
   }
 }

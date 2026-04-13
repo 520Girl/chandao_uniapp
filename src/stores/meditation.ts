@@ -2,6 +2,7 @@
  * 禅修模块本地状态：首页活动偏好、最近一次禅修的时间/时长/音乐等（持久化，非用户表字段）。
  */
 import { defineStore } from "pinia";
+import type { MeditationReport } from "@/types/api/meditation";
 
 /** 禅修结束时写入的一条摘要（本地） */
 export interface LastMeditationSessionPayload {
@@ -25,12 +26,19 @@ export interface NextMeditationLaunchPayload {
   trackId: string;
   trackTitle: string;
   trackUrl: string;
+  /** 为 false 时禅修页不拉设备实时数据（无设备模式）；缺省为 true */
+  useHardwareDevice?: boolean;
   /** 场景卡进入时传入，会同步更新 `homePreferredActivity*`；右下角开始请勿传 */
   activityId?: number | null;
   activityTemplateId?: number | null;
 }
 
 export interface MeditationState {
+  /**
+   * 下一次进入禅修页是否使用硬件实时数据；由 `applyNextMeditationLaunch` 写入，**不持久化**。
+   * 禅修页优先读 URL `d=`，无参数时读此字段。
+   */
+  pendingUseHardwareDevice: boolean;
   /** 最近一次完成禅修关联的活动 ID，用于首页横向列表排序与默认带入 */
   homePreferredActivityId: number | null;
   homePreferredActivityTemplateId: number | null;
@@ -43,6 +51,10 @@ export interface MeditationState {
   lastMeditationTrackId: string | null;
   lastMeditationTrackTitle: string | null;
   lastMeditationTrackUrl: string | null;
+  /**
+   * 最近一次 `POST /app/meditation/end` 返回的报告；**不持久化**，报告页读取后应 `consume` 清空。
+   */
+  lastMeditationServerReport: MeditationReport | null;
 }
 
 export const useMeditationStore = defineStore("meditation", {
@@ -66,6 +78,7 @@ export const useMeditationStore = defineStore("meditation", {
     ],
   },
   state: (): MeditationState => ({
+    pendingUseHardwareDevice: true,
     homePreferredActivityId: null,
     homePreferredActivityTemplateId: null,
     lastMeditationStartedAt: null,
@@ -74,6 +87,7 @@ export const useMeditationStore = defineStore("meditation", {
     lastMeditationTrackId: null,
     lastMeditationTrackTitle: null,
     lastMeditationTrackUrl: null,
+    lastMeditationServerReport: null,
   }),
   actions: {
     /**
@@ -81,6 +95,7 @@ export const useMeditationStore = defineStore("meditation", {
      * 仅场景卡等需要指定活动时传 `activityId` / `activityTemplateId`（会写 homePreferred）。
      */
     applyNextMeditationLaunch(payload: NextMeditationLaunchPayload) {
+      this.pendingUseHardwareDevice = payload.useHardwareDevice !== false;
       this.lastMeditationPlannedMinutes = Math.max(1, Math.round(payload.durationMinutes));
       this.lastMeditationTrackId = payload.trackId || null;
       this.lastMeditationTrackTitle = payload.trackTitle || null;
@@ -122,8 +137,21 @@ export const useMeditationStore = defineStore("meditation", {
       }
     },
 
+    /** 写入结束接口返回的报告，供报告页展示 */
+    setLastMeditationServerReport(payload: MeditationReport | null) {
+      this.lastMeditationServerReport = payload;
+    },
+
+    /** 报告页首屏读取并清空，避免重复展示旧数据 */
+    consumeLastMeditationServerReport(): MeditationReport | null {
+      const r = this.lastMeditationServerReport;
+      this.lastMeditationServerReport = null;
+      return r;
+    },
+
     /** 登出等：清空禅修模块全部本地持久化字段 */
     clearHomeActivityPreference() {
+      this.pendingUseHardwareDevice = true;
       this.homePreferredActivityId = null;
       this.homePreferredActivityTemplateId = null;
       this.lastMeditationStartedAt = null;
@@ -132,6 +160,7 @@ export const useMeditationStore = defineStore("meditation", {
       this.lastMeditationTrackId = null;
       this.lastMeditationTrackTitle = null;
       this.lastMeditationTrackUrl = null;
+      this.lastMeditationServerReport = null;
     },
   },
 });

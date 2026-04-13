@@ -1,8 +1,8 @@
 <template>
-    <view class="flex flex-col min-h-screen pb-32 theme-bg meditation-page">
+    <view class="flex flex-col min-h-screen pb-6 theme-bg meditation-page">
       <HomeBar
-        title="云息空间"
-        description="极 简 禅 意"
+        title="静坐"
+        description="一 念 静 心"
         :leftIcon="'icon-bell'"
         :messageCount="messageUnreadCount"
         titleIcon="icon-Cloudy"
@@ -132,8 +132,8 @@
           </view>
         </view>
       </view>
-      <view class="px-6 space-y-6 mt-8">
-        <view class="text-[28rpx] font-bold uppercase tracking-widest theme-color-8 px-2">场景化冥想</view>
+      <view class="space-y-6 mt-8">
+        <view class="text-[28rpx] px-6 font-bold uppercase tracking-widest theme-color-8 px-2">场景化冥想</view>
         <scroll-view
           scroll-x
           class="w-full whitespace-nowrap"
@@ -205,7 +205,7 @@
       <ConfirmDialog
         v-model:show="showMeditationDevicePopup"
         title="选择禅修方式"
-        message="是否已连接心率/体动等设备？"
+        :message="meditationDeviceDialogMessage"
         cancel-text="无设备"
         confirm-text="有设备"
         :mask-closable="true"
@@ -223,6 +223,7 @@
   import { config } from '@/assets/js/config';
   import ConfirmDialog from '@/components/common/confirmDialog.vue';
   import HomeBar from '@/components/homeBar.vue';
+  import { useDeviceStore } from '@/stores/device';
   import { useMeditationStore } from '@/stores/meditation';
   import { useUserStore } from '@/stores/user';
   import type { ActivityPage, ActivityPageListItem, HomeActivityCard, SceneType } from '@/types/api/activity';
@@ -284,6 +285,10 @@
 
   const userStore = useUserStore();
   const meditationStore = useMeditationStore();
+  const deviceStore = useDeviceStore();
+
+  /** 右下角开始禅修弹窗：根据 Pinia 设备列表生成提示 */
+  const meditationDeviceDialogMessage = computed(() => deviceStore.meditationDeviceHint);
 
   /** 接口无数据时的占位（与旧版三卡视觉一致） */
   const FALLBACK_HOME_ACTIVITIES: ActivityPageListItem[] = [
@@ -490,10 +495,27 @@
   }
 
   /** 从场景卡进入禅修：参数写入 Pinia，避免超长 URL；先停首页试听，禅修页从头播 */
-  function startMeditationFromActivity(item: HomeActivityCard) {
+  async function startMeditationFromActivity(item: HomeActivityCard) {
     const selected = audioTracks.value.find((x) => x.id === playingId.value) || audioTracks.value[0];
     stopAudio();
     playingId.value = null;
+    if (userStore.isLoggedIn) {
+      uni.showLoading({ title: "同步设备状态…", mask: true });
+      try {
+        await deviceStore.refreshListAndSyncFirstDeviceDetail();
+      } finally {
+        uni.hideLoading();
+      }
+    }
+    const useHw = deviceStore.hasMeditationReadyDevice;
+    if (!useHw) {
+      uni.showToast({
+        title: deviceStore.hasBoundDevices
+          ? "设备未处于使用中，将以无设备模式禅修"
+          : "未绑定可用设备，将以无设备模式禅修",
+        icon: "none",
+      });
+    }
     meditationStore.applyNextMeditationLaunch({
       durationMinutes: clampMinutes(Number(durationMinutes.value)),
       trackId: selected?.id ? String(selected.id) : "",
@@ -501,6 +523,7 @@
       trackUrl: selected?.url || "",
       activityId: item.id,
       activityTemplateId: item.templateId,
+      useHardwareDevice: useHw,
     });
     uni.navigateTo({
       url: "/pages/meditation/startMeditaiton",
@@ -753,6 +776,9 @@
   onShow(() => {
     loadMessageUnreadCount();
     void loadHomeActivities();
+    if (userStore.isLoggedIn) {
+      void deviceStore.refreshList();
+    }
   });
   
   const playingId = ref<string | null>(null);
@@ -804,12 +830,39 @@
     ctx.play();
   }
   
-  function onStartMeditation() {
+  /** 拉列表 + 首台设备详情，再弹出「有/无设备」选择 */
+  async function onStartMeditation() {
+    if (userStore.isLoggedIn) {
+      uni.showLoading({ title: "同步设备状态…", mask: true });
+      try {
+        await deviceStore.refreshListAndSyncFirstDeviceDetail();
+      } finally {
+        uni.hideLoading();
+      }
+    }
     showMeditationDevicePopup.value = true;
   }
 
   /** 有设备 / 无设备：写入 Pinia 后进入禅修页；先停首页试听，禅修内重新从头播放 */
-  function confirmStartMeditationWithDevice(hasDevice: boolean) {
+  async function confirmStartMeditationWithDevice(hasDevice: boolean) {
+    if (hasDevice && userStore.isLoggedIn) {
+      uni.showLoading({ title: "确认设备状态…", mask: true });
+      try {
+        await deviceStore.refreshListAndSyncFirstDeviceDetail();
+      } finally {
+        uni.hideLoading();
+      }
+    }
+    if (hasDevice && !deviceStore.hasMeditationReadyDevice) {
+      uni.showToast({
+        title: "没有处于「使用中」的设备，无法采集实时数据",
+        icon: "none",
+      });
+      nextTick(() => {
+        showMeditationDevicePopup.value = true;
+      });
+      return;
+    }
     const selected = audioTracks.value.find((x) => x.id === playingId.value) || audioTracks.value[0];
     stopAudio();
     playingId.value = null;
@@ -818,9 +871,10 @@
       trackId: selected?.id ? String(selected.id) : "",
       trackTitle: selected?.title?.trim() || "疗愈音频",
       trackUrl: selected?.url || "",
+      useHardwareDevice: hasDevice,
     });
     uni.navigateTo({
-      url: hasDevice ? "/pages/meditation/startMeditaiton" : "/pages/meditation/startMeditaiton?d=0",
+      url: "/pages/meditation/startMeditaiton",
     });
   }
   

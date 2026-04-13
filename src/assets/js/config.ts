@@ -72,7 +72,12 @@ function getConfig(): AppConfig {
     const baseURL = getBaseURL();
     let apiVersion = '';
     // #ifdef MP-WEIXIN
-     apiVersion = '';  
+    if(mode == 'development') {
+        console.log('development---------------');
+        apiVersion = '';  
+    }else{
+        apiVersion = import.meta.env.VITE_API_VERSION || '';
+    }
     // #endif
     // #ifndef MP-WEIXIN
      apiVersion = import.meta.env.VITE_API_VERSION || '';

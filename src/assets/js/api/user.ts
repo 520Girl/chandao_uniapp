@@ -24,14 +24,12 @@ export const USER_INFO_KEY = 'user_info'
 export const AUTO_FACE_KEY = 'auto_face'
 
 /**
-* 手机号密码登陆
-* @param {Object} payload - 登陆信息
-* - `phone`: 手机号
-* - `password`: 密码 
+ * 手机号密码登录。
+ * @param payload `phone`、`password`
  */
 export const passwordLogin = (payload: LoginPayload) => {
-    return post('/app/user/login/password', payload)
-}
+  return post("/app/user/login/password", payload);
+};
 
 const USER_INFO_PERSON = "/app/user/info/person";
 const USER_INFO_UPDATE_PERSON = "/app/user/info/updatePerson";
@@ -373,15 +371,6 @@ const MUSIC_PAGE_PATH = "/app/music/page";
 export const getMusicPage = (query?: MusicPageQuery) => {
   return get(MUSIC_PAGE_PATH, query);
 };
-
-export interface GetMeditationRealtimeParams {
-    sessionId?: string
-}
-
-/** 冥想进行中的实时生理指标 */
-export const getMeditationRealtime = (params?: GetMeditationRealtimeParams) => {
-    return get("/meditation/realtime", params)
-}
 
 export interface GetRankListParams {
     page?: number

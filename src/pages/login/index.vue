@@ -8,8 +8,9 @@
       </view>
       <h1 class="text-[50rpx] font-extrabold tracking-tight mb-4 italic">坐观其心</h1>
       <text class="text-[#d4af35]/60 text-[28rpx] leading-relaxed max-w-[280px] block">
-        捕捉当下的心境，回归本自安定。开始你的禅意之旅。
+        捕捉当下的心境，回归本自安定
       </text>
+      <text class="text-[#d4af35]/60 text-[28rpx] leading-relaxed max-w-[280px] block">开始你的禅意之旅。</text>
     </view>
     <view class="space-y-2 mb-12">
       <button :loading="loading" :disabled="loading" @click="onWechatLogin"

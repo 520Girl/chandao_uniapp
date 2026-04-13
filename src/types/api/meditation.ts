@@ -182,3 +182,87 @@ export interface MeditationReport {
 
 /** 与 5.4 历史单条结构一致（别名） */
 export type MeditationReportHistoryItem = MeditationReport;
+
+/** `GET /app/meditation/report/statistics` 的 `range` 查询；缺省后端按 `week` */
+export type MeditationStatisticsRange = "day" | "week" | "month";
+
+/** 统计接口 Query */
+export interface MeditationReportStatisticsQuery {
+  range?: MeditationStatisticsRange;
+}
+
+/** 柱状图 / 折线图共用的单系列结构（`data` 与 `categories` 等长，单位：分钟） */
+export interface MeditationChartSeriesItem {
+  name: string;
+  data: number[];
+}
+
+/** `durationChartData` / `compareChartData` 结构（与 `bucketCount` 一致，恒为 7 点） */
+export interface MeditationStatisticsChartBlock {
+  categories: string[];
+  series: MeditationChartSeriesItem[];
+}
+
+/**
+ * 整段周期汇总 + 时间范围（`currentPeriod` / `previousPeriod`）。
+ * `rangeEnd` 不含，与 SQL `endDate < ?` 语义一致。
+ */
+export interface MeditationStatisticsPeriodSummary {
+  rangeStart: string;
+  rangeEnd: string;
+  sessionCount: number;
+  totalDurationMinutes: number;
+  avgHeartRate: number;
+  avgBreathRate: number;
+  movementCount: number;
+  avgMovementPerMinute: number;
+  latestSessionId: number;
+  /** 最近会话时长（分钟），可为小数，如 `0.12` */
+  latestSessionMinutes: number;
+}
+
+/** `last7Sessions` 单项 */
+export interface MeditationStatisticsLast7SessionItem {
+  sessionId: number;
+  /** 会话时长（分钟） */
+  durationMinutes: number;
+  /** 会话开始时间 */
+  startDate: string;
+}
+
+/**
+ * 当前周期 7 等分时间桶之一（与 `durationChartData` / `compareChartData` 横轴对齐）。
+ * `week`：`label` 为周一…周日等；`day`：`HH:mm`；`month`：`M/D`。
+ */
+export interface MeditationStatisticsTrendPoint {
+  /** 桶序号 `0..6` */
+  index: number;
+  label: string;
+  rangeStart: string;
+  rangeEnd: string;
+  totalDurationMinutes: number;
+  sessionCount: number;
+  avgHeartRate: number;
+  avgBreathRate: number;
+  movementCount: number;
+}
+
+/**
+ * `GET /app/meditation/report/statistics` 的 `data`（5.4.2）。
+ * `bucketCount` 固定为 7：`trend`、双图均为 7 个等分桶；日/周/月对比轴一致。
+ */
+export interface MeditationReportStatisticsData {
+  range: MeditationStatisticsRange;
+  /** 固定为 `7` */
+  bucketCount: number;
+  currentPeriod: MeditationStatisticsPeriodSummary;
+  previousPeriod: MeditationStatisticsPeriodSummary;
+  /** 最近会话时长（分钟），可为小数 */
+  latestSessionMinutes: number;
+  last7SessionsTotalMinutes: number;
+  last7Sessions: MeditationStatisticsLast7SessionItem[];
+  trend: MeditationStatisticsTrendPoint[];
+  durationChartData: MeditationStatisticsChartBlock;
+  compareChartData: MeditationStatisticsChartBlock;
+  latestSessionId: number;
+}

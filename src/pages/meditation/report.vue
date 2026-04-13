@@ -3,8 +3,8 @@
         <lcrBar :title="'禅修报告'" :leftIcon="'icon-arrow-left'" :handleClick="onBack" :type="'all'" />
         <view class="px-8 pt-10 pb-6 text-center">
             <view class="theme-color-5 text-[60rpx] font-medium leading-snug">
-                今日，你照见 <text class="font-bold text-primary">{{ elapsedMin }}</text> 分 {{ elapsedRemainSec }} 秒
-                <text class="italic font-medium">{{ reportFromApi?.breathShort }}</text>
+                今日，你照见 <text class="font-bold text-primary">{{ elapsedMin }}</text> 分{{ elapsedRemainSec }}秒
+                <text class="italic font- text-[38rpx]">{{ reportFromApi?.breathText }}</text>
             </view>
         </view>
         <view class="relative px-6 py-4">
@@ -154,10 +154,18 @@
         <view class="fixed bottom-24 right-8 z-20">
             <button
                 class="size-14 bg-theme-2 text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition-transform"
-                @click="openShareTip">
+                @click="openShareSheet">
                 <text class="iconfont icon-share text-[70rpx]"></text>
             </button>
         </view>
+        <up-poster ref="posterRef" :json="posterJson" />
+        <up-action-sheet
+            v-model:show="shareSheetVisible"
+            title="分享"
+            :actions="shareSheetActions"
+            cancel-text="取消"
+            @select="onShareSheetSelect"
+        />
     </view>
 </template>
 
@@ -165,8 +173,10 @@
 import { nextTick } from 'vue';
 import { fetchMeditationReportDetail } from '@/assets/js/api/meditation';
 import lcrBar from '@/components/lcrBar.vue';
+import { useMeditationReportShare, type UviewPosterInstance } from '@/composables/useMeditationReportShare';
 import { useMeditationStore } from '@/stores/meditation';
 import type { MeditationReport, MeditationReportSection } from '@/types/api/meditation';
+import type { MeditationReportSharePayload } from '@/types/pages/meditationShare';
 import { unwrapApiData } from '@/utils/apiResponse';
 import { drawCloudBridgeCanvas } from '@/utils/common';
 import { parseMeditationReportDetailPayload } from '@/utils/meditationReport';
@@ -189,6 +199,85 @@ const urlSessionId = ref<number | null>(null);
 const effectiveSessionId = computed(
   () => reportFromApi.value?.sessionId ?? urlSessionId.value ?? null
 );
+
+const posterRef = ref<UviewPosterInstance | null>(null);
+const shareSheetVisible = ref(false);
+
+function getSharePayload(): MeditationReportSharePayload {
+  return {
+    durationMin: duration.value,
+    elapsedSec: elapsedSec.value,
+    avgHeart: avgHeart.value,
+    avgBreath: avgBreath.value,
+    maxHeart: maxHeart.value,
+    minHeart: minHeart.value,
+    manualStop: manualStop.value,
+    trackTitle: trackTitle.value,
+    sessionId: effectiveSessionId.value,
+    h5LandingBaseUrl: import.meta.env.VITE_H5_SHARE_BASE,
+  };
+}
+
+const {
+  posterJson,
+  generatePosterImagePath,
+  openFriendShareGuide,
+  openTimelineShareGuide,
+  copyH5ShareLink,
+} = useMeditationReportShare(posterRef, getSharePayload);
+
+const shareSheetActions = computed(() => {
+  const rows: { name: string; value: string }[] = [{ name: '生成分享海报', value: 'poster' }];
+  // #ifdef MP-WEIXIN
+  rows.push(
+    { name: '分享给微信好友或群', value: 'friend' },
+    { name: '分享到微信朋友圈', value: 'timeline' },
+  );
+  // #endif
+  // #ifdef H5
+  rows.push({ name: '复制页面链接', value: 'copyLink' });
+  // #endif
+  return rows;
+});
+
+function openShareSheet() {
+  shareSheetVisible.value = true;
+}
+
+async function onShareSheetSelect(item: { name: string; value?: string }) {
+  const v = item.value;
+  if (v === 'poster') {
+    uni.showLoading({ title: '生成中', mask: true });
+    try {
+      const path = await generatePosterImagePath();
+      if (!path) {
+        uni.showToast({ title: '生成失败', icon: 'none' });
+        return;
+      }
+      uni.previewImage({ urls: [path] });
+    } finally {
+      uni.hideLoading();
+    }
+    return;
+  }
+  if (v === 'friend') {
+    openFriendShareGuide();
+    return;
+  }
+  if (v === 'timeline') {
+    openTimelineShareGuide();
+    return;
+  }
+  if (v === 'copyLink') {
+    const base = import.meta.env.VITE_H5_SHARE_BASE?.trim();
+    if (!base) {
+      uni.showToast({ title: '请在环境变量配置 VITE_H5_SHARE_BASE', icon: 'none' });
+      return;
+    }
+    await copyH5ShareLink(base);
+  }
+}
+
 const movementCount = ref(0);
 /** `focusScore` 等，优先于本地估算 */
 const focusScoreFromApi = ref<number | null>(null);
@@ -225,7 +314,7 @@ const stabilityCardHint = computed(() => {
 
 const reportSubtitle = computed(() => {
   const t = reportFromApi.value?.stabilityText?.trim();
-  if (t) return t;
+  if (t) return `本次静坐：${t}`;
   const s = reportFromApi.value?.summaryText?.trim();
   if (s) return s;
   return '你的心律反映出一种深沉的晨雾——静谧、稳健且充满潜力。';
@@ -320,7 +409,28 @@ const bodyTrendSeries = computed(() => {
       }
     ];
   }
-
+  const heartSeed = [
+    avgHeart.value + 6,
+    avgHeart.value + 3,
+    avgHeart.value + 1,
+    avgHeart.value - 1,
+    avgHeart.value,
+    avgHeart.value - 2
+  ];
+  const breathSeed = [
+    avgBreath.value + 2,
+    avgBreath.value + 1,
+    avgBreath.value,
+    avgBreath.value - 1,
+    avgBreath.value,
+    avgBreath.value
+  ];
+  const movementSeed = distributeMovementAcrossPoints(movementCount.value, heartSeed.length);
+  return [
+    { name: '心率', index: 0, data: heartSeed },
+    { name: '呼吸', index: 0, data: breathSeed },
+    { name: '体动', index: 1, data: movementSeed }
+  ];
 });
 
 const bodyTrendChartData = computed(() => ({
@@ -472,33 +582,6 @@ onLoad((query) => {
 function onBack() {
     navigateBack();
 }
-
-function openShareTip() {
-    uni.showModal({
-        title: '分享说明',
-        content:
-            '点击右上角“...”即可分享给好友；若当前基础库支持，可在同入口中分享到朋友圈。',
-        showCancel: false
-    });
-}
-
-onShareAppMessage(() => {
-    const sid = effectiveSessionId.value;
-    const sidQ = sid != null ? `&sessionId=${sid}` : '';
-    return {
-        title: `我完成了 ${elapsedMin.value} 分冥想，平均心率 ${avgHeart.value} BPM`,
-        path: `/pages/meditation/report?duration=${duration.value}&elapsedSec=${elapsedSec.value}&avgHeart=${avgHeart.value}&avgBreath=${avgBreath.value}&maxHeart=${maxHeart.value}&minHeart=${minHeart.value}&manualStop=${manualStop.value ? 1 : 0}&trackTitle=${encodeURIComponent(trackTitle.value)}${sidQ}`
-    };
-});
-
-onShareTimeline(() => {
-    const sid = effectiveSessionId.value;
-    const sidQ = sid != null ? `&sessionId=${sid}` : '';
-    return {
-        title: `冥想 ${elapsedMin.value} 分钟｜平均心率 ${avgHeart.value} BPM`,
-        query: `duration=${duration.value}&elapsedSec=${elapsedSec.value}&avgHeart=${avgHeart.value}&avgBreath=${avgBreath.value}${sidQ}`
-    };
-});
 
 // 保留你原本“70%”展示逻辑：画图进度跟随该值
 onReady(() => {

@@ -66,6 +66,14 @@ const cfu = {
       	return '其他我没改'+item.data+'天'
       }
     },
+    /** 折线对比图：tooltip 仅系列名+数值，不含横轴类目（避免长日期撑破提示框；小程序端不能传函数 props） */
+    "statisticsCompareTooltip":function(item, category, index, opts){
+      var data = item.data;
+      if(typeof item.data === "object"){
+        data = item.data.value;
+      }
+      return item.name + ': ' + data;
+    },
     "pieDemo":function(val, index, series, opts){
       if(index !== undefined){
         return series[index].name+'：'+series[index].data+'元'

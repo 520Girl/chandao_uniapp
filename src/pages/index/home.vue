@@ -91,7 +91,7 @@
               <view class="flex items-center justify-between p-4" @click="audioExpanded = !audioExpanded">
                 <view class="flex items-center gap-2">
                   <view class="iconfont icon-musicnote theme-color-1 text-[40rpx] music-icon-bob" />
-                  <view class="text-sm font-semibold tracking-wide uppercase opacity-70">疗愈音频</view>
+                  <view class="text-sm font-semibold tracking-wide uppercase opacity-70">疗愈音乐</view>
                 </view>
                 <view class="flex items-center gap-2">
                   <view class="text-[10px] font-bold theme-color-1 truncate max-w-[180rpx]">
@@ -133,7 +133,7 @@
         </view>
       </view>
       <view class="space-y-6 mt-8">
-        <view class="text-[28rpx] px-6 font-bold uppercase tracking-widest theme-color-8 px-2">场景化冥想</view>
+        <view class="text-[28rpx] px-6 font-bold uppercase tracking-widest theme-color-8 px-2">共修活动</view>
         <scroll-view
           scroll-x
           class="w-full whitespace-nowrap"
@@ -171,7 +171,7 @@
                     hover-class="opacity-90"
                     class="px-[48rpx] py-[20rpx] bg-theme-1 text-white rounded-full text-[20rpx] font-bold uppercase tracking-widest shadow-lg shadow-primary/20 backdrop-blur-sm"
                     @click.stop="startMeditationFromActivity(item)">
-                    开启心流
+                    即刻参与
                   </view>
                   <view>
                     <view
@@ -198,7 +198,7 @@
         <button
         @click="onStartMeditation()"
           class="flex items-center justify-center w-[112rpx] h-[112rpx] rounded-full  bg-theme-2 text-background-dark shadow-lg shadow-primary/20 active:scale-95 transition-transform">
-          <text class="iconfont icon-Wind text-[50rpx] text-white"></text>
+          <text class="iconfont icon-xinshuai text-[50rpx] text-white"></text>
         </button>
       </view>
 
@@ -238,7 +238,7 @@
   const stepMinutes = 1;
   
   /** 默认取区间中间偏下，避免为 min 时进度条/圆环为 0 看起来像「无填充」 */
-  const durationMinutes = ref(15);
+  const durationMinutes = ref(5);
   const audioExpanded = ref(false);
   
   const barDragging = ref(false);

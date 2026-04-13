@@ -6,6 +6,34 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "3731066",
+      "name": "闲聊社区",
+      "font_class": "xianliaoshequ",
+      "unicode": "e63c",
+      "unicode_decimal": 58940
+    },
+    {
+      "icon_id": "4747843",
+      "name": "心率",
+      "font_class": "xinshuai",
+      "unicode": "e7c0",
+      "unicode_decimal": 59328
+    },
+    {
+      "icon_id": "577388",
+      "name": "足迹",
+      "font_class": "zuji",
+      "unicode": "e767",
+      "unicode_decimal": 59239
+    },
+    {
+      "icon_id": "10716355",
+      "name": "静坐",
+      "font_class": "jingzuo",
+      "unicode": "e62d",
+      "unicode_decimal": 58925
+    },
+    {
       "icon_id": "27002048",
       "name": "bed",
       "font_class": "bed",

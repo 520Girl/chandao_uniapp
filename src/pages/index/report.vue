@@ -1,6 +1,6 @@
 <template>
     <view class="flex flex-col min-h-screen w-full max-w-full overflow-x-hidden box-border pb-32 theme-bg meditation-page">
-        <HomeBar :title="'报告'" description="回 顾 历 史" :titleIcon="'icon-chaye'" :leftIcon="'icon-Trophy'" />
+        <HomeBar :title="'报告'" description="回 顾 历 史" :titleIcon="'icon-xinshuai'" :leftIcon="'icon-Trophy'" />
 
         <view class="flex-1 w-full max-w-full min-w-0 box-border px-6 flex flex-col">
             <view class="w-full max-w-full min-w-0 pt-6 space-y-8 box-border">
@@ -8,6 +8,7 @@
                 <view class="grid grid-cols-2 gap-4 w-full min-w-0">
                     <!-- Left Card: Recent -->
                     <view
+                    @click="handleLatestSessionClick"
                         class="relative glass-card rounded-3xl p-5 bg-theme-13 space-y-3 flex flex-col justify-between aspect-square border border-white/20 min-w-0 overflow-hidden">
                         <view class="absolute -right-4 -top-4 text-primary/10 select-none">
                             <text class="icon-shijian  iconfont text-8xl"></text>
@@ -17,12 +18,12 @@
                             <view class="font-headline text-[40rpx] theme-color-7">最近冥想</view>
                         </view>
                         <view class="space-y-1 theme-color-6">
-                            <view class="text-[48rpx] font-semibold text-primary">18<span
+                            <view class="text-[48rpx] font-semibold text-primary">{{ latestSessionMinutesDisplay }}<span
                                     class="text-[24rpx] ml-1 font-normal opacity-70">分钟</span>
                             </view>
-                            <view class="text-[24rpx] text-on-surface-variant flex items-center gap-1">
-                                <span class="iconfont icon-shijian text-[24rpx]"></span>
-                                专注85分
+                            <view class="text-[24rpx] text-on-surface-variant flex items-center gap-1 line-clamp-1">
+                                <text class="iconfont icon-shijian text-[24rpx]"></text>
+                                <text class="line-clamp-1">{{ latestSessionSubline }}</text> 
                             </view>
                         </view>
                     </view>
@@ -34,28 +35,25 @@
                         </view>
                         <view class="space-y-1">
                             <view class="text-[10px] tracking-[0.15rem] uppercase text-on-surface-variant/60 font-medium"></view>
-                            <view class="font-headline text-[40rpx] theme-color-7">本月趋势</view>
+                            <view class="font-headline text-[40rpx] theme-color-7">{{ periodSummaryTitle }}</view>
                         </view>
-                        <view class="space-y-1 theme-color-6">
-                            <view class="text-[48rpx] font-semibold text-primary">82<span
-                                    class="text-[24rpx] ml-1 font-normal opacity-70">分 ↑</span>
+                        <view class="space-y-1 theme-color-6 ">
+                            <view class="text-[48rpx] font-semibold text-primary line-clamp-1">{{ periodSummaryMinutes }}<text
+                                    class="text-[24rpx] ml-1 font-normal opacity-70 ">分钟 {{ periodSummaryMinutesSubline }}</text>
                             </view>
                             <view class="text-[24rpx] text-on-surface-variant flex items-center gap-1">
-                                <span class="iconfont icon-pingfenxiangguanli text-[24rpx]"></span>
-                                压力62分
+                                <text class="iconfont icon-pingfenxiangguanli text-[24rpx]"></text>
+                               <text class="line-clamp-1">{{ periodCardSubline }}</text> 
                             </view>
                         </view>
                     </view>
                 </view>
-                <!-- Filter Bar -->
+                <!-- Filter Bar：对应接口 `range` day / week / month -->
                 <view
                     class="flex justify-center items-center bg-surface-container-low/50 rounded-full p-1.5 max-w-full mx-auto px-1 box-border">
-                    <view
-                        class="px-6 py-1.5 rounded-full text-sm text-on-surface-variant/50 transition-all">日</view>
-                    <view
-                        class="px-8 py-1.5 rounded-full text-sm font-semibold bg-white text-primary shadow-sm ring-1 ring-black/5">周</view>
-                    <view
-                        class="px-6 py-1.5 rounded-full text-sm text-on-surface-variant/50 transition-all">月</view>
+                    <view :class="rangePillClass('day')" @tap="setStatisticsRange('day')">日</view>
+                    <view :class="rangePillClass('week')" @tap="setStatisticsRange('week')">周</view>
+                    <view :class="rangePillClass('month')" @tap="setStatisticsRange('month')">月</view>
                 </view>
                 <!-- Duration Chart -->
                 <view class="space-y-4 w-full max-w-full min-w-0 box-border">
@@ -66,6 +64,7 @@
                     <view class="bg-white/30 rounded-[32px] p-4 w-full max-w-full min-w-0 overflow-hidden box-border">
                         <view class="w-full max-w-full min-w-0 box-border" style="height: 190px">
                             <qiun-data-charts
+                                :key="'dur-' + chartsRemountKey"
                                 type="column"
                                 canvas-id="weeklyDurationChart"
                                 :canvas2d="true"
@@ -79,37 +78,32 @@
                 <view class="space-y-6 w-full max-w-full min-w-0">
                     <view class="flex justify-between items-center gap-2 min-w-0">
                         <view class="font-headline text-[40rpx] theme-color-7 shrink-0">数据对比</view>
-                        <view class="flex gap-2 shrink-0">
-                            <view class="flex items-center gap-1 px-3 py-1.5 bg-surface-container-low rounded-full">
-                                <span class="text-[10px] text-on-surface font-medium">上周</span>
-                                <span class="icon-expand_more_px_rounded iconfont text-[24rpx]"></span>
+                        <view v-if="compareSeriesPair.length >= 2" class="flex gap-2 shrink-0">
+                            <view class="flex items-center gap-1 px-[2rpx] py-1.5 bg-surface-container-low rounded-full">
+                                <span class="text-[10px] text-on-surface font-medium">体动/总数</span>
                             </view>
-                            <view class="flex items-center gap-1 px-3 py-1.5 bg-surface-container-low rounded-full">
-                                <span class="text-[10px] text-on-surface font-medium">本周</span>
-                                <span class="icon-expand_more_px_rounded iconfont text-[24rpx]"></span>
+                            <view class="flex items-center gap-1 px-[2rpx] py-1.5 bg-surface-container-low rounded-full">
+                                <span class="text-[10px] text-on-surface font-medium">心率/平均</span>
+                            </view>
+                            <view class="flex items-center gap-1 px-[2rpx] py-1.5 bg-surface-container-low rounded-full">
+                                <span class="text-[10px] text-on-surface font-medium">心率/平均</span>
                             </view>
                         </view>
                     </view>
                     <view
-                        class="relative w-full max-w-full min-w-0 h-40 bg-surface-container-lowest/20 flex items-center justify-center border border-white/30 box-border overflow-hidden">
-                        <view class="w-full max-w-full min-w-0 box-border" style="height: 130px">
+                        class="w-full max-w-full min-w-0 bg-surface-container-lowest/20 border border-white/30 box-border overflow-hidden">
+                        <!-- 高度需容纳折线区 + 底部内置图例；点击图例可显隐对应折线（qiun / uCharts tapLegend） -->
+                        <view class="w-full max-w-full min-w-0 box-border" style="height: 172px">
                             <qiun-data-charts
+                                :key="'cmp-' + chartsRemountKey"
                                 type="line"
                                 canvas-id="weeklyCompareChart"
                                 :canvas2d="true"
                                 background="transparent"
+                                :tap-legend="true"
+                                tooltip-format="statisticsCompareTooltip"
                                 :chart-data="compareChartData"
                                 :opts="compareOpts" />
-                        </view>
-                        <view class="absolute bottom-4 left-4 flex gap-4">
-                            <view class="flex items-center gap-1.5">
-                                <view class="w-2 h-2 rounded-full bg-primary/20"></view>
-                                <span class="text-[9px] font-label text-on-surface-variant/60">LAST WEEK</span>
-                            </view>
-                            <view class="flex items-center gap-1.5">
-                                <view class="w-2 h-2 rounded-full bg-primary"></view>
-                                <span class="text-[9px] font-label text-on-surface font-bold">THIS WEEK</span>
-                            </view>
                         </view>
                     </view>
                 </view>
@@ -126,470 +120,269 @@
 </template>
 
 <script setup lang="ts">
-import { getCurrentInstance } from 'vue';
-import { getMusicPage } from '@/assets/js/api/user';
-import type { MusicPageData } from '@/types/api/music';
-import { unwrapApiData } from '@/utils/apiResponse';
-import { mapMusicListItemToRow, resolveMusicAssetUrl } from '@/utils/musicPage';
-import { useMeditationStore } from '@/stores/meditation';
+import { fetchMeditationReportStatistics } from '@/assets/js/api/meditation';
 import HomeBar from '@/components/homeBar.vue';
+import type {
+  MeditationReportStatisticsData,
+  MeditationStatisticsChartBlock,
+  MeditationStatisticsRange,
+} from '@/types/api/meditation';
+import { unwrapApiData } from '@/utils/apiResponse';
+import { parseMeditationReportStatisticsPayload } from '@/utils/meditationReport';
 
-const meditationStore = useMeditationStore();
+const statsRange = ref<MeditationStatisticsRange>('week');
 
-const weeklyDurationCategories = ['05.10', '05.11', '05.12', '05.13', '05.14', '05.15', '05.16'];
-const weeklyDurationSeries = [
-    {
-        name: '时长',
-        data: [16, 24, 32, 20, 28, 12, 18]
-    }
-];
-const durationChartData = {
-    categories: weeklyDurationCategories,
-    series: weeklyDurationSeries
+const FALLBACK_DURATION: MeditationStatisticsChartBlock = {
+  categories: ['-'],
+  series: [{ name: '时长', data: [0] }],
 };
-const durationOpts = {
-    color: ['#705900'],
-    legend: { show: false },
-    padding: [12, 12, 8, 6],
-    xAxis: {
-        disableGrid: true,
-        fontSize: 10,
-        fontColor: '#7d7463'
-    },
-    yAxis: {
-        data: [
-            {
-                min: 0,
-                max: 40,
-                title: '分钟',
-                titleFontSize: 10,
-                titleFontColor: '#7d7463',
-                axisLine: false
-            }
-        ],
-        gridType: 'dash',
-        dashLength: 4,
-        fontSize: 10,
-        fontColor: '#7d7463'
-    },
-    extra: {
-        column: {
-            type: 'group',
-            width: 18,
-            borderRadius: [8, 8, 8, 8]
-        }
-    }
-};
-const weeklyCompareCategories = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-const weeklyCompareSeries = [
-    {
-        name: '上周',
-        data: [58, 55, 62, 60, 66, 69, 65]
-    },
-    {
-        name: '本周',
-        data: [54, 60, 67, 72, 76, 82, 79]
-    }
-];
-const compareChartData = {
-    categories: weeklyCompareCategories,
-    series: weeklyCompareSeries
-};
-const compareOpts = {
-    color: ['rgba(112,89,0,0.25)', '#705900'],
-    legend: { show: false },
-    padding: [8, 8, 4, 4],
-    xAxis: {
-        disableGrid: true,
-        fontSize: 10,
-        fontColor: '#7d7463'
-    },
-    yAxis: {
-        data: [{ min: 45, max: 90, axisLine: false }],
-        splitNumber: 3,
-        gridType: 'dash',
-        dashLength: 3,
-        fontSize: 10,
-        fontColor: '#7d7463'
-    },
-    extra: {
-        line: {
-            type: 'curve',
-            width: 2,
-            activeType: 'hollow'
-        }
-    }
+const FALLBACK_COMPARE: MeditationStatisticsChartBlock = {
+  categories: ['-'],
+  series: [
+    { name: '-', data: [0] },
+    { name: '-', data: [0] },
+  ],
 };
 
-/** 分钟范围（与 UI 文案 05–60 一致） */
-const minMinutes = 5;
-const maxMinutes = 60;
-const stepMinutes = 1;
+const statistics = ref<MeditationReportStatisticsData | null>(null);
 
-/** 默认取区间中间偏下，避免为 min 时进度条/圆环为 0 看起来像「无填充」 */
-const durationMinutes = ref(15);
-const audioExpanded = ref(true);
-
-const barDragging = ref(false);
-
-const ringProgress = computed(() => {
-    const span = maxMinutes - minMinutes;
-    if (span <= 0) return 0;
-    const cur = Number(durationMinutes.value);
-    const base = Number.isNaN(cur) ? minMinutes : cur;
-    return Math.min(1, Math.max(0, (base - minMinutes) / span));
-});
-const activeList = reactive([
-    { id: 1, type: "dark", imgUrl: "https://images.unsplash.com/photo-1532767153582-b1a0e5145009", totalTime: "25 MINS", endTime: "22:00 今晚", title: '深夜觉察', url: "", subtitle: "静坐于此，观照情绪如深夜之云悄然飘过。", viewClass: "text-white", spanClass: "text-white/60", bgClass: 'from-indigo-950/100 via-slate-10/60', btnClass: 'bg-white/10 backdrop-blur-xl', icon: 'meditation' },
-    { id: 2, type: "light", imgUrl: "https://images.unsplash.com/photo-1470252649378-9c29740c9fa8", totalTime: "15 MINS", endTime: "08:00 清晨", title: '晨间安宁', url: "", subtitle: "旭日东升，呼吸之间，回归你本自具足的宁静。", viewClass: "text-[#4a4538]", spanClass: "text-[#1a170f]/80", bgClass: 'from-amber-50/100 via-orange-100/60', btnClass: 'bg-theme-10 theme-color-1', icon: 'question' },
-    { id: 3, type: "simple", imgUrl: "", totalTime: "5 MINS", endTime: "12:00 午间", title: '午间小憩', url: "", subtitle: "于白昼繁杂中，寻得一处内心清明之地。", viewClass: "text-[#4a4538]", spanClass: "text-[#1a170f]/80", bgClass: 'from-blue-50/50 via-white/40', btnClass: 'bg-blue-500/10 text-blue-600 ', icon: 'answer' },
-]);
-//开始禅修
-const startMeditation = (item: any) => {
-    console.log("开始禅修：", item);
-    uni.switchTab({
-        url: `/pages/index/meditation?scene=${item.type}`
-    });
-    // 这里可以添加实际的导航或功能逻辑
-};
-
-/** conic-gradient：from -90deg 从 12 点顺时针，与触摸 atan2 一致 */
-const ringConicStyle = computed(() => {
-    const p = ringProgress.value;
-    const deg = 360 * p;
-    return {
-        backgroundImage: `conic-gradient(from -90deg, var(--color-1) 0deg, var(--color-1) ${deg}deg, transparent ${deg}deg)`
-    };
-});
+/** 快速切换日/周/月时递增，用于丢弃晚到的旧请求结果，避免界面「慢一拍」 */
+let statisticsLoadSeq = 0;
 
 /**
- * 圆形拖拽点：旋转角 = 360°×进度 − 90°（与 conic / 触摸顺时针进度对齐所需的相位补偿）。
+ * tab 页在其它 tab 激活时可能宽高为 0，canvas 2d 首次 init 失败；切回本页时递增以强制重建图表。
+ * 注意：不要用 `statsRange` 作图表 :key，否则切换周期会先销毁组件再用「上一周期」的 statistics 挂载，易与当前选中项错位。
  */
-const handleRotateDeg = computed(() => 360 * ringProgress.value - 90);
+const chartsRemountKey = ref(0);
 
-const timeDisplay = computed(() => {
-    const m = Number(durationMinutes.value);
-    const safe = Number.isNaN(m) ? minMinutes : m;
-    return `${String(safe).padStart(2, '0')}:00`;
+
+
+const latestSessionSubline = computed(() => {
+  const first = statistics.value?.last7Sessions?.[0];
+  if (first?.startDate) return `最近开始 ${first.startDate}`;
+  return '暂无最近会话';
 });
 
-const minLabel = computed(() => `${String(minMinutes).padStart(2, '0')}:00`);
-const maxLabel = computed(() => `${String(maxMinutes).padStart(2, '0')}:00`);
+const periodSummaryTitle = computed(() => {
+  const r = statsRange.value;
+  if (r === 'day') return '本日概况';
+  if (r === 'month') return '本月概况';
+  return '本周概况';
+});
 
-const barPercent = computed(() => ringProgress.value * 100);
+const periodSummaryMinutesSubline = computed(() => {
+const cur = statistics.value?.currentPeriod;
+  const prev = statistics.value?.previousPeriod;
+  if (!cur) return '';
+  if (!prev) return '';
+  const c = cur.totalDurationMinutes;
+  const p = prev.totalDurationMinutes;
+  if (!Number.isFinite(c) || !Number.isFinite(p)) return '-';
+  const d = Math.round(c - p);
+  if (d === 0) return '-';
+  const dir = d > 0 ? '↑' : '↓';
+  return `${dir} ${Math.abs(d)} 分钟`;
+});
 
-function clampMinutes(v: number) {
-    return Math.min(maxMinutes, Math.max(minMinutes, Math.round(v)));
+const durationChartData = computed(
+  () => statistics.value?.durationChartData ?? FALLBACK_DURATION,
+);
+const compareChartData = computed(() => statistics.value?.compareChartData ?? FALLBACK_COMPARE);
+
+/** 优先用统计根字段；不足 1 分钟时保留最多两位小数，否则四舍五入为整数分钟 */
+const latestSessionMinutesDisplay = computed(() => {
+  const m =
+    statistics.value?.latestSessionMinutes ??
+    statistics.value?.currentPeriod?.latestSessionMinutes ??
+    0;
+  if (!Number.isFinite(m) || m <= 0) return '0';
+  if (m < 1) return String(Math.round(m * 100) / 100);
+  return String(Math.round(m));
+});
+
+const periodSummaryMinutes = computed(() =>
+  Math.round(statistics.value?.currentPeriod?.totalDurationMinutes ?? 0),
+);
+
+/** 与 5.4.2 一致：整段 `currentPeriod` 汇总 + 固定 7 桶；与 `previousPeriod.totalDurationMinutes` 比环比时长 */
+const periodCardSubline = computed(() => {
+  const cur = statistics.value?.currentPeriod;
+  const prev = statistics.value?.previousPeriod;
+  if (!cur) return '';
+  const base = `${cur.sessionCount} 场 · 本周期 ${Math.round(cur.totalDurationMinutes)} 分`;
+  if (!prev) return base;
+  return `${base} `;
+});
+
+function flatBlockValues(block: MeditationStatisticsChartBlock): number[] {
+  return block.series.flatMap((s) => s.data);
 }
 
-/** 统一为数字，避免滑条传入 string 时 "15"+1 === "151" */
-function setDuration(v: unknown) {
-    const n = typeof v === 'string' ? parseFloat(v) : Number(v);
-    if (Number.isNaN(n)) return;
-    durationMinutes.value = clampMinutes(n);
+const durationMaxY = computed(() => {
+  const vals = flatBlockValues(durationChartData.value);
+  if (!vals.length) return 40;
+  const m = Math.max(...vals, 0);
+  return Math.max(10, Math.ceil(m / 5) * 5 + 5);
+});
+
+const compareYBounds = computed(() => {
+  const vals = flatBlockValues(compareChartData.value);
+  if (!vals.length) return { min: 0, max: 60 };
+  const minV = Math.min(...vals);
+  const maxV = Math.max(...vals);
+  const span = maxV - minV || 1;
+  const pad = Math.max(span * 0.1, 2);
+  return {
+    min: Math.max(0, Math.floor(minV - pad)),
+    max: Math.ceil(maxV + pad),
+  };
+});
+
+const durationOpts = computed(() => ({
+  color: ['#705900'],
+  legend: { show: false },
+  padding: [12, 12, 8, 6],
+  xAxis: {
+    disableGrid: true,
+    fontSize: 10,
+    fontColor: '#7d7463',
+  },
+  yAxis: {
+    data: [
+      {
+        min: 0,
+        max: durationMaxY.value,
+        title: '分钟',
+        titleFontSize: 10,
+        titleFontColor: '#7d7463',
+        axisLine: false,
+      },
+    ],
+    gridType: 'dash' as const,
+    dashLength: 4,
+    fontSize: 10,
+    fontColor: '#7d7463',
+  },
+  extra: {
+    column: {
+      type: 'group' as const,
+      width: 18,
+      borderRadius: [8, 8, 8, 8],
+    },
+  },
+}));
+
+/** 与下方图例色条一致，须与 compareLegendItems 索引对应 */
+const COMPARE_CHART_LINE_COLORS: readonly [string, string] = ['rgba(112,89,0,0.25)', '#705900'];
+
+const compareOpts = computed(() => ({
+  color: [...COMPARE_CHART_LINE_COLORS],
+  /** 底部图例色块与折线同色（opts.color）；点击图例切换该系列 show，由 uCharts touchLegend 处理 */
+  legend: {
+    show: true,
+    position: 'bottom',
+    float: 'center',
+    fontSize: 10,
+    lineHeight: 12,
+    padding: 4,
+    margin: 4,
+    itemGap: 14,
+    fontColor: '#5c5548',
+    backgroundColor: 'rgba(0,0,0,0)',
+    borderWidth: 0,
+    hiddenColor: '#b9b0a0',
+  },
+  padding: [6, 8, 2, 8],
+  xAxis: {
+    disableGrid: true,
+    fontSize: 10,
+    fontColor: '#7d7463',
+  },
+  yAxis: {
+    data: [
+      {
+        min: compareYBounds.value.min,
+        max: compareYBounds.value.max,
+        axisLine: false,
+      },
+    ],
+    splitNumber: 4,
+    gridType: 'dash' as const,
+    dashLength: 3,
+    fontSize: 10,
+    fontColor: '#7d7463',
+  },
+  extra: {
+    line: {
+      type: 'curve' as const,
+      width: 2,
+      activeType: 'hollow' as const,
+    },
+    /** 不追加横轴类目行；略抬高行高避免两条系列文字贴边被裁 */
+    tooltip: {
+      showCategory: false,
+      lineHeight: 22,
+      fontSize: 11,
+      boxPadding: 4,
+    },
+  },
+}));
+
+const compareSeriesPair = computed(() => compareChartData.value.series);
+
+function rangePillClass(range: MeditationStatisticsRange) {
+  return statsRange.value === range
+    ? 'px-8 py-1.5 rounded-full text-sm font-semibold bg-white text-primary shadow-sm ring-1 ring-black/5'
+    : 'px-6 py-1.5 rounded-full text-sm text-on-surface-variant/50 transition-all';
 }
 
-function adjustMinutes(delta: number) {
-    const cur = Number(durationMinutes.value);
-    const base = Number.isNaN(cur) ? minMinutes : cur;
-    setDuration(base + delta);
+async function loadStatistics(range: MeditationStatisticsRange) {
+  const seq = ++statisticsLoadSeq;
+  uni.showLoading({ title: '加载中', mask: true });
+  try {
+    const res = await fetchMeditationReportStatistics({ range });
+    if (seq !== statisticsLoadSeq) return;
+    const raw = unwrapApiData<unknown>(res);
+    const data = parseMeditationReportStatisticsPayload(raw);
+    if (data) {
+      statistics.value = data;
+    } else {
+      statistics.value = null;
+      uni.showToast({ title: '统计数据格式异常', icon: 'none' });
+    }
+  } catch (e) {
+    if (seq !== statisticsLoadSeq) return;
+    console.error('fetchMeditationReportStatistics', e);
+    uni.showToast({ title: '加载失败', icon: 'none' });
+  } finally {
+    if (seq === statisticsLoadSeq) {
+      uni.hideLoading();
+    }
+  }
 }
 
-type AudioTrack = {
-    id: string;
-    title: string;
-    subtitle: string;
-    /** 须为 https 或同源可播地址，小程序要求 */
-    url: string;
-    coverClass: string;
+function setStatisticsRange(range: MeditationStatisticsRange) {
+  if (statsRange.value === range) return;
+  statsRange.value = range;
+  statistics.value = null;
+  void loadStatistics(range);
+}
+
+const handleLatestSessionClick = () => {
+  uni.navigateTo({
+    url: `/pages/meditation/report?sessionId=${statistics.value?.currentPeriod?.latestSessionId}`,
+  });
 };
 
-const MUSIC_PAGE_SIZE = 10;
-
-/** 为 true 时使用本地模拟数据（分页仍走滚动加载）；接好接口后改为 false */
-const USE_MUSIC_MOCK = true;
-
-/** 模拟列表（字段与 mapMusicItem 兼容；url 需为 https 以便小程序播放） */
-const MOCK_MUSIC_LIST: Record<string, unknown>[] = [
-    {
-        id: 'mock-1',
-        title: 'Return to Stability',
-        subtitle: 'Nature & Flow',
-        url: 'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3'
-    },
-    {
-        id: 'mock-2',
-        title: 'Emotion like clouds',
-        subtitle: 'Soft Ambient',
-        url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
-    },
-    {
-        id: 'mock-3',
-        title: 'Forest Whisper',
-        subtitle: 'Organic Echoes',
-        url: 'https://www2.cs.uic.edu/~i101/SoundFiles/BabyElephantWalk60.wav'
-    },
-    ...Array.from({ length: 21 }, (_, i) => ({
-        id: `mock-${i + 4}`,
-        title: `疗愈音轨 ${String(i + 4).padStart(2, '0')}`,
-        subtitle: '模拟数据 · 滚动加载',
-        url:
-            i % 3 === 0
-                ? 'https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3'
-                : i % 3 === 1
-                    ? 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3'
-                    : 'https://www2.cs.uic.edu/~i101/SoundFiles/BabyElephantWalk60.wav'
-    }))
-];
-
-const audioTracks = ref<AudioTrack[]>([]);
-/** loadmore | loading | nomore */
-const musicLoadStatus = ref<'loadmore' | 'loading' | 'nomore'>('loadmore');
-const musicListFinished = ref(false);
-const musicFetching = ref(false);
-const musicNextPage = ref(1);
-
-const COVER_CLASS_CYCLE = [
-    'bg-gradient-to-br from-primary/30 to-background-dark/20',
-    'bg-blue-100 dark:bg-blue-900/20',
-    'bg-green-100 dark:bg-green-900/20',
-    'bg-purple-100 dark:bg-purple-900/20'
-];
-
-function mapMusicItem(raw: Record<string, unknown>, index: number): AudioTrack {
-    const id = String(raw.id ?? raw.musicId ?? `idx-${index}`);
-    const title = String(raw.title ?? raw.name ?? '未命名');
-    const subtitle = String(raw.subtitle ?? raw.artist ?? raw.remark ?? raw.description ?? '');
-    const url = resolveMusicAssetUrl(
-        (raw.url ?? raw.audioUrl ?? raw.fileUrl ?? raw.src ?? raw.path) as string | undefined
-    );
-    return {
-        id,
-        title,
-        subtitle,
-        url,
-        coverClass: COVER_CLASS_CYCLE[index % COVER_CLASS_CYCLE.length]
-    };
-}
-
-async function fetchMusicPage(reset: boolean) {
-    if (musicFetching.value) return;
-    if (musicListFinished.value && !reset) return;
-
-    musicFetching.value = true;
-    if (reset) {
-        musicNextPage.value = 1;
-        audioTracks.value = [];
-        musicListFinished.value = false;
-    }
-    musicLoadStatus.value = 'loading';
-
-    try {
-        const page = musicNextPage.value;
-
-        if (USE_MUSIC_MOCK) {
-            await new Promise<void>((resolve) => setTimeout(resolve, 260));
-            const start = (page - 1) * MUSIC_PAGE_SIZE;
-            const slice = MOCK_MUSIC_LIST.slice(start, start + MUSIC_PAGE_SIZE);
-            const startIdx = audioTracks.value.length;
-            const mapped = slice.map((raw, i) => mapMusicItem(raw, startIdx + i));
-            audioTracks.value = audioTracks.value.concat(mapped);
-            const got = mapped.length;
-            const total = MOCK_MUSIC_LIST.length;
-            const noMore = got === 0 || audioTracks.value.length >= total;
-            if (noMore) {
-                musicListFinished.value = true;
-                musicLoadStatus.value = 'nomore';
-            } else {
-                musicNextPage.value = page + 1;
-                musicLoadStatus.value = 'loadmore';
-            }
-        } else {
-            const res = await getMusicPage({ page, size: MUSIC_PAGE_SIZE });
-            const data = unwrapApiData<MusicPageData>(res);
-            if (!data || !Array.isArray(data.list)) {
-                throw new Error('music page: invalid data');
-            }
-            const startIdx = audioTracks.value.length;
-            const mapped = data.list.map((item, i) =>
-                mapMusicListItemToRow(item, startIdx + i, COVER_CLASS_CYCLE),
-            );
-            audioTracks.value = audioTracks.value.concat(mapped);
-
-            const got = mapped.length;
-            const total = data.pagination?.total;
-            const noMore =
-                got === 0 ||
-                got < MUSIC_PAGE_SIZE ||
-                (typeof total === 'number' && total >= 0 && audioTracks.value.length >= total);
-
-            if (noMore) {
-                musicListFinished.value = true;
-                musicLoadStatus.value = 'nomore';
-            } else {
-                musicNextPage.value = page + 1;
-                musicLoadStatus.value = 'loadmore';
-            }
-        }
-    } catch (e) {
-        console.error('getMusicPage', e);
-        musicLoadStatus.value = audioTracks.value.length ? 'nomore' : 'loadmore';
-        uni.showToast({ title: '音乐列表加载失败', icon: 'none' });
-    } finally {
-        musicFetching.value = false;
-    }
-}
-
-function onMusicScrollToLower() {
-    if (!musicListFinished.value && !musicFetching.value) {
-        fetchMusicPage(false);
-    }
-}
-
-function loadMoreMusic() {
-    if (musicLoadStatus.value === 'loadmore' && !musicListFinished.value && !musicFetching.value) {
-        fetchMusicPage(false);
-    }
-}
-
 onMounted(() => {
-    fetchMusicPage(true);
+  void loadStatistics(statsRange.value);
 });
 
-const playingId = ref<string | null>(null);
-let innerAudio: UniApp.InnerAudioContext | null = null;
-
-const currentTrackTitle = computed(() => {
-    const t = audioTracks.value.find((x: AudioTrack) => x.id === playingId.value);
-    return t?.title || '未播放';
+onShow(() => {
+  void nextTick(() => {
+    chartsRemountKey.value += 1;
+  });
 });
-
-function ensureAudio() {
-    if (innerAudio) return innerAudio;
-    innerAudio = uni.createInnerAudioContext();
-    innerAudio.obeyMuteSwitch = false;
-    innerAudio.onEnded(() => {
-        playingId.value = null;
-    });
-    innerAudio.onError((err) => {
-        console.error('audio error', err);
-        playingId.value = null;
-        uni.showToast({ title: '音频无法播放，请检查网络或更换地址', icon: 'none' });
-    });
-    return innerAudio;
-}
-
-function stopAudio() {
-    if (!innerAudio) return;
-    try {
-        innerAudio.stop();
-    } catch {
-        /* noop */
-    }
-}
-
-function togglePlay(track: AudioTrack) {
-    if (!track.url) {
-        uni.showToast({ title: '无效音频地址', icon: 'none' });
-        return;
-    }
-    const ctx = ensureAudio();
-    if (playingId.value === track.id) {
-        ctx.pause();
-        playingId.value = null;
-        return;
-    }
-    stopAudio();
-    ctx.src = track.url;
-    playingId.value = track.id;
-    ctx.play();
-}
-
-function onStartMeditation() {
-    const selected = audioTracks.value.find((x) => x.id === playingId.value) || audioTracks.value[0];
-    stopAudio();
-    playingId.value = null;
-    meditationStore.applyNextMeditationLaunch({
-        durationMinutes: clampMinutes(Number(durationMinutes.value)),
-        trackId: selected?.id ? String(selected.id) : '',
-        trackTitle: selected?.title?.trim() || '疗愈音频',
-        trackUrl: selected?.url || ''
-    });
-    uni.navigateTo({
-        url: '/pages/meditation/startMeditaiton'
-    });
-}
-
-function touchViewportXY(touch: Touch) {
-    const anyTouch = touch as Touch & { x?: number; y?: number };
-    const x = anyTouch.clientX ?? anyTouch.pageX ?? anyTouch.x;
-    const y = anyTouch.clientY ?? anyTouch.pageY ?? anyTouch.y;
-    return { x: x ?? 0, y: y ?? 0 };
-}
-
-function createPageSelectorQuery() {
-    const inst = getCurrentInstance();
-    const q = uni.createSelectorQuery();
-    return inst?.proxy ? q.in(inst.proxy) : q;
-}
-
-function minutesFromClientX(clientX: number, rect: UniApp.NodeInfo) {
-    const w = rect.width || 1;
-    const x = clientX - (rect.left || 0);
-    const ratio = Math.min(1, Math.max(0, x / w));
-    return clampMinutes(minMinutes + ratio * (maxMinutes - minMinutes));
-}
-
-function onBarTouch(e: TouchEvent) {
-    const type = e.type;
-    if (type === 'touchstart') barDragging.value = true;
-    if (type === 'touchend' || type === 'touchcancel') barDragging.value = false;
-
-    const touch = e.touches?.[0] || e.changedTouches?.[0];
-    if (!touch) return;
-    const { x: clientX } = touchViewportXY(touch);
-    createPageSelectorQuery()
-        .select('.duration-track')
-        .boundingClientRect((rect) => {
-            if (!rect || Array.isArray(rect)) return;
-            setDuration(minutesFromClientX(clientX, rect));
-        })
-        .exec();
-}
-
-function onRingTouch(e: TouchEvent) {
-    const touch = e.touches?.[0] || e.changedTouches?.[0];
-    if (!touch) return;
-    const { x: clientX, y: clientY } = touchViewportXY(touch);
-    createPageSelectorQuery()
-        .select('.ring-touch-area')
-        .boundingClientRect((rect) => {
-            if (!rect || Array.isArray(rect)) return;
-            const cx = (rect.left || 0) + (rect.width || 0) / 2;
-            const cy = (rect.top || 0) + (rect.height || 0) / 2;
-            const dx = clientX - cx;
-            const dy = clientY - cy;
-            let theta = Math.atan2(dx, -dy);
-            // 拖拽点显示角度做了 -90°，触摸换算对应补 +90°，保证手指与拖拽点一致
-            theta += Math.PI / 2;
-            if (theta < 0) theta += 2 * Math.PI;
-            if (theta >= 2 * Math.PI) theta -= 2 * Math.PI;
-            const ratio = theta / (2 * Math.PI);
-            setDuration(minMinutes + ratio * (maxMinutes - minMinutes));
-        })
-        .exec();
-}
-
-function disposeAudio() {
-    stopAudio();
-    if (innerAudio) {
-        innerAudio.destroy();
-        innerAudio = null;
-    }
-}
-
-onUnload(disposeAudio);
-onBeforeUnmount(disposeAudio);
 </script>
 
 <style scoped lang="scss">

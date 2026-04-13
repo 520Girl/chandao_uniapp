@@ -16,6 +16,11 @@
             <text class="iconfont icon-beizhu text-primary text-sm" data-icon="edit"></text>
           </view>
         </view>
+        <up-avatar-group
+            :urls="urls"
+            size="35"
+            gap="0.4"
+    ></up-avatar-group>
         <view class="text-center space-y-1">
           <h2 class="font-headline text-3xl font-light italic text-primary tracking-tight" >{{ nickName }}</h2>
           <p class="font-label text-xs uppercase tracking-[0.2em] text-secondary opacity-80" >修行始于 {{ startTime }}年</p>
@@ -139,6 +144,17 @@ import { formatDate } from '@/utils';
 const { nickName, avatarUrl, phone,createTime } = storeToRefs(useUserStore())
 const nickname = ref<string>("Yunxi User");
 const startTime = computed(() => formatDate(createTime.value, 'YYYY'));
+
+
+const urls = reactive([  
+    'https://uview-plus.jiangruyi.com/uview-plus/album/1.jpg',  
+    'https://uview-plus.jiangruyi.com/uview-plus/album/2.jpg',  
+    'https://uview-plus.jiangruyi.com/uview-plus/album/3.jpg',  
+    'https://uview-plus.jiangruyi.com/uview-plus/album/4.jpg',  
+    'https://uview-plus.jiangruyi.com/uview-plus/album/7.jpg',  
+    'https://uview-plus.jiangruyi.com/uview-plus/album/6.jpg',  
+    'https://uview-plus.jiangruyi.com/uview-plus/album/5.jpg'  
+]);  
   // 退出登录
 const loginOut = () => {
   uni.showModal({

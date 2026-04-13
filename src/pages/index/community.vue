@@ -1,6 +1,6 @@
 <template>
   <view class="min-h-screen theme-bg pb-[calc(120rpx+env(safe-area-inset-bottom))]">
-    <HomeBar :title="'云息社区'" description="安 定 共 修" :leftIcon="'icon-shopping-bag'" :handleClick="gotoShop" />
+    <HomeBar :title="'云息社区'" description="安 定 共 修" :leftIcon="'icon-shopping-bag'" :titleIcon="'icon-xianliaoshequ'" :handleClick="gotoShop" />
     <view class="px-4 py-6">
       <view class="text-center">
         <view

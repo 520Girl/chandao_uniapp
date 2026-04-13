@@ -5,6 +5,7 @@ import { get, post } from "../request";
 import type {
   MeditationEndDTO,
   MeditationPollDTO,
+  MeditationReportStatisticsQuery,
   MeditationStartDTO,
 } from "@/types/api/meditation";
 
@@ -12,6 +13,7 @@ const MEDITATION_START = "/app/meditation/start";
 const MEDITATION_POLL = "/app/meditation/poll";
 const MEDITATION_END = "/app/meditation/end";
 const MEDITATION_REPORT_DETAIL = "/app/meditation/report/detail";
+const MEDITATION_REPORT_STATISTICS = "/app/meditation/report/statistics";
 
 /**
  * 开始冥想（设备 / 无设备）；需登录。
@@ -51,4 +53,14 @@ export const endMeditation = (body: MeditationEndDTO) => {
  */
 export const fetchMeditationReportDetail = (query: { sessionId: number }) => {
   return get(MEDITATION_REPORT_DETAIL, query);
+};
+
+/**
+ * 冥想统计对比（5.4.2）；需登录。`bucketCount=7`，`trend`/双图均为 7 等分桶；含 `currentPeriod`/`previousPeriod` 整段汇总。
+ *
+ * @param query `range`：`day` | `week` | `month`，缺省由后端处理（一般为 `week`）
+ * @returns 业务包，`data` 为 `MeditationReportStatisticsData`
+ */
+export const fetchMeditationReportStatistics = (query?: MeditationReportStatisticsQuery) => {
+  return get(MEDITATION_REPORT_STATISTICS, query ?? {});
 };

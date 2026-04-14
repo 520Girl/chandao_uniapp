@@ -198,7 +198,7 @@
         <button
         @click="onStartMeditation()"
           class="flex items-center justify-center w-[112rpx] h-[112rpx] rounded-full  bg-theme-2 text-background-dark shadow-lg shadow-primary/20 active:scale-95 transition-transform">
-          <text class="iconfont icon-xinshuai text-[50rpx] text-white"></text>
+          <text class="iconfont icon-lianhua-yellow text-[50rpx] text-white"></text>
         </button>
       </view>
 
@@ -211,26 +211,34 @@
         :mask-closable="true"
         :show-close="true"
         @cancel="confirmStartMeditationWithDevice(false)"
-        @confirm="confirmStartMeditationWithDevice(true)" />
+        @confirm="confirmStartMeditationWithDevice(true)"
+        @dismiss="onMeditationDeviceDialogDismiss" />
     </view>
   </template>
   
   <script setup lang="ts">
   import { getCurrentInstance, nextTick } from 'vue';
-  import { fetchActivityPage } from '@/assets/js/api/activity';
+  import { fetchActivityPage, postActivityCheckin } from '@/assets/js/api/activity';
   import { fetchMessageUnreadCount } from '@/assets/js/api/message';
   import { getMusicPage } from '@/assets/js/api/user';
   import { config } from '@/assets/js/config';
   import ConfirmDialog from '@/components/common/confirmDialog.vue';
   import HomeBar from '@/components/homeBar.vue';
   import { useDeviceStore } from '@/stores/device';
-  import { useMeditationStore } from '@/stores/meditation';
+  import { useMeditationStore, type NextMeditationLaunchPayload } from '@/stores/meditation';
   import { useUserStore } from '@/stores/user';
-  import type { ActivityPage, ActivityPageListItem, HomeActivityCard, SceneType } from '@/types/api/activity';
+  import type {
+    ActivityCheckinDTO,
+    ActivityPage,
+    ActivityPageListItem,
+    HomeActivityCard,
+    SceneType,
+  } from '@/types/api/activity';
   import type { MusicPageData } from '@/types/api/music';
   import { unwrapApiData } from '@/utils/apiResponse';
   import { formatDate } from '@/utils/common';
   import { mapMusicListItemToRow, resolveMusicAssetUrl } from '@/utils/musicPage';
+  import { getCurrentLatLng } from '@/utils/location';
   
   /** 分钟范围（与 UI 文案 05–60 一致） */
   const minMinutes = 1;
@@ -245,6 +253,8 @@
 
   /** 右下角开始禅修：先选有/无设备 */
   const showMeditationDevicePopup = ref(false);
+  /** 非 null 表示弹窗由场景卡触发，确认后需带上 `activityId` / `activityTemplateId` */
+  const pendingActivityLaunch = ref<HomeActivityCard | null>(null);
 
   const ringProgress = computed(() => {
     const span = maxMinutes - minMinutes;
@@ -437,6 +447,9 @@
     return {
       id: item.id,
       templateId: item.templateId,
+      targetMeditationSeconds: Number.isFinite(item.targetMeditationSeconds)
+        ? Math.max(0, item.targetMeditationSeconds)
+        : 0,
       title: item.title?.trim() || "共修活动",
       subtitle: (item.content || "").trim() || "安住当下，与社群一同共修。",
       sceneType,
@@ -494,11 +507,9 @@
     }
   }
 
-  /** 从场景卡进入禅修：参数写入 Pinia，避免超长 URL；先停首页试听，禅修页从头播 */
+  /** 从场景卡进入禅修：与右下角「开始」一致，先同步设备再弹窗选有/无设备，确认后再校验并跳转 */
   async function startMeditationFromActivity(item: HomeActivityCard) {
-    const selected = audioTracks.value.find((x) => x.id === playingId.value) || audioTracks.value[0];
-    stopAudio();
-    playingId.value = null;
+    pendingActivityLaunch.value = item;
     if (userStore.isLoggedIn) {
       uni.showLoading({ title: "同步设备状态…", mask: true });
       try {
@@ -507,27 +518,12 @@
         uni.hideLoading();
       }
     }
-    const useHw = deviceStore.hasMeditationReadyDevice;
-    if (!useHw) {
-      uni.showToast({
-        title: deviceStore.hasBoundDevices
-          ? "设备未处于使用中，将以无设备模式禅修"
-          : "未绑定可用设备，将以无设备模式禅修",
-        icon: "none",
-      });
-    }
-    meditationStore.applyNextMeditationLaunch({
-      durationMinutes: clampMinutes(Number(durationMinutes.value)),
-      trackId: selected?.id ? String(selected.id) : "",
-      trackTitle: selected?.title?.trim() || item.title,
-      trackUrl: selected?.url || "",
-      activityId: item.id,
-      activityTemplateId: item.templateId,
-      useHardwareDevice: useHw,
-    });
-    uni.navigateTo({
-      url: "/pages/meditation/startMeditaiton",
-    });
+    showMeditationDevicePopup.value = true;
+  }
+
+  /** 遮罩或右上角关闭：放弃本次进入禅修，清除场景卡待启动上下文 */
+  function onMeditationDeviceDialogDismiss() {
+    pendingActivityLaunch.value = null;
   }
   
   /** conic-gradient：from -90deg 从 12 点顺时针，与触摸 atan2 一致 */
@@ -557,6 +553,20 @@
   
   function clampMinutes(v: number) {
     return Math.min(maxMinutes, Math.max(minMinutes, Math.round(v)));
+  }
+
+  /** 场景卡：用活动目标秒数换算计划分钟（向上取整到分钟，再夹到 1–60）；无目标则用首页圆环当前值 */
+  function minutesForActivityLaunch(activity: HomeActivityCard | null): number {
+    const fallback = clampMinutes(Number(durationMinutes.value));
+    if (!activity) return fallback;
+    const sec = activity.targetMeditationSeconds;
+    if (!Number.isFinite(sec) || sec <= 0) return fallback;
+    return clampMinutes(Math.ceil(sec / 60));
+  }
+
+  /** 当前卡片是否来自接口列表（非本地占位卡），才调打卡接口 */
+  function isActivityFromApiList(activity: HomeActivityCard): boolean {
+    return activitiesRaw.value.some((a) => a.id === activity.id);
   }
   
   /** 统一为数字，避免滑条传入 string 时 "15"+1 === "151" */
@@ -786,7 +796,7 @@
   
   const currentTrackTitle = computed(() => {
     const t = audioTracks.value.find((x: AudioTrack) => x.id === playingId.value);
-    return t?.title || '未播放';
+    return t?.title || '音乐播放（开始播放）';
   });
   
   function ensureAudio() {
@@ -832,6 +842,7 @@
   
   /** 拉列表 + 首台设备详情，再弹出「有/无设备」选择 */
   async function onStartMeditation() {
+    pendingActivityLaunch.value = null;
     if (userStore.isLoggedIn) {
       uni.showLoading({ title: "同步设备状态…", mask: true });
       try {
@@ -843,7 +854,7 @@
     showMeditationDevicePopup.value = true;
   }
 
-  /** 有设备 / 无设备：写入 Pinia 后进入禅修页；先停首页试听，禅修内重新从头播放 */
+  /** 有设备 / 无设备：与 `onStartMeditation` 相同校验；若来自场景卡则打卡、按计划目标分钟并附带活动 id */
   async function confirmStartMeditationWithDevice(hasDevice: boolean) {
     if (hasDevice && userStore.isLoggedIn) {
       uni.showLoading({ title: "确认设备状态…", mask: true });
@@ -863,16 +874,50 @@
       });
       return;
     }
+    const activity = pendingActivityLaunch.value;
+    if (activity && userStore.isLoggedIn && isActivityFromApiList(activity)) {
+      uni.showLoading({ title: "活动打卡中…", mask: true });
+      try {
+        const body: ActivityCheckinDTO = { id: activity.id };
+        try {
+          const pos = await getCurrentLatLng();
+          body.lat = pos.latitude;
+          body.lng = pos.longitude;
+          if (pos.accuracy != null) body.accuracy = pos.accuracy;
+        } catch {
+          /* 与活动详情页一致：无定位时仅传 id */
+        }
+        await postActivityCheckin(body);
+      } catch (e) {
+        console.error("postActivityCheckin", e);
+        uni.showToast({ title: "活动打卡失败，请稍后重试", icon: "none" });
+        return;
+      } finally {
+        uni.hideLoading();
+      }
+    }
+
     const selected = audioTracks.value.find((x) => x.id === playingId.value) || audioTracks.value[0];
     stopAudio();
     playingId.value = null;
-    meditationStore.applyNextMeditationLaunch({
-      durationMinutes: clampMinutes(Number(durationMinutes.value)),
+
+    const plannedMinutes = minutesForActivityLaunch(activity);
+    const payload: NextMeditationLaunchPayload = {
+      durationMinutes: plannedMinutes,
       trackId: selected?.id ? String(selected.id) : "",
-      trackTitle: selected?.title?.trim() || "疗愈音频",
+      trackTitle: activity
+        ? selected?.title?.trim() || activity.title
+        : selected?.title?.trim() || "疗愈音频",
       trackUrl: selected?.url || "",
       useHardwareDevice: hasDevice,
-    });
+    };
+    if (activity) {
+      payload.activityId = activity.id;
+      payload.activityTemplateId = activity.templateId;
+    }
+    pendingActivityLaunch.value = null;
+
+    meditationStore.applyNextMeditationLaunch(payload);
     uni.navigateTo({
       url: "/pages/meditation/startMeditaiton",
     });

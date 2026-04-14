@@ -1,6 +1,7 @@
 /**
  * 冥想报告：微信小程序分享给好友/朋友圈参数、H5 链接、uview-plus 海报 json。
  * 无 HTTP；供页面与 composable 调用。
+ * 海报配色与 `tailwind.config.ts` 中 primary / 报告页 `#3c3728` 等对齐。
  */
 import type {
   MeditationReportSharePayload,
@@ -8,6 +9,15 @@ import type {
 } from "@/types/pages/meditationShare";
 
 const REPORT_PATH = "/pages/meditation/report";
+
+/** 与项目 Tailwind `primary` 一致 */
+const C_PRIMARY = "#d4af35";
+const C_PRIMARY_SOFT = "rgba(212, 175, 53, 0.22)";
+const C_INK = "#201d12";
+const C_TEXT = "#3c3728";
+const C_TEXT_MUTED = "#6b6354";
+const C_HINT = "#918355";
+const C_CARD = "#ffffff";
 
 function appendQueryPart(parts: string[], key: string, value: string | number): void {
   parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
@@ -98,83 +108,163 @@ function resolvePosterQrText(p: MeditationReportSharePayload): string {
   return `${REPORT_PATH}?${qs}`;
 }
 
+function truncateTrackTitle(title: string, maxLen: number): string {
+  const t = title.trim();
+  if (t.length <= maxLen) return t;
+  return `${t.slice(0, maxLen - 1)}…`;
+}
+
 /**
  * 生成 `up-poster` 所需的 `json`（文案 + 底部二维码）。
+ * 尺寸 750×1200rpx，元素坐标均在画布内；配色对齐主题金与报告页深字色。
  * @param p 报告页分享载荷
  */
 export function buildMeditationReportPosterJson(p: MeditationReportSharePayload): UviewPosterJson {
   const minutes = Math.floor(p.elapsedSec / 60);
   const sec = p.elapsedSec % 60;
   const qrText = resolvePosterQrText(p);
+  const track = p.trackTitle?.trim();
+  const trackLine = track ? `伴乐「${truncateTrackTitle(track, 20)}」` : "";
+
+  const views: UviewPosterJson["views"] = [
+    {
+      type: "view",
+      css: {
+        left: "0rpx",
+        top: "0rpx",
+        width: "750rpx",
+        height: "16rpx",
+        background: C_PRIMARY,
+      },
+    },
+    {
+      type: "view",
+      css: {
+        left: "36rpx",
+        top: "52rpx",
+        width: "678rpx",
+        height: "420rpx",
+        background: C_CARD,
+        radius: "40rpx",
+      },
+    },
+    {
+      type: "view",
+      css: {
+        left: "64rpx",
+        top: "88rpx",
+        width: "96rpx",
+        height: "8rpx",
+        background: C_PRIMARY,
+      },
+    },
+    {
+      type: "text",
+      text: "心迹报告",
+      css: {
+        left: "64rpx",
+        top: "116rpx",
+        color: C_INK,
+        fontSize: "48rpx",
+        fontWeight: "bold",
+      },
+    },
+    {
+      type: "text",
+      text: "坐观其心 · 静心觉察",
+      css: {
+        left: "64rpx",
+        top: "184rpx",
+        color: C_HINT,
+        fontSize: "24rpx",
+      },
+    },
+    {
+      type: "text",
+      text: `本次 ${minutes} 分 ${sec} 秒  ·  平均心率 ${p.avgHeart} bpm`,
+      css: {
+        left: "64rpx",
+        top: "236rpx",
+        color: C_TEXT,
+        fontSize: "30rpx",
+      },
+    },
+    {
+      type: "text",
+      text: `呼吸 ${p.avgBreath} 次/分  ·  心率 ${p.minHeart}–${p.maxHeart} bpm`,
+      css: {
+        left: "64rpx",
+        top: "292rpx",
+        color: C_TEXT_MUTED,
+        fontSize: "26rpx",
+      },
+    },
+  ];
+
+  let nextTop = 348;
+  if (trackLine) {
+    views.push({
+      type: "text",
+      text: trackLine,
+      css: {
+        left: "64rpx",
+        top: `${nextTop}rpx`,
+        color: C_TEXT_MUTED,
+        fontSize: "26rpx",
+      },
+    });
+    nextTop += 56;
+  }
+
+  views.push(
+    {
+      type: "view",
+      css: {
+        left: "64rpx",
+        top: `${nextTop + 8}rpx`,
+        width: "622rpx",
+        height: "6rpx",
+        background: C_PRIMARY_SOFT,
+      },
+    },
+    {
+      type: "text",
+      text: "长按图片可保存 · 扫码查看完整报告",
+      css: {
+        left: "64rpx",
+        top: `${nextTop + 36}rpx`,
+        color: C_HINT,
+        fontSize: "24rpx",
+      },
+    },
+    {
+      type: "qrcode",
+      text: qrText,
+      css: {
+        left: "255rpx",
+        top: "600rpx",
+        width: "240rpx",
+        height: "240rpx",
+      },
+    },
+    {
+      type: "text",
+      text: "—— 非医疗诊断，以舒适为宜 ——",
+      css: {
+        left: "120rpx",
+        top: "900rpx",
+        color: C_HINT,
+        fontSize: "22rpx",
+      },
+    },
+  );
+
   return {
     css: {
       width: "750rpx",
-      height: "1180rpx",
-      background: "#f7f3eb",
+      height: "930rpx",
+      background: "linear-gradient(168deg, #faf8f5 0%, #f3ede4 48%, #ebe4d8 100%)",
     },
-    views: [
-      {
-        type: "view",
-        css: {
-          left: "48rpx",
-          top: "48rpx",
-          width: "654rpx",
-          height: "200rpx",
-          background: "#ffffff",
-          radius: "24rpx",
-        },
-      },
-      {
-        type: "text",
-        text: "禅修报告",
-        css: {
-          left: "72rpx",
-          top: "88rpx",
-          color: "#5c4d2c",
-          fontSize: "44rpx",
-          fontWeight: "bold",
-        },
-      },
-      {
-        type: "text",
-        text: `本次 ${minutes} 分 ${sec} 秒 · 平均心率 ${p.avgHeart} bpm`,
-        css: {
-          left: "72rpx",
-          top: "168rpx",
-          color: "#6b6354",
-          fontSize: "28rpx",
-        },
-      },
-      {
-        type: "text",
-        text: `平均呼吸 ${p.avgBreath} 次/分`,
-        css: {
-          left: "72rpx",
-          top: "220rpx",
-          color: "#6b6354",
-          fontSize: "28rpx",
-        },
-      },
-      {
-        type: "text",
-        text: "长按或扫码查看详情",
-        css: {
-          left: "72rpx",
-          top: "980rpx",
-          color: "#9a8f7a",
-          fontSize: "24rpx",
-        },
-      },
-      {
-        type: "qrcode",
-        text: qrText,
-        css: {
-          left: "255rpx",
-          top: "720rpx",
-          width: "240rpx",
-          height: "240rpx",
-        },
-      },
-    ],
+    views,
   };
 }

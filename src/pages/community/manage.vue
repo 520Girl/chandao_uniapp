@@ -20,6 +20,7 @@
         <view class="flex items-center justify-between">
           <view class="text-[28rpx] font-bold theme-color-1">我的动态 ({{ myPostsTotal }})</view>
           <view class="text-[24rpx] font-bold theme-color-1 flex items-center gap-1" @click="goAllPost()">
+            <text v-if="contextTeamDisplayName">{{ contextTeamDisplayName }}</text>
             全部动态 <text class="iconfont icon-jinru text-[24rpx]" ></text>
           </view>
         </view>
@@ -33,9 +34,9 @@
             <view class="flex gap-3 mb-3">
               <image class="w-[80rpx] h-[80rpx] rounded-full object-cover ring-2 ring-[#d4af3566]"
                 data-alt="User personal profile avatar"
-                :src="selfAvatar" />
+                :src="postAuthorAvatar(post)" />
               <view>
-                <view class="font-bold text-[28rpx]">{{ selfNickname }}</view>
+                <view class="font-bold text-[28rpx]">{{ postAuthorName(post) }}</view>
                 <view class="text-[20rpx] theme-color-8 uppercase">
                   {{ formatRelativeTime(post.updateTime || post.createTime) }} · {{ postStatusLabel(post.status) }}
                 </view>
@@ -80,10 +81,10 @@
             <view class="flex gap-3 mb-3">
               <image class="w-10 h-10 rounded-full object-cover ring-2 ring-primary/20"
                 data-alt="User personal profile avatar"
-                :src="selfAvatar"
+                :src="postAuthorAvatar(post)"
                 mode="aspectFill" />
               <view>
-                <view class="font-bold text-[28rpx]">{{ selfNickname }}</view>
+                <view class="font-bold text-[28rpx]">{{ postAuthorName(post) }}</view>
                 <view class="text-[20rpx] theme-color-8 uppercase">
                   {{ formatRelativeTime(post.updateTime || post.createTime) }} · {{ postStatusLabel(post.status) }}
                 </view>
@@ -119,6 +120,7 @@
         <view class="flex items-center justify-between">
           <view class="text-[28rpx] font-bold theme-color-1 uppercase tracking-widest">社群成员 ({{ membersTotal }})</view>
           <view class="text-[24rpx] font-bold theme-color-1 flex items-center gap-1" @click="goAllMember()">
+            <text v-if="contextTeamDisplayName">{{ contextTeamDisplayName }}</text>
             管理全员 <text class="iconfont icon-setting text-[24rpx]"></text>
           </view>
         </view>
@@ -225,12 +227,13 @@
   </view>
 </template>
 <script setup lang="ts">
-import { onShow } from "@dcloudio/uni-app";
+import { onLoad, onShow } from "@dcloudio/uni-app";
 import { computed, ref } from "vue";
 import { fetchTeamMemberPage, postTeamMemberRemove } from "@/assets/js/api/team";
-import { fetchPostFeed, postPostDelete } from "@/assets/js/api/post";
+import { fetchPostFeedTeams, postPostDelete } from "@/assets/js/api/post";
 import { config } from "@/assets/js/config";
-import type { PostInfo } from "@/types/api/post";
+import type { PostFeedQuery, PostFeedTeamsItem, PostFeedTeamsPage, PostInfo } from "@/types/api/post";
+import type { TeamMemberPageQuery } from "@/types/api/team";
 import type { TeamMemberRow } from "@/types/api/team";
 import type { ToastInputField } from "@/types/pages/component";
 import { unwrapApiData } from "@/utils/apiResponse";
@@ -244,8 +247,19 @@ import { useUserStore } from "@/stores/user";
 const teamStore = useTeamStore();
 const userStore = useUserStore();
 
+/** 路由 `?teamId=`：动态与成员接口均以此为准；无参数则不传 `teamId` */
+const pageTeamId = ref<number | null>(null);
+
+/** URL 带团队时展示名称（来自 `myCurrentTeams`） */
+const contextTeamDisplayName = computed(() => {
+  const tid = pageTeamId.value;
+  if (tid == null) return "";
+  const hit = teamStore.myCurrentTeams.find((t) => t.teamId === tid);
+  return hit?.teamName?.trim() || `团队 ${tid}`;
+});
+
 const searchQuery = ref("");
-const myPosts = ref<PostInfo[]>([]);
+const myPosts = ref<PostFeedTeamsItem[]>([]);
 const myPostsTotal = ref(0);
 const members = ref<TeamMemberRow[]>([]);
 const membersTotal = ref(0);
@@ -264,8 +278,18 @@ type ManageToastPending =
 
 const manageToastPending = ref<ManageToastPending>(null);
 
-const selfNickname = computed(() => userStore.nickName);
-const selfAvatar = computed(() => userStore.avatarUrl);
+/** 移出成员等操作：优先 URL 团队，否则发布默认团队 */
+const effectiveTeamId = computed(() => pageTeamId.value ?? teamStore.resolvedPublishTeamId);
+
+function postAuthorName(post: PostFeedTeamsItem): string {
+  return post.nickName?.trim() || userStore.nickName;
+}
+
+function postAuthorAvatar(post: PostFeedTeamsItem): string {
+  const u = (post.avatarUrl || "").trim();
+  if (!u) return userStore.avatarUrl || "/static/logo.png";
+  return resolveMediaUrl(u);
+}
 
 function resolveMediaUrl(raw: string | null | undefined): string {
   const u = (raw || "").trim();
@@ -308,7 +332,7 @@ const filteredMembers = computed(() => {
 /** 当前所选团队是否由本人负责（与 `MyTeamItem.ownerId` 一致） */
 const isTeamOwner = computed(() => {
   const uid = userStore.currentUser?.id;
-  const tid = teamStore.resolvedPublishTeamId;
+  const tid = effectiveTeamId.value;
   if (uid == null || tid == null) return false;
   const team = teamStore.myCurrentTeams.find((t) => t.teamId === tid);
   return team != null && team.ownerId === uid;
@@ -361,7 +385,7 @@ async function onManageToastConfirm(_vals: Record<string, string>) {
     }
     return;
   }
-  const tid = teamStore.resolvedPublishTeamId;
+  const tid = effectiveTeamId.value;
   if (tid == null) return;
   try {
     await postTeamMemberRemove({ teamId: tid, userId: pending.member.userId });
@@ -377,14 +401,18 @@ async function loadPageData() {
     await teamStore.fetchMyCurrentTeams();
     teamStore.syncPublishTeamFromUserFirstTeam(userStore.currentUser?.firstTeamId);
 
-    const teamId = teamStore.resolvedPublishTeamId ?? undefined;
+    const postQuery: PostFeedQuery = { page: 1, size: 2 };
+    if (pageTeamId.value != null) postQuery.teamId = pageTeamId.value;
+
+    const memberQuery: TeamMemberPageQuery = { page: 1, size: 3, role: 0 };
+    if (pageTeamId.value != null) memberQuery.teamId = pageTeamId.value;
 
     const [feedRes, memberRes] = await Promise.all([
-      fetchPostFeed({ page: 1, size: 2, publishStatus: 2 }),
-      fetchTeamMemberPage({ teamId, page: 1, size: 3, role: 0 }),
+      fetchPostFeedTeams(postQuery),
+      fetchTeamMemberPage(memberQuery),
     ]);
 
-    const feedData = unwrapApiData<{ list: PostInfo[]; pagination?: { total?: number } }>(feedRes);
+    const feedData = unwrapApiData<PostFeedTeamsPage>(feedRes);
     myPosts.value = feedData?.list ?? [];
     myPostsTotal.value = feedData?.pagination?.total ?? myPosts.value.length;
 
@@ -399,12 +427,22 @@ async function loadPageData() {
   }
 }
 
+onLoad((options) => {
+  const raw = options?.teamId;
+  if (raw != null && String(raw).trim() !== "") {
+    const n = Number(raw);
+    pageTeamId.value = Number.isFinite(n) && n > 0 ? n : null;
+  } else {
+    pageTeamId.value = null;
+  }
+});
+
 onShow(() => {
   void loadPageData();
 });
 
 function teamQuerySuffix(): string {
-  const id = teamStore.resolvedPublishTeamId;
+  const id = pageTeamId.value;
   return id != null ? `?teamId=${id}` : "";
 }
 

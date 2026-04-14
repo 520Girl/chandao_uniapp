@@ -71,6 +71,7 @@ export interface PostFeedQuery {
   page?: number;
   /** 每页条数，默认 20 */
   size?: number;
+  teamId?: number;
 }
 
 /**
@@ -129,8 +130,8 @@ export interface MixedFeedItem {
   content?: string | null;
   /** 仅动态 */
   images?: string[] | null;
-  /** 仅动态 */
-  likeCount?: number | null;
+  /** 仅动态；接口可能以字符串返回数字 */
+  likeCount?: number | string | null;
   /** 仅活动 */
   activityTitle?: string | null;
   activityStartDate?: string | null;

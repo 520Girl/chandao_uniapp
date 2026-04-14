@@ -56,7 +56,7 @@ export const putPostUpdate = (body: PostUpdateDTO) => {
 /**
  * 动态流（我的动态）；需登录。
  *
- * @param query `page` / `size` / `publishStatus`（0 全部 1 待审 2 已发布，默认 2）
+ * @param query `page` / `size` / `publishStatus`（0 全部 1 待审 2 已发布，默认 2）；`teamId` 可选，不传则按后端默认
  */
 export const fetchPostFeed = (query?: MyPostFeedQuery) => {
   return get(POST_FEED_PATH, query ?? {});
@@ -65,7 +65,7 @@ export const fetchPostFeed = (query?: MyPostFeedQuery) => {
 /**
  * 动态流（团队动态）；列表项含 `nickName` / `avatarUrl`；需登录。
  *
- * @param query `page` / `size`
+ * @param query `page` / `size`；`teamId` 可选，不传则按后端默认（如首团队）统计
  */
 export const fetchPostFeedTeams = (query?: PostFeedQuery) => {
   return get(POST_FEED_TEAMS_PATH, query ?? {});

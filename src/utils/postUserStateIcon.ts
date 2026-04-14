@@ -17,6 +17,10 @@ export function postUserStateIconClassSuffix(value: number): string {
       return "wind";
     case 4:
       return "lightbulb";
+    case 5:
+      return "Wind";
+    case 6:
+      return "zap-fast";
     default:
       return "Cloudy";
   }

@@ -16,11 +16,42 @@
             <text class="iconfont icon-beizhu text-primary text-sm" data-icon="edit"></text>
           </view>
         </view>
-        <up-avatar-group
-            :urls="urls"
-            size="35"
-            gap="0.4"
-    ></up-avatar-group>
+        <!-- u-avatar-group 只支持图片 url；团队用首字 + 随机底色，叠放与 gap=0.4 一致 -->
+        <view
+          v-if="teamAvatarEntries.length"
+          class="flex items-center justify-center mb-4 mt-1"
+       
+        >
+          <view
+            v-for="(entry, index) in teamAvatarEntries"
+            :key="entry.teamId"
+            @click="onGoToManage('postManage', entry.teamId)"
+            class="relative rounded-full border-2 border-white/95 shadow-sm box-border"
+            :style="{
+              marginLeft: index === 0 ? 0 : `-${teamAvatarOverlapPx}px`,
+              zIndex: teamAvatarEntries.length - index,
+            }"
+          >
+            <up-avatar
+              :text="entry.letter"
+              :size="TEAM_AVATAR_SIZE"
+              :font-size="16"
+              color="#ffffff"
+              :random-bg-color="true"
+              :color-index="entry.colorIndex"
+            />
+            <view
+              v-if="entry.isTeamOwner"
+              class="absolute -bottom-[2rpx] -right-[2rpx] w-[30rpx] h-[30rpx] rounded-full bg-primary border-2 border-white flex items-center justify-center shadow-sm z-10"
+              aria-label="团队管理员"
+            >
+              <text
+                class="iconfont icon-huizhangguanli text-[18rpx] text-white leading-none"
+                style="font-variation-settings: 'FILL' 1"
+              />
+            </view>
+          </view>
+        </view>
         <view class="text-center space-y-1">
           <h2 class="font-headline text-3xl font-light italic text-primary tracking-tight" >{{ nickName }}</h2>
           <p class="font-label text-xs uppercase tracking-[0.2em] text-secondary opacity-80" >修行始于 {{ startTime }}年</p>
@@ -48,8 +79,11 @@
               <text class="iconfont icon-shebei text-[40rpx] theme-color-1" data-icon="lock"></text>
               <text class="font-body text-[28rpx] theme-color-5">设备管理</text>
             </view>
-            <text class="iconfont icon-jinru text-[30rpx] theme-color-12 group-hover:translate-x-1 transition-transform"
+            <view class="flex items-center gap-2">
+              <text class="theme-color-7 text-[24rpx]">{{ deviceManageRightText }}</text>
+              <text class="iconfont icon-jinru text-[30rpx] theme-color-12 group-hover:translate-x-1 transition-transform"
               data-icon="chevron_right"></text>
+            </view>
           </view>
           <view @click="onGoToManage('postManage')"
             class="flex bg-theme-13 items-center justify-between p-4 bg-accent-light/30 border border-primary/20 rounded-2xl hover:bg-accent-light/50 transition-colors cursor-pointer group">
@@ -138,24 +172,65 @@
 </template>
 
 <script setup lang="ts">
-import { navigateTo } from '@/utils/navigation';
-import HomeBar from '@/components/homeBar.vue';
-import { formatDate } from '@/utils';
-const { nickName, avatarUrl, phone,createTime } = storeToRefs(useUserStore())
-const nickname = ref<string>("Yunxi User");
-const startTime = computed(() => formatDate(createTime.value, 'YYYY'));
+import HomeBar from "@/components/homeBar.vue";
+import { useDeviceStore } from "@/stores/device";
+import { useTeamStore } from "@/stores/team";
+import { useUserStore } from "@/stores/user";
+import { formatDate } from "@/utils";
 
+const userStore = useUserStore();
+const deviceStore = useDeviceStore();
+const teamStore = useTeamStore();
+const { nickName, avatarUrl, phone, createTime } = storeToRefs(userStore);
+const { devices, listLoading } = storeToRefs(deviceStore);
 
-const urls = reactive([  
-    'https://uview-plus.jiangruyi.com/uview-plus/album/1.jpg',  
-    'https://uview-plus.jiangruyi.com/uview-plus/album/2.jpg',  
-    'https://uview-plus.jiangruyi.com/uview-plus/album/3.jpg',  
-    'https://uview-plus.jiangruyi.com/uview-plus/album/4.jpg',  
-    'https://uview-plus.jiangruyi.com/uview-plus/album/7.jpg',  
-    'https://uview-plus.jiangruyi.com/uview-plus/album/6.jpg',  
-    'https://uview-plus.jiangruyi.com/uview-plus/album/5.jpg'  
-]);  
-  // 退出登录
+/** 与原先 up-avatar-group 的 size / gap 一致：35 × 0.4 */
+const TEAM_AVATAR_SIZE = 35;
+const TEAM_AVATAR_GAP = 0.4;
+const teamAvatarOverlapPx = TEAM_AVATAR_SIZE * TEAM_AVATAR_GAP;
+const TEAM_AVATAR_MAX = 5;
+
+function teamDisplayLetter(name: string): string {
+  const s = name.trim();
+  if (!s) return "?";
+  const ch = s[0]!;
+  return /[a-z]/i.test(ch) ? ch.toUpperCase() : ch;
+}
+
+const teamAvatarEntries = computed(() => {
+  /** 与 `MyTeamItem.ownerId` 比较的用户主键，即 `GET /app/user/info/person` 返回的 `UserPerson.id`（登录后写入 `currentUser`） */
+  const uid = Number(userStore.currentUser?.id ?? 0);
+  return teamStore.myCurrentTeams.slice(0, TEAM_AVATAR_MAX).map((t) => {
+    const ownerId = Number(t.ownerId);
+    return {
+      teamId: t.teamId,
+      letter: teamDisplayLetter(t.teamName || ""),
+      colorIndex: Math.abs(Number(t.teamId)) % 20,
+      /** 与 `MyTeamItem.ownerId` 一致：本人为团队创建者/管理员 */
+      isTeamOwner: uid > 0 && ownerId === uid,
+    };
+  });
+});
+
+const startTime = computed(() => formatDate(createTime.value, "YYYY"));
+
+/** 设备列表右侧：登录后拉 `fetchDeviceList`，展示台数或「无设备」 */
+const deviceManageRightText = computed(() => {
+  if (!userStore.isLoggedIn) return '登录后查看';
+  if (listLoading.value) return '同步中…';
+  const n = devices.value.length;
+  if (n === 0) return '无设备';
+  return `${n} 台设备`;
+});
+
+onShow(() => {
+  if (userStore.isLoggedIn) {
+    void deviceStore.refreshList();
+    void teamStore.fetchMyCurrentTeams();
+  }
+});
+
+// 退出登录
 const loginOut = () => {
   uni.showModal({
     title: '提示',  
@@ -183,11 +258,13 @@ const onGoToShop = () => {
   })
 }
 //前往管理页面
-const onGoToManage = (target: string) => {
+const onGoToManage = (target: string, teamId?: number) => {
   if (target === 'postManage') {
+    const q =
+      teamId != null && Number.isFinite(teamId) && teamId > 0 ? `?teamId=${teamId}` : "";
     uni.navigateTo({
-      url: '/pages/community/manage'
-    })
+      url: `/pages/community/manage${q}`,
+    });
   } else if (target === 'order') {
     uni.navigateTo({
       url: '/pages/shop/order'

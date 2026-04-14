@@ -1,6 +1,6 @@
 <template>
   <view class="flex flex-col min-h-screen h-screen theme-bg">
-    <ShopBar :title="'云息商城'" :leftIcon="'icon-shangcheng'" class="shrink-0" />
+    <ShopBar :title="'静心甄选'" :leftIcon="'icon-shangcheng'" class="shrink-0" />
     <!-- 预留：顶部搜索/分类条样式（接入组件后可取消注释）
     <header class="sticky top-0 z-50 bg-[#f8f7f6] px-6 pt-6 pb-2">
       <view class="flex items-center justify-between mb-6">
@@ -42,7 +42,7 @@
           class="shop-up-list"
           height="100%"
           :lower-threshold="120"
-          :show-scrollbar="true"
+          :show-scrollbar="false"
           @scrolltolower="onProductScrollToLower">
           <up-list-item v-for="p in products" :key="p.id" :anchor="String(p.id)">
             <view

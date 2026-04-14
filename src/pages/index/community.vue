@@ -1,6 +1,6 @@
 <template>
   <view class="min-h-screen theme-bg pb-[calc(120rpx+env(safe-area-inset-bottom))]">
-    <HomeBar :title="'云息社区'" description="安 定 共 修" :leftIcon="'icon-shopping-bag'" :titleIcon="'icon-xianliaoshequ'" :handleClick="gotoShop" />
+    <HomeBar :title="'共修'" description="同 行 精 进" :leftIcon="'icon-shopping-bag'" :titleIcon="'icon-xianliaoshequ'" :handleClick="gotoShop" />
     <view class="px-4 py-6">
       <view class="text-center">
         <view
@@ -39,10 +39,10 @@
       <!-- 排行榜 -->
       <view class="mb-10 overflow-hidden mt-8">
         <view class="flex items-center justify-between mb-4 px-2" @click="goRank()">
-          <view class="text-sm font-bold uppercase tracking-widest theme-color-1">安宁指数榜</view>
+          <view class="text-sm font-bold uppercase tracking-widest theme-color-1">共修排行</view>
           <text class="text-xs font-medium theme-color-8 flex items-center gap-1">
             <text class="icon-auto_awesome iconfont text-[28rpx]"></text>
-            关注内在成长
+            同行见心·精进同修
           </text>
         </view>
         <view class="flex items-center gap-4 overflow-x-auto pb-[32rpx] no-scrollbar">
@@ -178,11 +178,11 @@
 
 <script setup lang="ts">
 import { onPageScroll, onReachBottom, onShow } from "@dcloudio/uni-app";
-import { fetchLeaderboardScore } from "@/assets/js/api/leaderboard";
+import { fetchLeaderboardDuration } from "@/assets/js/api/leaderboard";
 import { fetchMixedFeed, postPostLike } from "@/assets/js/api/post";
 import { config } from "@/assets/js/config";
 import { postActivityJoin } from "@/assets/js/api/activity";
-import type { LeaderboardScoreItem, LeaderboardScorePage } from "@/types/api/leaderboard";
+import type { LeaderboardDurationItem, LeaderboardDurationPage } from "@/types/api/leaderboard";
 import type { MixedFeedItem } from "@/types/api/post";
 import { formatDate, formatRelativeTime, postUserStateIconClassSuffix } from "@/utils";
 import { unwrapApiData, unwrapApiPagedResult } from "@/utils/apiResponse";
@@ -236,7 +236,7 @@ function resolveMediaUrl(raw: string | null | undefined): string {
   return `${base}${path}`;
 }
 
-/** 与 `pages/profile/rank` 一致的数据范围 */
+/** 与 `pages/profile/rank` 总时长榜一致：全站、累计范围预览 */
 const COMMUNITY_LEADERBOARD_RANGE = "total" as const;
 const COMMUNITY_RANK_PLACEHOLDER_AVATAR = "/static/logo.png";
 
@@ -253,7 +253,7 @@ function vacantCommunityRankStrip(): CommunityRankPreviewItem[] {
   ];
 }
 
-function mapLeaderboardToCommunityPreview(item: LeaderboardScoreItem): CommunityRankPreviewItem {
+function mapLeaderboardToCommunityPreview(item: LeaderboardDurationItem): CommunityRankPreviewItem {
   return {
     userId: item.userId,
     name: item.nickName?.trim() || "云友",
@@ -263,12 +263,12 @@ function mapLeaderboardToCommunityPreview(item: LeaderboardScoreItem): Community
 
 async function refreshCommunityLeaderboard() {
   try {
-    const res = await fetchLeaderboardScore({
+    const res = await fetchLeaderboardDuration({
       range: COMMUNITY_LEADERBOARD_RANGE,
       page: 1,
       size: COMMUNITY_LEADERBOARD_PREVIEW_SIZE,
     });
-    const data = unwrapApiData<LeaderboardScorePage>(res);
+    const data = unwrapApiData<LeaderboardDurationPage>(res);
     const rawList = data?.list ?? [];
     if (rawList.length === 0) {
       rankList.value = vacantCommunityRankStrip();
@@ -437,9 +437,14 @@ function loadMoreFeed() {
   }
 }
 
+function normalizeLikeCount(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0;
+}
+
 async function onToggleLike(item: MixedFeedItem) {
   if (item.itemType !== "post") return;
-  const prev = item.likeCount ?? 0;
+  const prev = normalizeLikeCount(item.likeCount);
   item.likeCount = prev + 1;
   item.isLiked = true;
   try {

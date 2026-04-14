@@ -4,9 +4,12 @@
         <view class="px-6">
             <view class="mb-8 mt-8">
                 <view class="text-2xl font-serif font-light tracking-tight text-on-surface mb-1 leading-tight italic">
-                    庇护所守护者
+                    花满养护人
                 </view>
-                <text class="text-[12px] font-body text-on-surface-variant/60 tracking-wider">管理社区内的每一个宁静时刻</text>
+                <text class="text-[12px] font-body text-on-surface-variant/60 tracking-wider">
+                    <text v-if="contextTeamDisplayName" class="text-[26rpx] font-semibold theme-color-5 truncate">{{ contextTeamDisplayName }}</text>
+                    <text v-else class="text-[26rpx] font-semibold theme-color-5 truncate">管理社群</text>守一方静心，待一路花开
+                </text>
             </view>
             <view class="flex gap-8 border-b border-outline-variant/30 mb-8">
                 <view class="pb-3 text-sm font-label tracking-wider transition-colors" :class="memberRoleTab === 0
@@ -81,11 +84,13 @@
                 class="mt-12 p-6 bg-gradient-to-br from-surface-container-low to-surface-variant/20 rounded-[32px] border border-white/40 shadow-sm text-center">
                 <view class="font-headline text-xl italic text-on-surface mb-2">扩大我们的圈子</view>
                 <view class="font-body text-sm text-on-surface-variant leading-relaxed mb-6">
-                    邀请志同道合的伙伴，共同守护我们共享空间的宁静。
+                    一人静坐是清欢  有人同行是圆满
+愿与同频之人
+一起守心、静坐、慢慢开花
                 </view>
                 <view
                     class="bg-theme-12 theme-color-6 w-full py-4 rounded-full font-label tracking-[0.1rem] text-xs font-bold shadow-md shadow-primary/10 active:scale-95 transition-transform text-center">
-                    邀请守护者
+                    邀请共修
                 </view>
             </view>
         </view>
@@ -116,6 +121,14 @@ const teamStore = useTeamStore();
 const userStore = useUserStore();
 
 const routeTeamId = ref<number | null>(null);
+
+/** URL 带 `teamId` 时展示团队名 */
+const contextTeamDisplayName = computed(() => {
+    const tid = routeTeamId.value;
+    if (tid == null) return "";
+    const hit = teamStore.myCurrentTeams.find((t) => t.teamId === tid);
+    return hit?.teamName?.trim() || `团队 ${tid}`;
+});
 
 const members = ref<TeamMemberRow[]>([]);
 const page = ref(1);
@@ -279,7 +292,9 @@ onLoad((options) => {
     const raw = options?.teamId;
     if (raw != null && String(raw).trim() !== "") {
         const n = Number(raw);
-        if (Number.isFinite(n)) routeTeamId.value = n;
+        routeTeamId.value = Number.isFinite(n) && n > 0 ? n : null;
+    } else {
+        routeTeamId.value = null;
     }
 });
 

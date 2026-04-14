@@ -1,8 +1,41 @@
 <template>
   <view class="flex flex-col min-h-screen h-screen theme-bg cloud-pattern">
-    <lcrBar :title="'排行榜'" :leftIcon="'icon-arrow-left'" :handleClick="onBack" :type="'all'" />
+    <lcrBar :title="'精进榜'" :leftIcon="'icon-arrow-left'" :handleClick="onBack" :type="'all'" />
+    <!-- 时间范围 / 团队：切换请求参数，不改榜单主文案 -->
+    <view class="shrink-0 px-4 pt-3 pb-2 space-y-2">
+      <view class="flex flex-wrap gap-2">
+        <view
+          v-for="opt in rangeOptions"
+          :key="opt.value"
+          class="px-3 py-1.5 rounded-full text-[22rpx] font-medium border transition-all"
+          :class="
+            selectedRange === opt.value
+              ? 'bg-theme-1 text-white border-theme-1'
+              : 'bg-white/40 theme-color-5 border-white/30'
+          "
+          @tap="setRange(opt.value)"
+        >
+          {{ opt.label }}
+        </view>
+      </view>
+      <view v-if="teamScopeOptions.length > 1" class="flex flex-wrap gap-2">
+        <view
+          v-for="opt in teamScopeOptions"
+          :key="opt.key"
+          class="px-3 py-1.5 rounded-full text-[22rpx] font-medium border transition-all max-w-full"
+          :class="
+            selectedTeamId === opt.teamId
+              ? 'bg-primary/90 text-white border-primary'
+              : 'bg-white/40 theme-color-5 border-white/30'
+          "
+          @tap="setTeamScope(opt.teamId)"
+        >
+          <text class="truncate block max-w-[280rpx]">{{ opt.label }}</text>
+        </view>
+      </view>
+    </view>
     <!-- Podium view (Top 3) -->
-    <view class="shrink-0 mt-10 px-6">
+    <view class="shrink-0 mt-6 px-6">
       <view class="flex items-end justify-center gap-2 mb-8">
         <view
           v-for="item in podiumTop"
@@ -29,7 +62,9 @@
               />
             </view>
             <view :class="podiumBadgeWrapClass(item.rank)">
-              <text :class="podiumBadgeTextClass(item.rank)">{{ item.rank }}</text>
+              <text :class="podiumBadgeTextClass(item.rank)">
+                {{ item.rank === 1 ? '首座' : item.rank === 2 ? '常静' : item.rank === 3 ? '行者' : item.rank }}
+              </text>
             </view>
           </view>
           <view :class="podiumNameClass(item.rank, item.isVacant)">{{ item.name }}</view>
@@ -114,12 +149,17 @@
   </view>
 </template>
 <script setup lang="ts">
-import { computed, onMounted, reactive } from "vue";
-import { fetchLeaderboardScore } from "@/assets/js/api/leaderboard";
+import { computed, onMounted, reactive, ref } from "vue";
+import { fetchLeaderboardDuration } from "@/assets/js/api/leaderboard";
 import { config } from "@/assets/js/config";
-import type { LeaderboardScoreItem, LeaderboardScorePage } from "@/types/api/leaderboard";
+import type {
+  LeaderboardDurationItem,
+  LeaderboardDurationPage,
+  LeaderboardRange,
+} from "@/types/api/leaderboard";
 import { unwrapApiData } from "@/utils/apiResponse";
 import { navigateBack } from "@/utils/navigation";
+import { useTeamStore } from "@/stores/team";
 import { useUserStore } from "@/stores/user";
 import lcrBar from "@/components/lcrBar.vue";
 
@@ -138,9 +178,41 @@ type RankRow = {
 const RANK_PAGE_SIZE = 20;
 
 const userStore = useUserStore();
+const teamStore = useTeamStore();
 
-/** 与接口一致；不展示切换 UI 时固定为周榜、全站 */
-const LEADERBOARD_RANGE = "total" as const;
+/** 默认与接口文档一致：week；可通过 Tab 切换 day / month / total */
+const selectedRange = ref<LeaderboardRange>("week");
+/** `null` 表示全站；有值则仅统计该团队在职成员；有团队时默认选中其一 */
+const selectedTeamId = ref<number | null>(null);
+
+/** 有在职团队时默认选中一个（与发布默认团队一致，否则首团队） */
+function pickDefaultRankTeamId(): number | null {
+  const list = teamStore.myCurrentTeams;
+  if (!list.length) return null;
+  teamStore.syncPublishTeamFromUserFirstTeam(userStore.currentUser?.firstTeamId);
+  const resolved = teamStore.resolvedPublishTeamId;
+  if (resolved != null && list.some((t) => t.teamId === resolved)) return resolved;
+  return list[0].teamId;
+}
+
+const rangeOptions: { value: LeaderboardRange; label: string }[] = [
+  { value: "day", label: "日" },
+  { value: "week", label: "周" },
+  { value: "month", label: "月" },
+  { value: "total", label: "总" },
+];
+
+const teamScopeOptions = computed(() => {
+  const opts: { key: string; label: string; teamId: number | null }[] = [{ key: "all", label: "全站", teamId: null }];
+  for (const t of teamStore.myCurrentTeams) {
+    opts.push({
+      key: `t-${t.teamId}`,
+      label: t.teamName?.trim() || `团队 ${t.teamId}`,
+      teamId: t.teamId,
+    });
+  }
+  return opts;
+});
 
 /** 领奖台空缺时的默认头像（与资料页默认一致） */
 const PODIUM_PLACEHOLDER_AVATAR = "/static/logo.png";
@@ -164,16 +236,21 @@ function selfUserId(): number {
   return userStore.currentUser?.id ?? 0;
 }
 
-function mapLeaderItem(item: LeaderboardScoreItem, rank: number, selfId: number): RankRow {
+function numField(v: unknown): number {
+  const n = Number(v);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function mapLeaderItem(item: LeaderboardDurationItem, rank: number, selfId: number): RankRow {
   const loc = [item.lastProvince, item.lastCity].filter((x) => (x || "").trim()).join(" · ");
-  const sub =
-    loc ||
-    `点赞 ${item.likes} · 动态 ${item.postCount} · 打卡 ${item.checkins} · 报告 ${item.reportCount} · ${item.minutes} 分钟`;
+  const minutes = numField(item.minutes);
+  const reports = numField(item.reportCount);
+  const sub = loc || `报告 ${reports} · ${formatScore(minutes)} 分钟`;
   return {
     rank,
     name: item.nickName?.trim() || "云友",
     subtitle: sub,
-    score: formatScore(item.score),
+    score: formatScore(minutes),
     avatar: resolveMediaUrl(item.avatarUrl),
     avatarAlt: "",
     isSelf: selfId > 0 && item.userId === selfId,
@@ -224,7 +301,7 @@ const listCardClass =
 const myRankBarWrapClass =
   "bg-primary text-white rounded-3xl p-4 flex items-center justify-between shadow-xl shadow-primary/20";
 
-function mergeMyRankFromItems(items: LeaderboardScoreItem[], page: number) {
+function mergeMyRankFromItems(items: LeaderboardDurationItem[], page: number) {
   const selfId = selfUserId();
   if (!selfId) return;
   const base = (page - 1) * RANK_PAGE_SIZE;
@@ -253,12 +330,13 @@ async function fetchRankPage(reset: boolean) {
 
   try {
     const page = rank.page;
-    const res = await fetchLeaderboardScore({
-      range: LEADERBOARD_RANGE,
+    const res = await fetchLeaderboardDuration({
+      range: selectedRange.value,
+      teamId: selectedTeamId.value ?? undefined,
       page,
       size: RANK_PAGE_SIZE,
     });
-    const data = unwrapApiData<LeaderboardScorePage>(res);
+    const data = unwrapApiData<LeaderboardDurationPage>(res);
     const rawList = data?.list ?? [];
     const pagination = data?.pagination;
     rank.total = pagination?.total ?? rawList.length;
@@ -290,7 +368,7 @@ async function fetchRankPage(reset: boolean) {
       rank.loadStatus = "loadmore";
     }
   } catch (e) {
-    console.error("fetchLeaderboardScore", e);
+    console.error("fetchLeaderboardDuration", e);
     rank.loadStatus = rank.list.length || rank.topThree.length ? "nomore" : "loadmore";
     uni.showToast({ title: "排行榜加载失败", icon: "none" });
   } finally {
@@ -310,7 +388,21 @@ function loadMoreRank() {
   }
 }
 
-onMounted(() => {
+function setRange(r: LeaderboardRange) {
+  if (selectedRange.value === r) return;
+  selectedRange.value = r;
+  fetchRankPage(true);
+}
+
+function setTeamScope(teamId: number | null) {
+  if (selectedTeamId.value === teamId) return;
+  selectedTeamId.value = teamId;
+  fetchRankPage(true);
+}
+
+onMounted(async () => {
+  await teamStore.fetchMyCurrentTeams();
+  selectedTeamId.value = pickDefaultRankTeamId();
   fetchRankPage(true);
 });
 
@@ -328,7 +420,7 @@ function podiumAvatarWrapClass(r: number, vacant?: boolean) {
 
 function podiumBadgeWrapClass(r: number) {
   if (r === 1)
-    return "absolute -bottom-2 left-1/2 -translate-x-1/2 bg-theme-1 text-white rounded-full w-8 h-8 flex items-center justify-center border-4 border-background shadow-md";
+    return "absolute -bottom-2 left-1/2 -translate-x-1/2 bg-theme-1 text-white rounded-full w-9 h-9 flex items-center justify-center border-4 border-background shadow-md";
   if (r === 2)
     return "absolute -bottom-1 -right-1 bg-[#DABB53] rounded-full w-6 h-6 flex items-center justify-center shadow-sm";
   return "absolute -bottom-1 -right-1 bg-[#F0E8CF] rounded-full w-6 h-6 flex items-center justify-center shadow-sm";

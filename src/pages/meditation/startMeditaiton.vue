@@ -1,6 +1,6 @@
 <template>
     <view class="flex flex-col min-h-screen theme-bg cloud-pattern meditation-running">
-        <lcrBar :title="'正在禅修'" :leftIcon="'icon-arrow-left'" :handleClick="onTapStop" :type="'no'" :titleColor="'theme-color-1'" />
+        <lcrBar :title="'静坐中'" :leftIcon="'icon-arrow-left'" :handleClick="onTapStop" :type="'no'" :titleColor="'theme-color-1'" />
         <view class="flex-grow flex flex-col items-center justify-center px-6">
             <!-- <view class="h-24"></view> -->
             <view class="relative flex items-center justify-center">

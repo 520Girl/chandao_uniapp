@@ -49,3 +49,36 @@ export interface LeaderboardScorePage {
   };
   range: LeaderboardRangeMeta;
 }
+
+/** GET `/app/leaderboard/duration` Query：参数与 score 列表一致 */
+export type LeaderboardDurationQuery = LeaderboardScoreQuery;
+
+/** 总时长榜单项（某时间范围内的冥想时长统计） */
+export interface LeaderboardDurationItem {
+  userId: number;
+  nickName?: string | null;
+  avatarUrl?: string | null;
+  lastProvince?: string | null;
+  lastCity?: string | null;
+  /** 该时间范围内报告数 */
+  reportCount: number;
+  /** 该时间范围内冥想分钟 */
+  minutes: number;
+  /** 该时间范围内冥想小时 */
+  hours: number;
+  /** 该时间范围内冥想秒（用于排序） */
+  seconds: number;
+  /** 最近一次禅修结束时间 */
+  lastMeditationTime?: string | null;
+}
+
+/** GET `/app/leaderboard/duration` 的 data */
+export interface LeaderboardDurationPage {
+  list: LeaderboardDurationItem[];
+  pagination: {
+    page: number;
+    size: number;
+    total: number;
+  };
+  range: LeaderboardRangeMeta;
+}

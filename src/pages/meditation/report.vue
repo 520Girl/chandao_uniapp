@@ -1,172 +1,159 @@
 <template>
-    <view class="flex flex-col min-h-screen theme-bg cloud-pattern">
-        <lcrBar :title="'禅修报告'" :leftIcon="'icon-arrow-left'" :handleClick="onBack" :type="'all'" />
-        <view class="px-8 pt-10 pb-6 text-center">
-            <view class="theme-color-5 text-[60rpx] font-medium leading-snug">
-                今日，你照见 <text class="font-bold text-primary">{{ elapsedMin }}</text> 分{{ elapsedRemainSec }}秒
-                <text class="italic font- text-[38rpx]">{{ reportFromApi?.breathText }}</text>
-            </view>
-        </view>
-        <view class="relative px-6 py-4">
-            <view
-                class="bg-white/40 rounded-[80rpx] p-6 h-64 relative overflow-hidden border border-primary/5 flex items-center justify-center float-soft">
-                <view class="absolute inset-0 flex items-center justify-center overflow-hidden">
-                    <view
-                      :class="`bg-blue-300/${reportFromApi?.peaceRatio}`"
-                        class="absolute w-40 h-24 bg-blue-300/100 watercolor-blur cloud-shape -translate-x-12 -translate-y-8">
-                    </view>
-                    <view
-                      :class="`bg-blue-200/${reportFromApi?.relaxRatio}`"
-                        class="absolute w-32 h-20 bg-blue-200/100 watercolor-blur cloud-shape -translate-x-20 translate-y-4">
-                    </view>
-                    <view
-                      :class="`bg-red-300/${reportFromApi?.tensionRatio}`"
-                        class="absolute w-36 h-28 bg-red-300/100 watercolor-blur cloud-shape translate-x-16 translate-y-10">
-                    </view>
-                    <view
-                      :class="`bg-red-400/${reportFromApi?.anxietyRatio}`"
-                        class="absolute w-24 h-24 bg-red-400/100 watercolor-blur cloud-shape translate-x-10 -translate-y-12">
-                    </view>
-                </view>
-                <view class="relative z-10 text-center">
-                    <view class="text-[24rpx] font-bold tracking-[0.1em] text-primary/80 mb-1 uppercase">情绪云图</view>
-                    <view class="text-[20rpx] text-[#3c3728]/60 italic">{{ manualStop ? '手动结束，本次觉察已记录' : '自然完成，状态平稳收束' }}
-                    </view>
-                </view>
-            </view>
-        </view>
-        <view class="px-6 py-2">
-            <view class="bg-white/40 rounded-xl p-5 border border-primary/5">
-                <view class="text-[28rpx] font-bold tracking-[0.1em] text-primary/80 uppercase mb-4 text-center">生理指标回顾
-                </view>
-                <view class="grid grid-cols-3 gap-4">
-                    <view class="flex flex-col items-center">
-                        <view class="size-10 rounded-full bg-primary/5 flex items-center justify-center mb-2">
-                            <text class="iconfont icon-tubiaozhizuomoban- text-primary text-xl"></text>
-                        </view>
-                        <view class="text-[20rpx] text-[#3c3728]/50 uppercase tracking-tighter">平均心率</view>
-                        <view class="text-[28rpx] font-bold text-[#3c3728] tabular-nums">{{ avgHeart }} <text
-                                class="text-[16rpx] font-normal">bpm</text></view>
-                    </view>
-                    <view class="flex flex-col items-center border-x border-primary/10">
-                        <view class="size-10 rounded-full bg-primary/5 flex items-center justify-center mb-2">
-                            <text class="iconfont icon-wind text-primary text-xl"></text>
-                        </view>
-                        <view class="text-[20rpx] text-[#3c3728]/50 uppercase tracking-tighter">平均呼吸率</view>
-                        <view class="text-[28rpx] font-bold text-[#3c3728] tabular-nums">{{ avgBreath }} <text
-                                class="text-[16rpx] font-normal">次/分</text></view>
-                    </view>
-                    <view class="flex flex-col items-center">
-                        <view class="size-10 rounded-full bg-primary/5 flex items-center justify-center mb-2">
-                            <text class="iconfont icon-directions_run text-primary text-xl"></text>
-                        </view>
-                        <view class="text-[20rpx] text-[#3c3728]/50 uppercase tracking-tighter">体动次数</view>
-                        <view class="text-[28rpx] font-bold text-[#3c3728] tabular-nums">{{ movementCountDisplay }}</view>
-                    </view>
-                </view>
-            </view>
-        </view>
-        <view class="px-6 py-4">
-            <view class="bg-white/40 rounded-[80rpx] p-5 border border-primary/5">
-                <view class="flex justify-between items-end mb-4">
-                    <view>
-                        <view class="text-[24rpx] font-bold tracking-[0.1em] text-primary/80 uppercase">{{ stabilityCardTitle }}</view>
-                        <view class="text-[32rpx] font-light mt-1 text-[#3c3728]">{{ secondaryTitle }}</view>
-                    </view>
-                    <view class="text-right">
-                        <text class="text-2xl font-bold text-primary">{{ stabilityIndex }}</text>
-                        <text class="text-[10px] text-[#3c3728]/50 block uppercase">{{ stabilityCardHint }}</text>
-                    </view>
-                </view>
-                <view class="relative h-12 w-full bg-[#eeeae3] rounded-full overflow-hidden flex items-center">
-                    <view
-                        class="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/40 to-primary/10 opacity-60">
-                    </view>
-                    <view
-                        class="absolute h-full bg-primary/20 backdrop-blur-sm rounded-r-full border-r-2 border-primary/30 progress-anim"
-                        :style="{ width: `${Math.max(10, Math.min(100, stabilityIndex))}%` }">
-                    </view>
-                    <view class="relative w-full flex justify-between px-4 z-10">
-                        <text class="text-[9px] uppercase font-bold text-[#3c3728]/40">薄</text>
-                        <text class="text-[9px] uppercase font-bold text-[#3c3728]/60 italic">当前厚度</text>
-                        <text class="text-[9px] uppercase font-bold text-[#3c3728]/40">厚</text>
-                    </view>
-                </view>
-                <view class="mt-3 text-[11px] leading-relaxed text-[#3c3728]/70 italic">{{ reportSubtitle }}</view>
-
-            </view>
-        </view>
-        <view class="px-6 py-2">
-            <view class="bg-white/40 rounded-xl p-5 border border-primary/5">
-                <view class="text-[28rpx] font-bold tracking-[0.1em] text-primary/80 uppercase mb-4 text-center">
-                    身体节律趋势
-                </view>
-                <view class="w-full" style="height: 200px">
-                    <qiun-data-charts
-                        type="line"
-                        canvas-id="meditationTrendChart"
-                        :canvas2d="true"
-                        background="transparent"
-                        :chart-data="bodyTrendChartData"
-                        :opts="bodyTrendOpts" />
-                </view>
-            </view>
-        </view>
-        <view class="px-6 py-4">
-                <view class="bg-white/40 rounded-xl p-5 border border-primary/5">
-                    <view class="text-[28rpx] font-bold tracking-[0.1em] text-primary/80 uppercase mb-6 text-center">中道实践
-                    </view>
-                    <view class="relative h-24 flex flex-col justify-center">
-                        <!-- Shore 1 -->
-                        <view class="absolute left-0 bottom-2 text-center">
-                            <text class="iconfont icon-landscape text-[#3c3728]/30 text-3xl"></text>
-                            <view class="text-[18rpx] uppercase tracking-tighter text-[#3c3728]/50 mt-1">执着</view>
-                        </view>
-                        <!-- Shore 2 -->
-                        <view class="absolute right-0 bottom-2 text-center">
-                            <text class="iconfont icon-landscape text-[#3c3728]/30 text-3xl"></text>
-                            <view class="text-[18rpx] uppercase tracking-tighter text-[#3c3728]/50 mt-1">厌离</view>
-                        </view>
-                        <!-- Cloud Bridge (Progress) -->
-                        <view class="relative w-full px-10">
-                            <!-- Background Path -->
-                            <canvas
-                                id="cloudBridgeCanvas"
-                                canvas-id="cloudBridgeCanvas"
-                                type="2d"
-                                class="w-full h-[96rpx] overflow-visible"
-                            />
-                            <!-- Floating Cloud Indicator -->
-                            <view class="absolute top-[-5px] -translate-x-1/2" :style="{ left: harmonyPercent + '%' }">
-                                <view
-                                    class="bg-white size-8 rounded-full shadow-lg border border-primary/20 flex items-center justify-center">
-                                    <text class="iconfont icon-Cloudy text-primary text-sm"></text>
-                                </view>
-                            </view>
-                        </view>
-                    </view>
-                    <view class="text-center mt-2">
-                        <view class="text-[26rpx] font-medium text-[#3c3728]">{{ midPathSummary }}</view>
-                        <view v-if="sitCountLine" class="text-[22rpx] text-[#3c3728]/60 mt-1">{{ sitCountLine }}</view>
-                    </view>
-                </view>
-            </view>
-        <view class="fixed bottom-24 right-8 z-20">
-            <button
-                class="size-14 bg-theme-2 text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition-transform"
-                @click="openShareSheet">
-                <text class="iconfont icon-share text-[70rpx]"></text>
-            </button>
-        </view>
-        <up-poster ref="posterRef" :json="posterJson" />
-        <up-action-sheet
-            v-model:show="shareSheetVisible"
-            title="分享"
-            :actions="shareSheetActions"
-            cancel-text="取消"
-            @select="onShareSheetSelect"
-        />
+  <view class="flex flex-col min-h-screen theme-bg cloud-pattern">
+    <lcrBar :title="'心迹报告'" :leftIcon="'icon-arrow-left'" :handleClick="onBack" :type="'all'" />
+    <view class="px-8 pt-10 pb-6 text-center">
+      <view class="theme-color-5 text-[60rpx] font-medium leading-snug">
+        今日，你照见 <text class="font-bold text-primary">{{ elapsedMin }}</text> 分{{ elapsedRemainSec }}秒
+        <text class="italic font- text-[38rpx]">{{ reportFromApi?.breathText }}</text>
+      </view>
     </view>
+    <view class="relative px-6 py-4">
+      <view
+        class="bg-white/40 rounded-[80rpx] p-6 h-64 relative overflow-hidden border border-primary/5 flex items-center justify-center float-soft">
+        <view class="absolute inset-0 flex items-center justify-center overflow-hidden">
+          <view :class="`bg-blue-300/${reportFromApi?.peaceRatio}`"
+            class="absolute w-40 h-24 bg-blue-300/100 watercolor-blur cloud-shape -translate-x-12 -translate-y-8">
+          </view>
+          <view :class="`bg-blue-200/${reportFromApi?.relaxRatio}`"
+            class="absolute w-32 h-20 bg-blue-200/100 watercolor-blur cloud-shape -translate-x-20 translate-y-4">
+          </view>
+          <view :class="`bg-red-300/${reportFromApi?.tensionRatio}`"
+            class="absolute w-36 h-28 bg-red-300/100 watercolor-blur cloud-shape translate-x-16 translate-y-10">
+          </view>
+          <view :class="`bg-red-400/${reportFromApi?.anxietyRatio}`"
+            class="absolute w-24 h-24 bg-red-400/100 watercolor-blur cloud-shape translate-x-10 -translate-y-12">
+          </view>
+        </view>
+        <view class="relative z-10 text-center">
+          <view class="text-[24rpx] font-bold tracking-[0.1em] text-primary/80 mb-1 uppercase">情绪云图</view>
+          <view class="text-[20rpx] text-[#3c3728]/60 italic">{{ manualStop ? '手动结束，本次觉察已记录' : '自然完成，状态平稳收束' }}
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class="px-6 py-2">
+      <view class="bg-white/40 rounded-xl p-5 border border-primary/5">
+        <view class="text-[28rpx] font-bold tracking-[0.1em] text-primary/80 uppercase mb-4 text-center">生理指标回顾
+        </view>
+        <view class="grid grid-cols-3 gap-4">
+          <view class="flex flex-col items-center">
+            <view class="size-10 rounded-full bg-primary/5 flex items-center justify-center mb-2">
+              <text class="iconfont icon-tubiaozhizuomoban- text-primary text-xl"></text>
+            </view>
+            <view class="text-[20rpx] text-[#3c3728]/50 uppercase tracking-tighter">平均心率</view>
+            <view class="text-[28rpx] font-bold text-[#3c3728] tabular-nums">{{ avgHeart }} <text
+                class="text-[16rpx] font-normal">bpm</text></view>
+          </view>
+          <view class="flex flex-col items-center border-x border-primary/10">
+            <view class="size-10 rounded-full bg-primary/5 flex items-center justify-center mb-2">
+              <text class="iconfont icon-wind text-primary text-xl"></text>
+            </view>
+            <view class="text-[20rpx] text-[#3c3728]/50 uppercase tracking-tighter">平均呼吸率</view>
+            <view class="text-[28rpx] font-bold text-[#3c3728] tabular-nums">{{ avgBreath }} <text
+                class="text-[16rpx] font-normal">次/分</text></view>
+          </view>
+          <view class="flex flex-col items-center">
+            <view class="size-10 rounded-full bg-primary/5 flex items-center justify-center mb-2">
+              <text class="iconfont icon-directions_run text-primary text-xl"></text>
+            </view>
+            <view class="text-[20rpx] text-[#3c3728]/50 uppercase tracking-tighter">体动次数</view>
+            <view class="text-[28rpx] font-bold text-[#3c3728] tabular-nums">{{ movementCountDisplay }}</view>
+          </view>
+        </view>
+      </view>
+    </view>
+    <view class="px-6 py-4">
+      <view class="bg-white/40 rounded-[80rpx] p-5 border border-primary/5">
+        <view class="flex justify-between items-end mb-4">
+          <view>
+            <view class="text-[24rpx] font-bold tracking-[0.1em] text-primary/80 uppercase">{{ stabilityCardTitle }}
+            </view>
+            <view class="text-[32rpx] font-light mt-1 text-[#3c3728]">{{ secondaryTitle }}</view>
+          </view>
+          <view class="text-right">
+            <text class="text-2xl font-bold text-primary">{{ stabilityIndex }}</text>
+            <text class="text-[10px] text-[#3c3728]/50 block uppercase">{{ stabilityCardHint }}</text>
+          </view>
+        </view>
+        <view class="relative h-12 w-full bg-[#eeeae3] rounded-full overflow-hidden flex items-center">
+          <view class="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/40 to-primary/10 opacity-60">
+          </view>
+          <view
+            class="absolute h-full bg-primary/20 backdrop-blur-sm rounded-r-full border-r-2 border-primary/30 progress-anim"
+            :style="{ width: `${Math.max(10, Math.min(100, stabilityIndex))}%` }">
+          </view>
+          <view class="relative w-full flex justify-between px-4 z-10">
+            <text class="text-[9px] uppercase font-bold text-[#3c3728]/40">薄</text>
+            <text class="text-[9px] uppercase font-bold text-[#3c3728]/60 italic">当前厚度</text>
+            <text class="text-[9px] uppercase font-bold text-[#3c3728]/40">厚</text>
+          </view>
+        </view>
+        <view class="mt-3 text-[11px] leading-relaxed text-[#3c3728]/70 italic">{{ reportSubtitle }}</view>
+
+      </view>
+    </view>
+    <view class="px-6 py-2">
+      <view class="bg-white/40 rounded-xl p-5 border border-primary/5">
+        <view class="text-[28rpx] font-bold tracking-[0.1em] text-primary/80 uppercase mb-4 text-center">
+          身体节律趋势
+        </view>
+        <view class="w-full" style="height: 200px">
+          <qiun-data-charts type="line" canvas-id="meditationTrendChart" :canvas2d="true" background="transparent"
+            :chart-data="bodyTrendChartData" :opts="bodyTrendOpts" />
+        </view>
+      </view>
+    </view>
+    <view class="px-6 py-4">
+      <view class="bg-white/40 rounded-xl p-5 border border-primary/5">
+        <view class="text-[28rpx] font-bold tracking-[0.1em] text-primary/80 uppercase mb-6 text-center">中道实践
+        </view>
+        <view class="relative h-24 flex flex-col justify-center">
+          <!-- Shore 1 -->
+          <view class="absolute left-0 bottom-2 text-center">
+            <text class="iconfont icon-landscape text-[#3c3728]/30 text-3xl"></text>
+            <view class="text-[18rpx] uppercase tracking-tighter text-[#3c3728]/50 mt-1">执着</view>
+          </view>
+          <!-- Shore 2 -->
+          <view class="absolute right-0 bottom-2 text-center">
+            <text class="iconfont icon-landscape text-[#3c3728]/30 text-3xl"></text>
+            <view class="text-[18rpx] uppercase tracking-tighter text-[#3c3728]/50 mt-1">厌离</view>
+          </view>
+          <!-- Cloud Bridge (Progress) -->
+          <view class="relative w-full px-10">
+            <!-- Background Path -->
+            <canvas id="cloudBridgeCanvas" canvas-id="cloudBridgeCanvas" type="2d"
+              class="w-full h-[96rpx] overflow-visible" />
+            <!-- Floating Cloud Indicator -->
+            <view class="absolute top-[-5px] -translate-x-1/2" :style="{ left: harmonyPercent + '%' }">
+              <view
+                class="bg-white size-8 rounded-full shadow-lg border border-primary/20 flex items-center justify-center">
+                <text class="iconfont icon-Cloudy text-primary text-sm"></text>
+              </view>
+            </view>
+          </view>
+        </view>
+        <view class="text-center mt-2">
+          <view class="text-[26rpx] font-medium text-[#3c3728]">{{ midPathSummary }}</view>
+          <view v-if="sitCountLine" class="text-[22rpx] text-[#3c3728]/60 mt-1">{{ sitCountLine }}</view>
+        </view>
+      </view>
+    </view>
+    <view class="text-center mb-10">
+      <view class="text-[26rpx] font-medium text-[#3c3728] mb-1">温馨提示：本报告仅为静心参考，非医疗诊断。
+      </view>
+      <text class="text-[26rpx] font-medium text-[#3c3728] mb-1">以舒适为宜，不勉强、不贪长。</text>
+    </view>
+    <view class="fixed bottom-24 right-8 z-20">
+      <button
+        class="size-14 bg-theme-2 text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition-transform"
+        @click="openShareSheet">
+        <text class="iconfont icon-share text-[70rpx]"></text>
+      </button>
+    </view>
+    <up-poster ref="posterRef" :json="posterJson" />
+    <up-action-sheet v-model:show="shareSheetVisible" title="分享" :actions="shareSheetActions" cancel-text="取消"
+      @select="onShareSheetSelect" />
+  </view>
 </template>
 
 <script setup lang="ts">
@@ -244,6 +231,49 @@ function openShareSheet() {
   shareSheetVisible.value = true;
 }
 
+/** 微信小程序：保存海报或预览；其它端直接预览 */
+function offerPosterAfterGenerate(tempPath: string) {
+  // #ifdef MP-WEIXIN
+  uni.showActionSheet({
+    itemList: ['保存到相册', '预览图片'],
+    success: (tap) => {
+      if (tap.tapIndex === 0) {
+        savePosterToPhotosAlbum(tempPath);
+      } else {
+        uni.previewImage({ urls: [tempPath] });
+      }
+    },
+  });
+  // #endif
+  // #ifndef MP-WEIXIN
+  uni.previewImage({ urls: [tempPath] });
+  // #endif
+}
+
+function savePosterToPhotosAlbum(filePath: string) {
+  uni.saveImageToPhotosAlbum({
+    filePath,
+    success: () => {
+      uni.showToast({ title: '已保存到相册', icon: 'success' });
+    },
+    fail: (err) => {
+      const msg = String((err as UniApp.GeneralCallbackResult)?.errMsg || '');
+      if (msg.includes('auth deny') || msg.includes('authorize') || msg.includes('permission')) {
+        uni.showModal({
+          title: '需要相册权限',
+          content: '保存图片需授权「保存到相册」，请在设置中开启后重试。',
+          confirmText: '去设置',
+          success: (r) => {
+            if (r.confirm) uni.openSetting({});
+          },
+        });
+      } else {
+        uni.showToast({ title: '保存失败', icon: 'none' });
+      }
+    },
+  });
+}
+
 async function onShareSheetSelect(item: { name: string; value?: string }) {
   const v = item.value;
   if (v === 'poster') {
@@ -251,10 +281,20 @@ async function onShareSheetSelect(item: { name: string; value?: string }) {
     try {
       const path = await generatePosterImagePath();
       if (!path) {
-        uni.showToast({ title: '生成失败', icon: 'none' });
+        uni.showModal({
+          title: '海报生成失败',
+          content:
+            '可稍后再试，或使用右上角「···」转发给好友。若多次失败，请检查微信与小程序基础库版本，并确认海报中二维码链接域名已在小程序后台配置。',
+          showCancel: true,
+          cancelText: '知道了',
+          confirmText: '转发说明',
+          success: (res) => {
+            if (res.confirm) openFriendShareGuide();
+          },
+        });
         return;
       }
-      uni.previewImage({ urls: [path] });
+      offerPosterAfterGenerate(path);
     } finally {
       uni.hideLoading();
     }
@@ -333,7 +373,7 @@ const secondaryTitle = computed(() => {
 });
 
 const sitCountLine = computed(() => {
-  const {totalDays, totalHours, consecutiveDays, sitCount} = reportFromApi.value ?? {};
+  const { totalDays, totalHours, consecutiveDays, sitCount } = reportFromApi.value ?? {};
   if (totalDays != null && totalHours != null && consecutiveDays != null && sitCount != null) {
     return `累计冥想：${totalDays}天、总时长：${totalHours}小时、连续天数：${consecutiveDays}天`;
   }
@@ -502,9 +542,9 @@ const elapsedMin = computed(() => Math.floor(elapsedSec.value / 60));
 const elapsedRemainSec = computed(() => elapsedSec.value % 60);
 
 function toNum(v: unknown, fallback: number) {
-    const n = Number(v);
-    if (Number.isNaN(n)) return fallback;
-    return Math.round(n);
+  const n = Number(v);
+  if (Number.isNaN(n)) return fallback;
+  return Math.round(n);
 }
 
 function applyReportToView(r: MeditationReport) {
@@ -580,31 +620,30 @@ onLoad((query) => {
 });
 
 function onBack() {
-    navigateBack();
+  navigateBack();
 }
 
 // 保留你原本“70%”展示逻辑：画图进度跟随该值
 onReady(() => {
-    drawCloudBridgeCanvas(harmonyProgress.value);
+  drawCloudBridgeCanvas(harmonyProgress.value);
 });
 </script>
 
 <style scoped lang="scss">
 .float-soft {
-    animation: meditation-float 6s ease-in-out infinite;
+  animation: meditation-float 6s ease-in-out infinite;
 }
 
 .tabular-nums {
-    font-variant-numeric: tabular-nums;
+  font-variant-numeric: tabular-nums;
 }
 
 .progress-anim {
-    transition: width 0.35s ease;
+  transition: width 0.35s ease;
 }
 
-.watercolor-blur{
-    filter: blur(40px);
-    opacity: 0.6;
+.watercolor-blur {
+  filter: blur(40px);
+  opacity: 0.6;
 }
-
 </style>

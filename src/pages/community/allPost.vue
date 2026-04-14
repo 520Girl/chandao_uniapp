@@ -6,7 +6,10 @@
         <view class="text-2xl font-serif font-light tracking-tight text-on-surface mb-1 leading-tight italic">
           庇护所守护者
         </view>
-        <text class="text-[12px] font-body text-on-surface-variant/60 tracking-wider">管理社区内的每一个宁静时刻</text>
+        <text class="text-[12px] font-body text-on-surface-variant/60 tracking-wider">
+          <text v-if="contextTeamDisplayName" class="text-[26rpx] font-semibold theme-color-5 truncate">{{ contextTeamDisplayName }}</text>
+          <text v-else class="text-[26rpx] font-semibold theme-color-5 truncate">管理社群</text>
+          内的每一个宁静时刻</text>
       </view>
       <!-- Filter Tabs -->
       <view class="flex gap-3 mb-8 overflow-x-auto pb-2 no-scrollbar text-[22rpx]">
@@ -181,7 +184,7 @@ import { onLoad, onReachBottom, onShow } from "@dcloudio/uni-app";
 import { computed, ref } from "vue";
 import { fetchPostFeed, postPostDelete } from "@/assets/js/api/post";
 import { config } from "@/assets/js/config";
-import type { PostFeedPage, PostInfo } from "@/types/api/post";
+import type { MyPostFeedQuery, PostFeedPage, PostInfo } from "@/types/api/post";
 import type { ToastInputField } from "@/types/pages/component";
 import { unwrapApiData } from "@/utils/apiResponse";
 import { navigateBack } from "@/utils/navigation";
@@ -195,8 +198,23 @@ const PAGE_SIZE = 20;
 const teamStore = useTeamStore();
 const userStore = useUserStore();
 
-/** 路由 `?teamId=`，与社群管理页跳转一致 */
+/** 路由 `?teamId=`，与社群管理页跳转一致；无参数则请求中不带 `teamId` */
 const routeTeamId = ref<number | null>(null);
+
+/** 构建 `/app/post/feed` 查询：有 URL `teamId` 才写入该字段 */
+function buildMyPostFeedQuery(partial: {
+  page: number;
+  size: number;
+  publishStatus: 0 | 1 | 2;
+}): MyPostFeedQuery {
+  const q: MyPostFeedQuery = {
+    page: partial.page,
+    size: partial.size,
+    publishStatus: partial.publishStatus,
+  };
+  if (routeTeamId.value != null) q.teamId = routeTeamId.value;
+  return q;
+}
 
 const posts = ref<PostInfo[]>([]);
 const page = ref(1);
@@ -214,6 +232,14 @@ const toastTitle = ref("");
 const toastMessage = ref("");
 const toastConfirmText = ref("确定");
 const pendingDeletePostId = ref<number | null>(null);
+
+/** URL 带 `teamId` 时展示；名称来自在职团队列表，未命中时退化为「团队 {id}」 */
+const contextTeamDisplayName = computed(() => {
+  const tid = routeTeamId.value;
+  if (tid == null) return "";
+  const hit = teamStore.myCurrentTeams.find((t) => t.teamId === tid);
+  return hit?.teamName?.trim() || `团队 ${tid}`;
+});
 
 const selfNickname = computed(() => userStore.nickName?.trim() || "云友");
 const selfAvatar = computed(() => {
@@ -275,7 +301,7 @@ async function onToastConfirm() {
 }
 
 async function fetchTabTotal(publishStatus: 0 | 1 | 2): Promise<number> {
-  const res = await fetchPostFeed({ page: 1, size: 1, publishStatus });
+  const res = await fetchPostFeed(buildMyPostFeedQuery({ page: 1, size: 1, publishStatus }));
   const data = unwrapApiData<PostFeedPage>(res);
   return data?.pagination?.total ?? data?.list?.length ?? 0;
 }
@@ -308,11 +334,13 @@ async function loadList(reset: boolean) {
   loadMoreStatus.value = "loading";
 
   try {
-    const res = await fetchPostFeed({
-      page: page.value,
-      size: PAGE_SIZE,
-      publishStatus: activePublishStatus.value,
-    });
+    const res = await fetchPostFeed(
+      buildMyPostFeedQuery({
+        page: page.value,
+        size: PAGE_SIZE,
+        publishStatus: activePublishStatus.value,
+      }),
+    );
     const data = unwrapApiData<PostFeedPage>(res);
     const list = data?.list ?? [];
     const total = data?.pagination?.total;
@@ -353,7 +381,9 @@ onLoad((options) => {
   const raw = options?.teamId;
   if (raw != null && String(raw).trim() !== "") {
     const n = Number(raw);
-    if (Number.isFinite(n)) routeTeamId.value = n;
+    routeTeamId.value = Number.isFinite(n) && n > 0 ? n : null;
+  } else {
+    routeTeamId.value = null;
   }
 });
 

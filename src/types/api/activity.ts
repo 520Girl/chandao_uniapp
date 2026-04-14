@@ -137,6 +137,8 @@ export interface ActivityCheckinDTO {
 export interface HomeActivityCard {
   id: number;
   templateId: number;
+  /** 与列表项 `targetMeditationSeconds` 一致；场景卡进入禅修时换算为计划分钟 */
+  targetMeditationSeconds: number;
   title: string;
   subtitle: string;
   sceneType: SceneType;

@@ -47,22 +47,39 @@ export function useMeditationReportShare(
 
   /**
    * 按当前载荷刷新 `posterJson` 并调用 `up-poster.exportImage`。
+   * 小程序端 canvas 布局常晚一拍：多等一帧 + 短延迟再导出，失败时会重试一次。
    * @returns 临时文件路径；失败返回 `null`
    */
   async function generatePosterImagePath(): Promise<string | null> {
     posterJson.value = buildMeditationReportPosterJson(getPayload());
     await nextTick();
-    const comp = posterRef.value;
-    if (!comp || typeof comp.exportImage !== "function") {
-      return null;
+    await nextTick();
+    // #ifdef MP-WEIXIN
+    await new Promise<void>((r) => setTimeout(r, 120));
+    // #endif
+
+    async function tryExport(): Promise<string | null> {
+      const comp = posterRef.value;
+      if (!comp || typeof comp.exportImage !== "function") {
+        return null;
+      }
+      try {
+        const res = await comp.exportImage();
+        const path = res?.path;
+        return path != null && path !== "" ? String(path) : null;
+      } catch (e) {
+        console.error("up-poster exportImage", e);
+        return null;
+      }
     }
-    try {
-      const res = await comp.exportImage();
-      const path = res?.path;
-      return path != null && path !== "" ? String(path) : null;
-    } catch {
-      return null;
-    }
+
+    let path = await tryExport();
+    if (path) return path;
+    // #ifdef MP-WEIXIN
+    await new Promise<void>((r) => setTimeout(r, 200));
+    path = await tryExport();
+    // #endif
+    return path;
   }
 
   /** 提示用户使用右上角菜单转发给好友/群 */

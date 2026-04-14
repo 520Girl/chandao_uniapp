@@ -28,10 +28,10 @@
       <!-- Emotion Tags（文案来自 Pinia `post_user_state_list`） -->
       <view class="mt-12">
         <view class="text-[20rpx] tracking-[0.2em] theme-color-2 mb-4 font-medium uppercase text-center">
-          选择情绪标签
+          选择观照标签
         </view>
         <view v-if="dictStore.post_user_state_list.length === 0" class="text-center text-sm theme-color-8 py-4">
-          情绪标签加载中…
+          观照标签加载中…
         </view>
         <view v-else class="flex flex-wrap justify-center gap-3">
           <view
@@ -367,7 +367,6 @@ async function submitPost() {
       ...(lat != null && lng != null ? { lat, lng } : {}),
       ...(accuracy != null ? { accuracy } : {}),
     });
-return
     if (lat != null && lng != null) {
       void postUserLocationReport({
         lat,

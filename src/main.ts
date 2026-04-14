@@ -1,7 +1,20 @@
 import { createSSRApp } from "vue";
 import App from "./App.vue";
 import pinia from "./stores";
-import uviewPlus from 'uview-plus';
+import uviewPlus from "uview-plus";
+
+/**
+ * uview-plus 海报等组件在非 App 端使用 `uni.rpx2px`（见 `uview-plus/libs/function/index.js`）。
+ * 部分 uni-app 运行时（如微信小程序）未挂载 `rpx2px`，仅有 `upx2px`，会导致 `TypeError: rpx2px is not a function`。
+ */
+function polyfillUniRpx2px() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const u = uni as any;
+  if (u && typeof u.rpx2px !== "function" && typeof uni.upx2px === "function") {
+    u.rpx2px = (n: number) => uni.upx2px(n);
+  }
+}
+polyfillUniRpx2px();
 
 // 导入 Tailwind CSS
 import "./style.css";

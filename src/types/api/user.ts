@@ -138,9 +138,47 @@ export interface JoinByInviteDTO {
   code: string;
 }
 
-/** POST `/app/user/joinByInvite` 的 data */
-export interface JoinByInviteResult {
+/** 创建邀请接口成功时 `data` 共有字段（`/app/user/createTeamInvite`、`createPersonalInvite` 及管理端创建） */
+export interface UserInviteCreatedData {
+  id: number;
+  code: string;
+  expireTime: string;
+  /** 如 `/invite?code=...` */
+  url: string;
+  /** 小程序码图片 URL，可能为 `null` */
+  miniProgramQrUrl?: string | null;
+}
+
+/** POST `/app/user/createTeamInvite` Body；仅当前用户为 `ownerId` 的团队负责人可创建 */
+export interface CreateTeamInviteDTO {
   teamId: number;
+  /** 有效天数，默认 7，范围 1～365 */
+  days?: number;
+  /** 若传则仅该 `user_info.id` 可使用本邀请 */
+  bindUserId?: number;
+}
+
+/** POST `/app/user/createPersonalInvite` Body；任意登录用户可发起个人成团 */
+export interface CreatePersonalInviteDTO {
+  /** 有效天数，默认 7 */
+  days?: number;
+  /** 可选，仅指定用户可使用 */
+  bindUserId?: number;
+}
+
+/**
+ * POST `/app/user/joinByInvite` 的 data。
+ * 团队邀请或已成团：`teamId` 有值，`personalFormation` 为 `false`。
+ * 个人成团未满员：`teamId` 为 `null`，`personalFormation: true`，`formed: false`，可能带 `formationProgress`。
+ */
+export interface JoinByInviteResult {
+  teamId: number | null;
+  personalFormation: boolean;
+  formed?: boolean;
+  formationProgress?: {
+    current: number;
+    need: number;
+  };
 }
 
 /** POST `/app/user/quitTeam` Body */

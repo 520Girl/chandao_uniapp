@@ -1,7 +1,7 @@
 /**
  * 冥想报告：微信小程序分享给好友/朋友圈参数、H5 链接、uview-plus 海报 json。
  * 无 HTTP；供页面与 composable 调用。
- * 海报配色与 `tailwind.config.ts` 中 primary / 报告页 `#3c3728` 等对齐。
+ * 海报配色：白底 + 主题金点缀，正文深灰保证对比度。
  */
 import type {
   MeditationReportSharePayload,
@@ -10,14 +10,17 @@ import type {
 
 const REPORT_PATH = "/pages/meditation/report";
 
-/** 与项目 Tailwind `primary` 一致 */
-const C_PRIMARY = "#d4af35";
-const C_PRIMARY_SOFT = "rgba(212, 175, 53, 0.22)";
-const C_INK = "#201d12";
-const C_TEXT = "#3c3728";
-const C_TEXT_MUTED = "#6b6354";
-const C_HINT = "#918355";
-const C_CARD = "#ffffff";
+/** 画布与主底 */
+const C_BG = "#ffffff";
+/** 与项目 Tailwind `primary` 一致（顶栏、强调线） */
+const C_PRIMARY = "#c9a227";
+const C_PRIMARY_SOFT = "rgba(201, 162, 39, 0.28)";
+const C_INK = "#111827";
+const C_TEXT = "#1f2937";
+const C_TEXT_MUTED = "#4b5563";
+const C_HINT = "#6b7280";
+/** 信息区略浅于底，与白底区分层次 */
+const C_CARD = "#f9fafb";
 
 function appendQueryPart(parts: string[], key: string, value: string | number): void {
   parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
@@ -91,6 +94,24 @@ export function buildMeditationReportH5Url(
   return `${root}/#${REPORT_PATH}?${qs}`;
 }
 
+const JOIN_PATH = "/pages/index/join";
+
+/**
+ * 邀请码在海报二维码中的文本：优先 H5 根 + hash 落地 join；无 `h5Base` 时用小程序路径 + query。
+ *
+ * @param inviteCode 后端邀请 `code`
+ * @param h5Base 可选，如 `https://m.example.com`（无尾斜杠），来自 `VITE_H5_SHARE_BASE`
+ */
+export function buildJoinInvitePosterQrText(inviteCode: string, h5Base?: string): string {
+  const code = inviteCode.trim();
+  if (!code) return "";
+  const root = h5Base?.trim().replace(/\/$/, "");
+  if (root) {
+    return `${root}/#${JOIN_PATH}?inviteCode=${encodeURIComponent(code)}`;
+  }
+  return `${JOIN_PATH}?inviteCode=${encodeURIComponent(code)}`;
+}
+
 function resolvePosterQrText(p: MeditationReportSharePayload): string {
   const qs = buildMeditationReportShareQueryString(p);
   if (p.h5LandingBaseUrl?.trim()) {
@@ -114,15 +135,172 @@ function truncateTrackTitle(title: string, maxLen: number): string {
   return `${t.slice(0, maxLen - 1)}…`;
 }
 
+function resolvePosterQrBlock(p: MeditationReportSharePayload): {
+  qrImageSrc: string;
+  qrText: string;
+} {
+  const qrImageSrc = p.posterBottomQrImageUrl?.trim() || "";
+  const qrTextOverride = p.posterBottomQrText != null ? String(p.posterBottomQrText).trim() : "";
+  const qrText =
+    qrImageSrc.length > 0
+      ? ""
+      : qrTextOverride.length > 0
+        ? qrTextOverride
+        : resolvePosterQrText(p);
+  return { qrImageSrc, qrText };
+}
+
+/**
+ * 成员页等：仅标题、副文案、扫码提示与二维码（无冥想指标）。
+ */
+function buildInviteMinimalPosterJson(p: MeditationReportSharePayload): UviewPosterJson {
+  const { qrImageSrc, qrText } = resolvePosterQrBlock(p);
+  const mainTitle = (p.posterMainTitle ?? "邀请").trim() || "邀请";
+  const bottomHint =
+    (p.posterBottomHint ?? "长按图片可保存 · 扫码加入").trim() || "长按图片可保存 · 扫码加入";
+  const sub = (p.posterInviteSubtitle ?? "").trim();
+
+  const views: UviewPosterJson["views"] = [
+    {
+      type: "view",
+      css: {
+        left: "0rpx",
+        top: "0rpx",
+        width: "750rpx",
+        height: "10rpx",
+        background: C_PRIMARY,
+      },
+    },
+    {
+      type: "view",
+      css: {
+        left: "48rpx",
+        top: "72rpx",
+        width: "654rpx",
+        height: "520rpx",
+        background: C_CARD,
+        radius: "28rpx",
+      },
+    },
+    {
+      type: "view",
+      css: {
+        left: "80rpx",
+        top: "112rpx",
+        width: "96rpx",
+        height: "8rpx",
+        background: C_PRIMARY,
+      },
+    },
+    {
+      type: "text",
+      text: mainTitle,
+      css: {
+        left: "80rpx",
+        top: "144rpx",
+        color: C_INK,
+        fontSize: "52rpx",
+        fontWeight: "bold",
+      },
+    },
+  ];
+
+  let nextTop = 228;
+  if (sub) {
+    views.push({
+      type: "text",
+      text: truncateTrackTitle(sub, 36),
+      css: {
+        left: "80rpx",
+        top: `${nextTop}rpx`,
+        color: C_TEXT,
+        fontSize: "28rpx",
+      },
+    });
+    nextTop += 72;
+  }
+
+  views.push(
+    {
+      type: "view",
+      css: {
+        left: "80rpx",
+        top: `${nextTop}rpx`,
+        width: "590rpx",
+        height: "6rpx",
+        background: C_PRIMARY_SOFT,
+      },
+    },
+    {
+      type: "text",
+      text: bottomHint,
+      css: {
+        left: "80rpx",
+        top: `${nextTop + 28}rpx`,
+        color: C_HINT,
+        fontSize: "24rpx",
+      },
+    },
+    qrImageSrc
+      ? {
+          type: "image",
+          src: qrImageSrc,
+          css: {
+            left: "255rpx",
+            top: "420rpx",
+            width: "240rpx",
+            height: "240rpx",
+          },
+        }
+      : {
+          type: "qrcode",
+          text: qrText,
+          css: {
+            left: "255rpx",
+            top: "420rpx",
+            width: "240rpx",
+            height: "240rpx",
+          },
+        },
+    {
+      type: "text",
+      text: "—— 静心共修 · 同频同行 ——",
+      css: {
+        left: "160rpx",
+        top: "720rpx",
+        color: C_HINT,
+        fontSize: "22rpx",
+      },
+    },
+  );
+
+  return {
+    css: {
+      width: "750rpx",
+      height: "820rpx",
+      background: C_BG,
+    },
+    views,
+  };
+}
+
 /**
  * 生成 `up-poster` 所需的 `json`（文案 + 底部二维码）。
- * 尺寸 750×1200rpx，元素坐标均在画布内；配色对齐主题金与报告页深字色。
+ * 尺寸 750×1200rpx，元素坐标均在画布内；白底与浅灰信息卡、金色点缀。
  * @param p 报告页分享载荷
  */
 export function buildMeditationReportPosterJson(p: MeditationReportSharePayload): UviewPosterJson {
+  if (p.posterInviteMinimal) {
+    return buildInviteMinimalPosterJson(p);
+  }
+
   const minutes = Math.floor(p.elapsedSec / 60);
   const sec = p.elapsedSec % 60;
-  const qrText = resolvePosterQrText(p);
+  const { qrImageSrc, qrText } = resolvePosterQrBlock(p);
+  const mainTitle = (p.posterMainTitle ?? "心迹报告").trim() || "心迹报告";
+  const bottomHint =
+    (p.posterBottomHint ?? "长按图片可保存 · 扫码查看完整报告").trim() ||
+    "长按图片可保存 · 扫码查看完整报告";
   const track = p.trackTitle?.trim();
   const trackLine = track ? `伴乐「${truncateTrackTitle(track, 20)}」` : "";
 
@@ -133,7 +311,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
         left: "0rpx",
         top: "0rpx",
         width: "750rpx",
-        height: "16rpx",
+        height: "10rpx",
         background: C_PRIMARY,
       },
     },
@@ -145,7 +323,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
         width: "678rpx",
         height: "420rpx",
         background: C_CARD,
-        radius: "40rpx",
+        radius: "32rpx",
       },
     },
     {
@@ -160,7 +338,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
     },
     {
       type: "text",
-      text: "心迹报告",
+      text: mainTitle,
       css: {
         left: "64rpx",
         top: "116rpx",
@@ -229,7 +407,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
     },
     {
       type: "text",
-      text: "长按图片可保存 · 扫码查看完整报告",
+      text: bottomHint,
       css: {
         left: "64rpx",
         top: `${nextTop + 36}rpx`,
@@ -237,16 +415,27 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
         fontSize: "24rpx",
       },
     },
-    {
-      type: "qrcode",
-      text: qrText,
-      css: {
-        left: "255rpx",
-        top: "600rpx",
-        width: "240rpx",
-        height: "240rpx",
-      },
-    },
+    qrImageSrc
+      ? {
+          type: "image",
+          src: qrImageSrc,
+          css: {
+            left: "255rpx",
+            top: "600rpx",
+            width: "240rpx",
+            height: "240rpx",
+          },
+        }
+      : {
+          type: "qrcode",
+          text: qrText,
+          css: {
+            left: "255rpx",
+            top: "600rpx",
+            width: "240rpx",
+            height: "240rpx",
+          },
+        },
     {
       type: "text",
       text: "—— 非医疗诊断，以舒适为宜 ——",
@@ -263,7 +452,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
     css: {
       width: "750rpx",
       height: "930rpx",
-      background: "linear-gradient(168deg, #faf8f5 0%, #f3ede4 48%, #ebe4d8 100%)",
+      background: C_BG,
     },
     views,
   };

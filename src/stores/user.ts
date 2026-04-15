@@ -1,7 +1,7 @@
 /**************************** CodeGeeX Inline Diff ****************************/
 import { defineStore } from 'pinia'
 import type { AuthTokenPayload, LoginPayload, UserPayload, UserState } from "@/types/api/user";
-import { passwordLogin ,fetchUserProfile ,logoutUser,updateUserProfile} from '@/assets/js/api/user'
+import { passwordLogin, fetchUserProfile, logoutUser, updateUserProfile } from "@/assets/js/api/user";
 import { useDeviceStore } from '@/stores/device'
 import { useMeditationStore } from '@/stores/meditation'
 import { useTeamStore } from '@/stores/team'
@@ -122,9 +122,12 @@ export const useUserStore = defineStore('user', {
                     return;
                 }
 
-                uni.switchTab({
-                    url: '/pages/index/home'
-                })
+                const wentJoin = await this.redirectToJoinPageIfPendingInvite();
+                if (!wentJoin) {
+                    uni.switchTab({
+                        url: "/pages/index/home",
+                    });
+                }
             } catch (error) {
                 console.error('登录失败:', error)
                 throw error
@@ -174,6 +177,30 @@ export const useUserStore = defineStore('user', {
             if (response.code === 1000) {
                 this.unRead = response.data
             }
-        }
+        },
+
+        /**
+         * 若存在待处理邀请码（`PENDING_INVITE_CODE`），跳转 `/pages/index/join` 由该页调加入接口后再回首页。
+         * @returns 是否已发起跳转（为 `true` 时不应再 `switchTab` 到首页）
+         */
+        async redirectToJoinPageIfPendingInvite(): Promise<boolean> {
+            let raw: unknown;
+            try {
+                raw = uni.getStorageSync("PENDING_INVITE_CODE");
+            } catch {
+                return false;
+            }
+            if (raw == null || typeof raw !== "string" || !String(raw).trim()) return false;
+            const code = String(raw).trim();
+            try {
+                uni.redirectTo({
+                    url: `/pages/index/join?inviteCode=${encodeURIComponent(code)}`,
+                });
+                return true;
+            } catch (e) {
+                console.error("redirectToJoinPageIfPendingInvite", e);
+                return false;
+            }
+        },
     }
 })

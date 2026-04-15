@@ -6,18 +6,32 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "32511267",
+      "name": "徽章管理",
+      "font_class": "huizhangguanli",
+      "unicode": "e75b",
+      "unicode_decimal": 59227
+    },
+    {
+      "icon_id": "8752088",
+      "name": "莲花",
+      "font_class": "lianhua-yellow",
+      "unicode": "e611",
+      "unicode_decimal": 58897
+    },
+    {
+      "icon_id": "20266223",
+      "name": "心率",
+      "font_class": "xinshuai",
+      "unicode": "e6e1",
+      "unicode_decimal": 59105
+    },
+    {
       "icon_id": "3731066",
       "name": "闲聊社区",
       "font_class": "xianliaoshequ",
       "unicode": "e63c",
       "unicode_decimal": 58940
-    },
-    {
-      "icon_id": "4747843",
-      "name": "心率",
-      "font_class": "xinshuai",
-      "unicode": "e7c0",
-      "unicode_decimal": 59328
     },
     {
       "icon_id": "577388",

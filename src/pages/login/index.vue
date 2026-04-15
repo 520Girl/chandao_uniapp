@@ -50,13 +50,28 @@
   </view>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue';
-import { setToken, setUserInfo } from '@/assets/js/api/user';
-import { wechatMiniLoginByConfig } from '@/assets/js/api/wechat-login';
-import { useUserStore } from '@/stores/user';
+import { onLoad } from "@dcloudio/uni-app";
+import { ref } from "vue";
+import { setToken, setUserInfo } from "@/assets/js/api/user";
+import { wechatMiniLoginByConfig } from "@/assets/js/api/wechat-login";
+import { useUserStore } from "@/stores/user";
 
 const userStore = useUserStore();
 const loading = ref(false);
+/** 邀请落地页传入 `?inviteCode=`，同步写入 `PENDING_INVITE_CODE` 供登录成功后加入团队 */
+const routeInviteCode = ref("");
+
+onLoad((options) => {
+  const raw = options?.inviteCode ?? options?.scene;
+  if (raw == null || String(raw).trim() === "") return;
+  try {
+    const c = decodeURIComponent(String(raw)).trim();
+    routeInviteCode.value = c;
+    uni.setStorageSync("PENDING_INVITE_CODE", c);
+  } catch {
+    /* ignore */
+  }
+});
 const agreeChecked = ref(false);
 const toggleAgree = () => {
     agreeChecked.value = !agreeChecked.value;
@@ -83,18 +98,36 @@ if (loading.value) {
     setToken(String(token));
 
     const user = result?.user || result?.data?.user;
+    const refreshToken = result?.refreshToken ?? result?.data?.refreshToken ?? null;
+    userStore.$patch({
+      token: String(token),
+      refreshToken: refreshToken != null ? String(refreshToken) : null,
+      isLoggedIn: true,
+    });
     if (user) {
       setUserInfo(user);
       userStore.setUser(user);
     }
 
+    const profileOk = await userStore.fetchUserProfile();
+    if (!profileOk) {
+      userStore.clearUser();
+      throw new Error("获取用户信息失败");
+    }
+    await userStore.fetchUnReadCount();
+    const wentJoin = await userStore.redirectToJoinPageIfPendingInvite();
+    if (wentJoin) {
+      uni.showToast({ title: "登录成功", icon: "success" });
+      return;
+    }
+
     uni.showToast({
-      title: '登录成功',
-      icon: 'success',
+      title: "登录成功",
+      icon: "success",
     });
 
     setTimeout(() => {
-      uni.switchTab({ url: '/pages/index/home' });
+      uni.switchTab({ url: "/pages/index/home" });
     }, 300);
   } catch (error: any) {
     uni.showToast({
@@ -107,9 +140,13 @@ if (loading.value) {
 };
 
 const onPhoneLogin = () => {
+  const q =
+    routeInviteCode.value !== ""
+      ? `?inviteCode=${encodeURIComponent(routeInviteCode.value)}`
+      : "";
   uni.navigateTo({
-    url: '/pages/login/inputLogin',
-  })
+    url: `/pages/login/inputLogin${q}`,
+  });
 };
 </script>
 <style scoped lang="scss">

@@ -8,6 +8,13 @@
       }
     },
     {
+      "path": "pages/index/join",
+      "style": {
+        "navigationBarTitleText": "加入团队",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/login/inputLogin",
       "style": {
         "navigationBarTitleText": "账号登陆",

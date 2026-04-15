@@ -6,6 +6,8 @@ import { config } from "../config";
 import type { MusicPageQuery } from "@/types/api/music";
 import type {
   BindPhoneDTO,
+  CreatePersonalInviteDTO,
+  CreateTeamInviteDTO,
   JoinByInviteDTO,
   LoginPayload,
   MiniPhoneBindDTO,
@@ -41,6 +43,8 @@ const USER_INFO_MINI_PHONE = "/app/user/info/miniPhone";
 const USER_LOCATION_REPORT = "/app/user/location/report";
 const USER_LOCATION_REVERSE = "/app/user/location/reverse";
 const USER_JOIN_INVITE = "/app/user/joinByInvite";
+const USER_CREATE_TEAM_INVITE = "/app/user/createTeamInvite";
+const USER_CREATE_PERSONAL_INVITE = "/app/user/createPersonalInvite";
 const USER_QUIT_TEAM = "/app/user/quitTeam";
 const USER_MY_TEAMS = "/app/user/myTeams";
 
@@ -116,10 +120,33 @@ export const postUserLocationReverse = (body: ReverseGeoDTO) => {
 };
 
 /**
- * 通过邀请码加入团队；成功后 `data` 含 `teamId`；需登录。
+ * 通过邀请码加入团队 / 个人成团占位；需登录。
+ *
+ * @param body `code` 必填
+ * @returns 成功时 `data` 为 {@link JoinByInviteResult}；失败 message 见接口说明（过期、仅限指定账号等）
  */
 export const postUserJoinByInvite = (body: JoinByInviteDTO) => {
   return post(USER_JOIN_INVITE, body);
+};
+
+/**
+ * 创建团队邀请（仅团队负责人）；需登录。
+ *
+ * @param body `teamId` 须为当前用户作为 owner 的团队；`days` 1～365 默认 7；`bindUserId` 可选限定使用者
+ * @returns 成功时 `data` 含 `id`、`code`、`expireTime`、`url`、`miniProgramQrUrl`（可能 null）
+ */
+export const postUserCreateTeamInvite = (body: CreateTeamInviteDTO) => {
+  return post(USER_CREATE_TEAM_INVITE, body);
+};
+
+/**
+ * 创建个人成团邀请（任意登录用户）；需登录。
+ *
+ * @param body `days` 默认 7；`bindUserId` 可选
+ * @returns 成功时 `data` 同团队邀请创建（含 `miniProgramQrUrl`）
+ */
+export const postUserCreatePersonalInvite = (body?: CreatePersonalInviteDTO) => {
+  return post(USER_CREATE_PERSONAL_INVITE, body ?? {});
 };
 
 /**

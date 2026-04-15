@@ -19,31 +19,45 @@ export type UviewPosterInstance = {
   exportImage: () => Promise<{ path?: string; width?: number; height?: number }>;
 };
 
+export type UseMeditationReportShareOptions = {
+  /**
+   * 为 `false` 时不注册 `onShareAppMessage` / `onShareTimeline` / 分享菜单（非报告页仅导出海报时用）。
+   * @default true
+   */
+  registerWechatShare?: boolean;
+};
+
 /**
  * @param posterRef `up-poster` 组件 ref，用于 `exportImage`
  * @param getPayload 每次分享/生成海报前调用，需返回最新报告字段
+ * @param options 非报告页可关闭微信分享钩子，避免误转发冥想路径
  */
 export function useMeditationReportShare(
   posterRef: Ref<UviewPosterInstance | null | undefined>,
   getPayload: () => MeditationReportSharePayload,
+  options?: UseMeditationReportShareOptions,
 ) {
+  const registerWechatShare = options?.registerWechatShare !== false;
+
   const posterJson = shallowRef<UviewPosterJson>(buildMeditationReportPosterJson(getPayload()));
 
-  onShareAppMessage(() => buildMeditationReportFriendShare(getPayload()));
-  onShareTimeline(() => buildMeditationReportTimelineShare(getPayload()));
+  if (registerWechatShare) {
+    onShareAppMessage(() => buildMeditationReportFriendShare(getPayload()));
+    onShareTimeline(() => buildMeditationReportTimelineShare(getPayload()));
 
-  onShow(() => {
-    // #ifdef MP-WEIXIN
-    try {
-      uni.showShareMenu({
-        withShareTicket: true,
-        menus: ["shareAppMessage", "shareTimeline"],
-      });
-    } catch {
-      /* 基础库过低时忽略 */
-    }
-    // #endif
-  });
+    onShow(() => {
+      // #ifdef MP-WEIXIN
+      try {
+        uni.showShareMenu({
+          withShareTicket: true,
+          menus: ["shareAppMessage", "shareTimeline"],
+        });
+      } catch {
+        /* 基础库过低时忽略 */
+      }
+      // #endif
+    });
+  }
 
   /**
    * 按当前载荷刷新 `posterJson` 并调用 `up-poster.exportImage`。

@@ -29,6 +29,30 @@ export interface MeditationReportSharePayload {
    * 不填时可在构建环境配置 `VITE_MP_TIMELINE_SHARE_IMAGE`。
    */
   timelineImageUrl?: string;
+  /**
+   * 海报主标题；默认「心迹报告」。团队/个人邀请海报可传「团队邀请」「个人成团邀请」等。
+   */
+  posterMainTitle?: string;
+  /**
+   * 海报二维码上方的说明；默认「长按图片可保存 · 扫码查看完整报告」。
+   */
+  posterBottomHint?: string;
+  /**
+   * 海报底部二维码内容：未配置 `posterBottomQrImageUrl` 时由 `up-poster` 生成二维码。
+   * 邀请场景一般为 H5 落地 `/pages/index/join?inviteCode=` 或小程序路径形式。
+   */
+  posterBottomQrText?: string | null;
+  /**
+   * 海报底部优先展示的网络图（如 `createTeamInvite` / `createPersonalInvite` 返回的 `miniProgramQrUrl`）；
+   * 非空时不再绘制「报告页」二维码。
+   */
+  posterBottomQrImageUrl?: string | null;
+  /**
+   * 为 `true` 时使用「纯邀请」版式：不展示心率、呼吸、时长等冥想数据，仅标题、副文案、提示与二维码。
+   */
+  posterInviteMinimal?: boolean;
+  /** `posterInviteMinimal` 时主标题下的说明行（如社群名称），不传则不画该行 */
+  posterInviteSubtitle?: string;
 }
 
 /** uview-plus `up-poster` 根节点样式（与官方 poster json 对齐） */
@@ -56,7 +80,18 @@ export interface UviewPosterViewQrcode {
   css?: Record<string, string | number | undefined>;
 }
 
-export type UviewPosterView = UviewPosterViewText | UviewPosterViewRect | UviewPosterViewQrcode;
+export interface UviewPosterViewImage {
+  type: "image";
+  /** 网络或本地路径；小程序需将图片域名加入下载白名单 */
+  src: string;
+  css?: Record<string, string | number | undefined>;
+}
+
+export type UviewPosterView =
+  | UviewPosterViewText
+  | UviewPosterViewRect
+  | UviewPosterViewQrcode
+  | UviewPosterViewImage;
 
 /** `up-poster` 的 `json` prop 结构 */
 export interface UviewPosterJson {

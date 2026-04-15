@@ -1,6 +1,12 @@
 <template>
   <view class="flex flex-col min-h-screen theme-bg cloud-pattern">
-    <lcrBar :title="'心迹报告'" :leftIcon="'icon-arrow-left'" :handleClick="onBack" :type="'all'" />
+    <lcrBar
+        :title="inviteLanding ? '团队邀请' : '心迹报告'"
+        :type="inviteLanding ? 'none' : 'all'"
+        :onBack="onLcrBack"
+        :onHome="onLcrHome"
+      />
+    <view  class="flex flex-col flex-1 min-h-0">
     <view class="px-8 pt-10 pb-6 text-center">
       <view class="theme-color-5 text-[60rpx] font-medium leading-snug">
         今日，你照见 <text class="font-bold text-primary">{{ elapsedMin }}</text> 分{{ elapsedRemainSec }}秒
@@ -143,33 +149,58 @@
       </view>
       <text class="text-[26rpx] font-medium text-[#3c3728] mb-1">以舒适为宜，不勉强、不贪长。</text>
     </view>
+    </view>
     <view class="fixed bottom-24 right-8 z-20">
       <button
         class="size-14 bg-theme-2 text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition-transform"
         @click="openShareSheet">
-        <text class="iconfont icon-share text-[70rpx]"></text>
+        <text v-if="!inviteLanding" class="iconfont icon-share text-[70rpx]"></text>
+        <text v-else class="iconfont icon-jiarutuandui text-[50rpx]"></text>
       </button>
     </view>
-    <up-poster ref="posterRef" :json="posterJson" />
-    <up-action-sheet v-model:show="shareSheetVisible" title="分享" :actions="shareSheetActions" cancel-text="取消"
+    <up-poster v-if="!inviteLanding" ref="posterRef" :json="posterJson" />
+    <up-action-sheet
+      v-if="!inviteLanding"
+      v-model:show="shareSheetVisible"
+      title="分享"
+      :actions="shareSheetActions"
+      cancel-text="取消"
       @select="onShareSheetSelect" />
   </view>
 </template>
 
 <script setup lang="ts">
-import { nextTick } from 'vue';
+import { onLoad, onShow } from '@dcloudio/uni-app';
+import { computed, nextTick } from 'vue';
 import { fetchMeditationReportDetail } from '@/assets/js/api/meditation';
+import { postUserCreatePersonalInvite, postUserCreateTeamInvite } from '@/assets/js/api/user';
 import lcrBar from '@/components/lcrBar.vue';
 import { useMeditationReportShare, type UviewPosterInstance } from '@/composables/useMeditationReportShare';
 import { useMeditationStore } from '@/stores/meditation';
+import { useTeamStore } from '@/stores/team';
+import { useUserStore } from '@/stores/user';
 import type { MeditationReport, MeditationReportSection } from '@/types/api/meditation';
+import type { UserInviteCreatedData } from '@/types/api/user';
 import type { MeditationReportSharePayload } from '@/types/pages/meditationShare';
 import { unwrapApiData } from '@/utils/apiResponse';
 import { drawCloudBridgeCanvas } from '@/utils/common';
+import { buildJoinInvitePosterQrText, buildMeditationReportPosterJson } from '@/utils/meditationReportShare';
 import { parseMeditationReportDetailPayload } from '@/utils/meditationReport';
 import { navigateBack } from '@/utils/navigation';
 
 const meditationStore = useMeditationStore();
+const userStore = useUserStore();
+const teamStore = useTeamStore();
+
+/** 小程序邀请类海报：覆盖主标题、底部说明与二维码（图或文本） */
+const reportPosterExtras = ref<
+  Partial<
+    Pick<
+      MeditationReportSharePayload,
+      'posterMainTitle' | 'posterBottomHint' | 'posterBottomQrText' | 'posterBottomQrImageUrl'
+    >
+  >
+>({});
 
 const duration = ref(15);
 const elapsedSec = ref(0);
@@ -179,6 +210,10 @@ const maxHeart = ref(78);
 const minHeart = ref(66);
 const manualStop = ref(false);
 const trackTitle = ref('');
+/** 小程序 scene 解析出的邀请码（非邀请落地时为空） */
+const inviteCode = ref('');
+const inviteLanding = computed(() => inviteCode.value.trim().length > 0);
+
 /** 接口拉取或 Store 注入的完整报告 */
 const reportFromApi = ref<MeditationReport | null>(null);
 /** 入口 URL 上的 sessionId（分享落地或直达时用于补全 path） */
@@ -191,6 +226,7 @@ const posterRef = ref<UviewPosterInstance | null>(null);
 const shareSheetVisible = ref(false);
 
 function getSharePayload(): MeditationReportSharePayload {
+  const extra = reportPosterExtras.value;
   return {
     durationMin: duration.value,
     elapsedSec: elapsedSec.value,
@@ -202,7 +238,57 @@ function getSharePayload(): MeditationReportSharePayload {
     trackTitle: trackTitle.value,
     sessionId: effectiveSessionId.value,
     h5LandingBaseUrl: import.meta.env.VITE_H5_SHARE_BASE,
+    ...(extra.posterMainTitle != null ? { posterMainTitle: extra.posterMainTitle } : {}),
+    ...(extra.posterBottomHint != null ? { posterBottomHint: extra.posterBottomHint } : {}),
+    ...(extra.posterBottomQrText !== undefined
+      ? { posterBottomQrText: extra.posterBottomQrText }
+      : {}),
+    ...(extra.posterBottomQrImageUrl !== undefined
+      ? { posterBottomQrImageUrl: extra.posterBottomQrImageUrl }
+      : {}),
   };
+}
+
+function resetReportPosterExtras() {
+  reportPosterExtras.value = {};
+}
+
+/** 当前用户作为 owner 的团队：列表顺序中第一个（与「多团队默认第一个」一致） */
+const firstOwnedTeamId = computed((): number | null => {
+  const uid = userStore.currentUser?.id;
+  if (uid == null) return null;
+  const hit = teamStore.myCurrentTeams.find((t) => t.ownerId === uid);
+  return hit?.teamId ?? null;
+});
+
+const canCreateTeamInvitePoster = computed(() => firstOwnedTeamId.value != null);
+
+/** 当前用户作为负责人的团队数量（与 `myTeams` 列表顺序一致，可多团队） */
+const ownedTeamCount = computed((): number => {
+  const uid = userStore.currentUser?.id;
+  if (uid == null) return 0;
+  return teamStore.myCurrentTeams.filter((t) => t.ownerId === uid).length;
+});
+
+function applyInviteDataToPosterExtras(data: UserInviteCreatedData, kind: 'team' | 'personal') {
+  const code = data.code?.trim();
+  if (!code) {
+    uni.showToast({ title: '邀请数据异常', icon: 'none' });
+    return false;
+  }
+  const h5Base = import.meta.env.VITE_H5_SHARE_BASE?.trim();
+  const qrText = buildJoinInvitePosterQrText(code, h5Base);
+  const img = data.miniProgramQrUrl?.trim() || null;
+  reportPosterExtras.value = {
+    posterMainTitle: kind === 'team' ? '团队分享' : '个人成团分享',
+    posterBottomHint:
+      kind === 'team'
+        ? '长按保存 · 微信扫码加入团队（负责人邀请）'
+        : '长按保存 · 微信扫码加入个人成团',
+    posterBottomQrImageUrl: img,
+    posterBottomQrText: img ? null : qrText,
+  };
+  return true;
 }
 
 const {
@@ -214,7 +300,11 @@ const {
 } = useMeditationReportShare(posterRef, getSharePayload);
 
 const shareSheetActions = computed(() => {
-  const rows: { name: string; value: string }[] = [{ name: '生成分享海报', value: 'poster' }];
+  const rows: { name: string; value: string }[] = [];
+  if (canCreateTeamInvitePoster.value) {
+    rows.push({ name: '团队分享', value: 'posterTeamInvite' });
+  }
+  rows.push({ name: '个人成团分享', value: 'posterPersonalInvite' });
   // #ifdef MP-WEIXIN
   rows.push(
     { name: '分享给微信好友或群', value: 'friend' },
@@ -222,12 +312,32 @@ const shareSheetActions = computed(() => {
   );
   // #endif
   // #ifdef H5
+  rows.push({ name: '生成分享海报', value: 'poster' });
   rows.push({ name: '复制页面链接', value: 'copyLink' });
   // #endif
   return rows;
 });
 
-function openShareSheet() {
+async function openShareSheet() {
+  const code = inviteCode.value.trim();
+  if (inviteLanding.value && code) {
+    try {
+      uni.setStorageSync("PENDING_INVITE_CODE", code);
+    } catch {
+      /* ignore */
+    }
+    uni.navigateTo({
+      url: `/pages/login/index?inviteCode=${encodeURIComponent(code)}`,
+    });
+    return;
+  }
+  if (userStore.isLoggedIn) {
+    try {
+      await teamStore.fetchMyCurrentTeams();
+    } catch {
+      /* ignore */
+    }
+  }
   shareSheetVisible.value = true;
 }
 
@@ -274,30 +384,91 @@ function savePosterToPhotosAlbum(filePath: string) {
   });
 }
 
+/** H5：生成报告页海报（底部为报告落地二维码，非邀请） */
+async function generateReportPosterAfterReset() {
+  resetReportPosterExtras();
+  posterJson.value = buildMeditationReportPosterJson(getSharePayload());
+  uni.showLoading({ title: '生成中', mask: true });
+  try {
+    const path = await generatePosterImagePath();
+    if (!path) {
+      uni.showModal({
+        title: '海报生成失败',
+        content: '可稍后再试。若多次失败，请检查浏览器与海报中二维码链接域名配置。',
+        showCancel: false,
+      });
+      return;
+    }
+    offerPosterAfterGenerate(path);
+  } finally {
+    uni.hideLoading();
+    resetReportPosterExtras();
+    posterJson.value = buildMeditationReportPosterJson(getSharePayload());
+  }
+}
+
+/** 先调邀请接口再生成海报（各端一致；底部为邀请链接二维码或接口返回的小程序码图） */
+async function generateInviteSharePoster(kind: 'team' | 'personal') {
+  if (!userStore.isLoggedIn) {
+    uni.showToast({ title: '请先登录', icon: 'none' });
+    return;
+  }
+  if (kind === 'team' && firstOwnedTeamId.value == null) {
+    uni.showToast({ title: '仅团队负责人可创建团队邀请', icon: 'none' });
+    return;
+  }
+  if (kind === 'personal' && ownedTeamCount.value > 3) {
+    uni.showToast({
+      title: '您担任负责人的团队超过三个，暂无法生成个人成团分享',
+      icon: 'none',
+    });
+    return;
+  }
+  resetReportPosterExtras();
+  uni.showLoading({ title: '创建邀请…', mask: true });
+  try {
+    const res =
+      kind === 'team'
+        ? await postUserCreateTeamInvite({ teamId: firstOwnedTeamId.value as number })
+        : await postUserCreatePersonalInvite({});
+    const data = unwrapApiData<UserInviteCreatedData>(res);
+    if (!data || !applyInviteDataToPosterExtras(data, kind)) return;
+    posterJson.value = buildMeditationReportPosterJson(getSharePayload());
+    uni.hideLoading();
+    uni.showLoading({ title: '生成海报…', mask: true });
+    const path = await generatePosterImagePath();
+    if (!path) {
+      uni.showModal({
+        title: '海报生成失败',
+        content:
+          '可稍后再试。若使用小程序码图片，请确认图片域名已在小程序后台「downloadFile 合法域名」中配置。',
+        showCancel: false,
+      });
+      return;
+    }
+    offerPosterAfterGenerate(path);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : '创建邀请失败';
+    uni.showToast({ title: msg, icon: 'none' });
+  } finally {
+    uni.hideLoading();
+    resetReportPosterExtras();
+    posterJson.value = buildMeditationReportPosterJson(getSharePayload());
+  }
+}
+
 async function onShareSheetSelect(item: { name: string; value?: string }) {
   const v = item.value;
   if (v === 'poster') {
-    uni.showLoading({ title: '生成中', mask: true });
-    try {
-      const path = await generatePosterImagePath();
-      if (!path) {
-        uni.showModal({
-          title: '海报生成失败',
-          content:
-            '可稍后再试，或使用右上角「···」转发给好友。若多次失败，请检查微信与小程序基础库版本，并确认海报中二维码链接域名已在小程序后台配置。',
-          showCancel: true,
-          cancelText: '知道了',
-          confirmText: '转发说明',
-          success: (res) => {
-            if (res.confirm) openFriendShareGuide();
-          },
-        });
-        return;
-      }
-      offerPosterAfterGenerate(path);
-    } finally {
-      uni.hideLoading();
-    }
+    await generateReportPosterAfterReset();
+    return;
+  }
+  if (v === 'posterTeamInvite') {
+    await generateInviteSharePoster('team');
+    return;
+  }
+  if (v === 'posterPersonalInvite') {
+    await generateInviteSharePoster('personal');
     return;
   }
   if (v === 'friend') {
@@ -614,13 +785,53 @@ async function initReport(q: Record<string, unknown>) {
   minHeart.value = toNum(q.minHeart, avgHeart.value - 6);
   void nextTick(() => drawCloudBridgeCanvas(harmonyProgress.value));
 }
+function parseInviteSceneRaw(raw: unknown): string {
+  if (raw == null) return '';
+  const s = String(raw).trim();
+  if (!s) return '';
+  try {
+    return decodeURIComponent(s).trim();
+  } catch {
+    return s;
+  }
+}
+
+function hideInviteShareMenu() {
+  // #ifdef MP-WEIXIN
+  try {
+    uni.hideShareMenu({hideShareItems: ['shareAppMessage', 'shareTimeline']});
+  } catch {
+    /* 基础库差异 */
+  }
+  // #endif
+}
 
 onLoad((query) => {
-  void initReport((query || {}) as Record<string, unknown>);
+  const q = (query || {}) as Record<string, unknown>;
+  inviteCode.value = parseInviteSceneRaw(q.scene);
+  void initReport(q);
+  hideInviteShareMenu();
 });
 
-function onBack() {
+onShow(() => {
+  if (!inviteCode.value.trim()) return;
+  hideInviteShareMenu();
+});
+
+function onLcrBack() {
+  if (inviteLanding.value) {
+    uni.showToast({ title: '请完成加入或登录', icon: 'none' });
+    return;
+  }
   navigateBack();
+}
+
+function onLcrHome() {
+  if (inviteLanding.value) {
+    uni.showToast({ title: '请完成加入或登录', icon: 'none' });
+    return;
+  }
+  uni.switchTab({ url: '/pages/index/home' });
 }
 
 // 保留你原本“70%”展示逻辑：画图进度跟随该值

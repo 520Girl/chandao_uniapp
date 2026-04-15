@@ -43,6 +43,16 @@ function refreshSessionOnce(): Promise<boolean> {
   return p;
 }
 
+/** @param path 以 `/` 开头的页面路径，如 `/pages/index/join` */
+function isCurrentRoute(path: string): boolean {
+  const pages = getCurrentPages();
+  const page = pages[pages.length - 1] as { route?: string } | undefined;
+  const route = page?.route;
+  if (!route) return false;
+  const normalized = route.startsWith("/") ? route : `/${route}`;
+  return normalized === path;
+}
+
 // 请求拦截器
 const requestInterceptor = (config: any) => {
   const { token } = storeToRefs(useUserStore());
@@ -143,11 +153,13 @@ const errorHandler = async (error: any, retrySnapshot: Record<string, any>): Pro
       __tokenRetry: true,
     });
   } else if (error.statusCode === HTTP_STATUS.SUCCESS) {
+    console.log('error.statusCode',error.message);
     uni.showToast({
       title: error.message || "网络请求失败",
       icon: "none",
     });
     setTimeout(() => {
+      if (isCurrentRoute("/pages/index/join")) return;
       uni.navigateBack();
     }, 1500);
     return;
@@ -157,8 +169,10 @@ const errorHandler = async (error: any, retrySnapshot: Record<string, any>): Pro
     title: error.message || "网络请求失败",
     icon: "none",
   });
+console.log('isCurrentRoute',isCurrentRoute("/pages/index/join"));
 
   setTimeout(() => {
+    if (isCurrentRoute("/pages/index/join")) return;
     uni.reLaunch({
       url: "/pages/login/index",
     });

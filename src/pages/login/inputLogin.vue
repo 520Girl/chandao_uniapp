@@ -110,11 +110,22 @@
     </view>
 </template>
 <script setup lang="ts">
-import { ref } from 'vue';
-import { setToken, setUserInfo, passwordLogin } from '@/assets/js/api/user';
-import { useUserStore } from '@/stores/user';
+import { onLoad } from "@dcloudio/uni-app";
+import { ref } from "vue";
+import { useUserStore } from "@/stores/user";
 
 const userStore = useUserStore();
+
+onLoad((options) => {
+  const raw = options?.inviteCode ?? options?.scene;
+  if (raw == null || String(raw).trim() === "") return;
+  try {
+    const c = decodeURIComponent(String(raw)).trim();
+    uni.setStorageSync("PENDING_INVITE_CODE", c);
+  } catch {
+    /* ignore */
+  }
+});
 const phone = ref('12810909149');
 const password = ref('123456');
 
@@ -136,7 +147,7 @@ const agreeChecked = ref(true);
 const togglePasswordVisible = () => {
     passwordVisible.value = !passwordVisible.value;
 };
-true
+
 const toggleAgree = () => {
     agreeChecked.value = !agreeChecked.value;
 };

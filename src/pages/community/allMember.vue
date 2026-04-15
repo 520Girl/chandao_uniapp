@@ -8,7 +8,7 @@
                 </view>
                 <text class="text-[12px] font-body text-on-surface-variant/60 tracking-wider">
                     <text v-if="contextTeamDisplayName" class="text-[26rpx] font-semibold theme-color-5 truncate">{{ contextTeamDisplayName }}</text>
-                    <text v-else class="text-[26rpx] font-semibold theme-color-5 truncate">管理社群</text>守一方静心，待一路花开
+                    <text v-else class=" theme-color-5 truncate">管理社群</text>守一方静心，待一路花开
                 </text>
             </view>
             <view class="flex gap-8 border-b border-outline-variant/30 mb-8">
@@ -89,11 +89,23 @@
 一起守心、静坐、慢慢开花
                 </view>
                 <view
-                    class="bg-theme-12 theme-color-6 w-full py-4 rounded-full font-label tracking-[0.1rem] text-xs font-bold shadow-md shadow-primary/10 active:scale-95 transition-transform text-center">
+                    class="bg-theme-12 theme-color-6 w-full py-4 rounded-full font-label tracking-[0.1rem] text-xs font-bold shadow-md shadow-primary/10 active:scale-95 transition-transform text-center"
+                    hover-class="opacity-90"
+                    @tap="openInviteSheet"
+                    @click="openInviteSheet">
                     邀请共修
                 </view>
             </view>
         </view>
+
+        <up-poster ref="posterRef" :json="posterJson" />
+
+        <up-action-sheet
+            v-model:show="inviteSheetVisible"
+            title="邀请共修"
+            :actions="inviteSheetActions"
+            cancel-text="取消"
+            @select="onInviteSheetSelect" />
 
         <Toast v-model:show="toastShow" :title="toastTitle" :message="toastMessage" :fields="toastFieldsEmpty"
             :confirm-text="toastConfirmText" cancel-text="取消" :mask-closable="true" @confirm="onToastConfirm" />
@@ -104,11 +116,19 @@
 import { onLoad, onReachBottom, onShow } from "@dcloudio/uni-app";
 import { computed, ref } from "vue";
 import { fetchTeamMemberPage, postTeamMemberRemove } from "@/assets/js/api/team";
+import { postUserCreatePersonalInvite, postUserCreateTeamInvite } from "@/assets/js/api/user";
 import { config } from "@/assets/js/config";
+import { useMeditationReportShare, type UviewPosterInstance } from "@/composables/useMeditationReportShare";
 import type { TeamMemberPageData, TeamMemberRow } from "@/types/api/team";
+import type { UserInviteCreatedData } from "@/types/api/user";
+import type { MeditationReportSharePayload } from "@/types/pages/meditationShare";
 import type { ToastInputField } from "@/types/pages/component";
 import { unwrapApiData } from "@/utils/apiResponse";
 import { formatRelativeTime } from "@/utils/common";
+import {
+  buildJoinInvitePosterQrText,
+  buildMeditationReportPosterJson,
+} from "@/utils/meditationReportShare";
 import { navigateBack } from "@/utils/navigation";
 import lcrBar from "@/components/lcrBar.vue";
 import Toast from "@/components/common/toast.vue";
@@ -147,15 +167,121 @@ const toastMessage = ref("");
 const toastConfirmText = ref("确定");
 const pendingRemoveMember = ref<TeamMemberRow | null>(null);
 
+const inviteSheetVisible = ref(false);
+
+const posterRef = ref<UviewPosterInstance | null>(null);
+/** 与报告页团队邀请海报一致：覆盖主标题与底部二维码 */
+const invitePosterExtras = ref<
+  Partial<
+    Pick<
+      MeditationReportSharePayload,
+      "posterMainTitle" | "posterBottomHint" | "posterBottomQrText" | "posterBottomQrImageUrl"
+    >
+  >
+>({});
+
+function resetInvitePosterExtras() {
+  invitePosterExtras.value = {};
+}
+
 const resolvedTeamId = computed(() => teamStore.resolvedPublishTeamId ?? routeTeamId.value ?? undefined);
 
 const isTeamOwner = computed(() => {
-    const uid = userStore.currentUser?.id;
-    const tid = teamStore.resolvedPublishTeamId ?? routeTeamId.value;
-    if (uid == null || tid == null) return false;
-    const team = teamStore.myCurrentTeams.find((t) => t.teamId === tid);
-    return team != null && team.ownerId === uid;
+  const uid = userStore.currentUser?.id;
+  const tid = teamStore.resolvedPublishTeamId ?? routeTeamId.value;
+  if (uid == null || tid == null) return false;
+  const team = teamStore.myCurrentTeams.find((t) => t.teamId === tid);
+  return team != null && team.ownerId === uid;
 });
+
+/** URL 带 `teamId` 且当前用户为该团队负责人时，操作单中展示「团队邀请」 */
+const canShowTeamInviteInSheet = computed(() => {
+  const tid = routeTeamId.value;
+  return tid != null && tid > 0 && isTeamOwner.value;
+});
+
+/** 当前用户作为负责人的团队数量（与报告页个人邀请限制一致） */
+const ownedTeamCount = computed((): number => {
+  const uid = userStore.currentUser?.id;
+  if (uid == null) return 0;
+  return teamStore.myCurrentTeams.filter((t) => t.ownerId === uid).length;
+});
+
+/** 当前成员列表所属团队名（用于海报副文案） */
+const inviteContextTeamName = computed(() => {
+  const tid = resolvedTeamId.value;
+  if (tid == null) return "";
+  const hit = teamStore.myCurrentTeams.find((t) => t.teamId === tid);
+  return hit?.teamName?.trim() || `团队 ${tid}`;
+});
+
+const inviteSheetActions = computed((): { name: string; value: string }[] => {
+  const rows: { name: string; value: string }[] = [];
+  if (canShowTeamInviteInSheet.value) {
+    rows.push({ name: "团队邀请", value: "posterTeamInvite" });
+  }
+  rows.push({ name: "个人邀请", value: "posterPersonalInvite" });
+  return rows;
+});
+
+function getInvitePosterPayload(): MeditationReportSharePayload {
+  const extra = invitePosterExtras.value;
+  const teamLine = inviteContextTeamName.value.trim();
+  return {
+    durationMin: 0,
+    elapsedSec: 0,
+    avgHeart: 0,
+    avgBreath: 0,
+    maxHeart: 0,
+    minHeart: 0,
+    manualStop: false,
+    trackTitle: "",
+    sessionId: null,
+    h5LandingBaseUrl: import.meta.env.VITE_H5_SHARE_BASE,
+    posterInviteMinimal: true,
+    posterInviteSubtitle: teamLine ? `「${teamLine}」邀你一起静心共修` : "邀你一起静心共修",
+    ...(extra.posterMainTitle != null ? { posterMainTitle: extra.posterMainTitle } : {}),
+    ...(extra.posterBottomHint != null ? { posterBottomHint: extra.posterBottomHint } : {}),
+    ...(extra.posterBottomQrText !== undefined
+      ? { posterBottomQrText: extra.posterBottomQrText }
+      : {}),
+    ...(extra.posterBottomQrImageUrl !== undefined
+      ? { posterBottomQrImageUrl: extra.posterBottomQrImageUrl }
+      : {}),
+  };
+}
+
+function applyInviteDataToPosterExtras(data: UserInviteCreatedData, kind: "team" | "personal"): boolean {
+  const code = data.code?.trim();
+  if (!code) {
+    uni.showToast({ title: "邀请数据异常", icon: "none" });
+    return false;
+  }
+  const h5Base = import.meta.env.VITE_H5_SHARE_BASE?.trim();
+  const qrText = buildJoinInvitePosterQrText(code, h5Base);
+  const img = data.miniProgramQrUrl?.trim() || null;
+  invitePosterExtras.value =
+    kind === "team"
+      ? {
+          posterMainTitle: "团队邀请",
+          posterBottomHint: "长按保存 · 微信扫码加入团队（负责人邀请）",
+          posterBottomQrImageUrl: img,
+          posterBottomQrText: img ? null : qrText,
+        }
+      : {
+          posterMainTitle: "个人邀请",
+          posterBottomHint: "长按保存 · 微信扫码加入个人成团",
+          posterBottomQrImageUrl: img,
+          posterBottomQrText: img ? null : qrText,
+        };
+  return true;
+}
+
+const { posterJson, generatePosterImagePath } = useMeditationReportShare(
+  posterRef,
+  getInvitePosterPayload,
+  { registerWechatShare: false },
+);
 
 function resolveMediaUrl(raw: string | null | undefined): string {
     const u = (raw || "").trim();
@@ -315,6 +441,131 @@ onReachBottom(() => {
 });
 
 const onBack = () => navigateBack();
+
+/** 微信小程序：保存海报或预览；其它端直接预览 */
+function offerPosterAfterGenerate(tempPath: string) {
+  // #ifdef MP-WEIXIN
+  uni.showActionSheet({
+    itemList: ["保存到相册", "预览图片"],
+    success: (tap) => {
+      if (tap.tapIndex === 0) {
+        savePosterToPhotosAlbum(tempPath);
+      } else {
+        uni.previewImage({ urls: [tempPath] });
+      }
+    },
+  });
+  // #endif
+  // #ifndef MP-WEIXIN
+  uni.previewImage({ urls: [tempPath] });
+  // #endif
+}
+
+function savePosterToPhotosAlbum(filePath: string) {
+  uni.saveImageToPhotosAlbum({
+    filePath,
+    success: () => {
+      uni.showToast({ title: "已保存到相册", icon: "success" });
+    },
+    fail: (err) => {
+      const msg = String((err as UniApp.GeneralCallbackResult)?.errMsg || "");
+      if (msg.includes("auth deny") || msg.includes("authorize") || msg.includes("permission")) {
+        uni.showModal({
+          title: "需要相册权限",
+          content: "保存图片需授权「保存到相册」，请在设置中开启后重试。",
+          confirmText: "去设置",
+          success: (r) => {
+            if (r.confirm) uni.openSetting({});
+          },
+        });
+      } else {
+        uni.showToast({ title: "保存失败", icon: "none" });
+      }
+    },
+  });
+}
+
+async function openInviteSheet() {
+  if (!userStore.isLoggedIn) {
+    uni.showToast({ title: "请先登录", icon: "none" });
+    return;
+  }
+  try {
+    await teamStore.fetchMyCurrentTeams();
+  } catch {
+    /* ignore */
+  }
+  inviteSheetVisible.value = true;
+}
+
+async function onInviteSheetSelect(item: { name: string; value?: string }) {
+  const v = item.value;
+  if (v === "posterTeamInvite") {
+    await generateMemberInvitePoster("team");
+    return;
+  }
+  if (v === "posterPersonalInvite") {
+    await generateMemberInvitePoster("personal");
+    return;
+  }
+}
+
+/** 与报告页一致：先创建邀请再导出海报 */
+async function generateMemberInvitePoster(kind: "team" | "personal") {
+  if (!userStore.isLoggedIn) {
+    uni.showToast({ title: "请先登录", icon: "none" });
+    return;
+  }
+  if (kind === "team") {
+    const tid = routeTeamId.value;
+    if (tid == null || tid <= 0) {
+      uni.showToast({ title: "缺少团队信息", icon: "none" });
+      return;
+    }
+    if (!isTeamOwner.value) {
+      uni.showToast({ title: "仅团队负责人可发起团队邀请", icon: "none" });
+      return;
+    }
+  }
+  if (kind === "personal" && ownedTeamCount.value > 3) {
+    uni.showToast({
+      title: "您担任负责人的团队超过三个，暂无法生成个人邀请",
+      icon: "none",
+    });
+    return;
+  }
+  resetInvitePosterExtras();
+  uni.showLoading({ title: "创建邀请…", mask: true });
+  try {
+    const res =
+      kind === "team"
+        ? await postUserCreateTeamInvite({ teamId: routeTeamId.value as number })
+        : await postUserCreatePersonalInvite({});
+    const data = unwrapApiData<UserInviteCreatedData>(res);
+    if (!data || !applyInviteDataToPosterExtras(data, kind)) return;
+    posterJson.value = buildMeditationReportPosterJson(getInvitePosterPayload());
+    uni.hideLoading();
+    uni.showLoading({ title: "生成海报…", mask: true });
+    const path = await generatePosterImagePath();
+    if (!path) {
+      uni.showModal({
+        title: "海报生成失败",
+        content:
+          "可稍后再试。若使用小程序码图片，请确认图片域名已在小程序后台「downloadFile 合法域名」中配置。",
+        showCancel: false,
+      });
+      return;
+    }
+    offerPosterAfterGenerate(path);
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "创建邀请失败";
+    uni.showToast({ title: msg, icon: "none" });
+  } finally {
+    uni.hideLoading();
+    resetInvitePosterExtras();
+    posterJson.value = buildMeditationReportPosterJson(getInvitePosterPayload());
+  }
+}
 </script>
 
 <style scoped lang="scss"></style>

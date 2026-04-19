@@ -151,8 +151,8 @@
             </view>
           </view>
           <view class="text-center mt-2">
-            <!-- <view class="text-[26rpx] font-medium text-[#3c3728]">{{ midPathSummary }}</view>
-            <view v-if="sitCountLine" class="text-[22rpx] text-[#3c3728]/60 mt-1">{{ sitCountLine }}</view> -->
+            <!-- <view class="text-[26rpx] font-medium text-[#3c3728]">{{ midPathSummary }}</view>-->
+            <view v-if="sitCountLine" class="text-[22rpx] text-[#3c3728]/60 mt-1">{{ sitCountLine }}</view>
           </view>
         </view>
       </view>

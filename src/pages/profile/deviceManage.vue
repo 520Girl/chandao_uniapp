@@ -94,7 +94,9 @@
 import { storeToRefs } from 'pinia';
 import { navigateBack } from '@/utils/navigation';
 import { showSuccessToast } from '@/utils/toast';
-import { LcrBar, ToastConfirm, ConfirmDialog } from '@/components';
+import ToastConfirm from '@/components/common/toast.vue';
+import ConfirmDialog from '@/components/common/confirmDialog.vue';
+import lcrBar from '@/components/lcrBar.vue';
 import type { ToastInputField } from '@/types/pages/component';
 import type { DeviceItem } from '@/types/pages/device';
 import { addDevice, removeDevice, fetchDeviceDetails } from '@/assets/js/api/device';

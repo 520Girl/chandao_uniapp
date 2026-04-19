@@ -49,21 +49,6 @@
         "navigationBarTitleText": "个人中心",
         "navigationStyle": "custom"
       }
-    },
-    {
-      "path": "pages/index/homecopy1",
-      "style": {
-        "navigationBarTitleText": "首页",
-        "navigationStyle": "custom"
-      }
-    },
-    {
-      "path": "pages/index/communitycopy",
-      "style": {
-        "navigationBarTitleText": "社区副本",
-        "navigationStyle": "custom",
-        "onReachBottomDistance": 120
-      }
     }
   ],
   "subPackages": [
@@ -345,6 +330,7 @@
   "tabBar": {
     "color": "#918355",
     "selectedColor": "#D4AF35",
+    "backgroundColor": "#fff",
     "borderStyle": "black",
     "list": [
       {

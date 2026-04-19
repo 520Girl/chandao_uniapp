@@ -105,17 +105,40 @@ const callWechatCloudLogin = async (payload: WechatLoginPayload) => {
 };
 
 // 统一判断业务状态，后端明确失败时直接抛错。
+const unwrapLoginResponse = (payload: any) => {
+  let current = payload;
+  // 云函数结果常见为 { result: {...}, requestID: 'xxx' }，最多解 4 层避免异常结构死循环。
+  for (let index = 0; index < 4; index += 1) {
+    if (!current || typeof current !== 'object') break;
+    if (current.result && typeof current.result === 'object') {
+      current = current.result;
+      continue;
+    }
+    break;
+  }
+  return current;
+};
+
 const assertLoginSuccess = (payload: any) => {
-  const businessCode = payload?.code;
+  const normalized = unwrapLoginResponse(payload);
+  const businessCode = normalized?.code;
   if (businessCode === 0 || businessCode === '0' || payload?.success === false) {
-    throw new Error(payload?.message || '微信登录失败');
+    throw new Error(normalized?.message || payload?.message || '微信登录失败');
   }
 };
 
 // 兼容不同后端字段命名，提取 token。
 const extractToken = (payload: any): string | null => {
-  const data = payload?.data ?? payload;
-  const token = data?.token ?? payload?.token ?? payload?.signature;
+  const normalized = unwrapLoginResponse(payload);
+  const data = normalized?.data ?? normalized;
+  const token =
+    data?.token ??
+    data?.accessToken ??
+    normalized?.token ??
+    normalized?.accessToken ??
+    payload?.token ??
+    payload?.accessToken ??
+    payload?.signature;
   if (typeof token === 'string' && token.trim()) return token.trim();
   if (token != null) {
     const t = String(token).trim();
@@ -125,15 +148,17 @@ const extractToken = (payload: any): string | null => {
 };
 
 const extractRefreshToken = (payload: any): string | null => {
-  const data = payload?.data ?? payload;
-  const rt = data?.refreshToken ?? payload?.refreshToken;
+  const normalized = unwrapLoginResponse(payload);
+  const data = normalized?.data ?? normalized;
+  const rt = data?.refreshToken ?? normalized?.refreshToken ?? payload?.refreshToken;
   if (typeof rt === 'string' && rt.trim()) return rt.trim();
   return null;
 };
 
 const extractUser = (payload: any): any => {
-  const data = payload?.data ?? payload;
-  return data?.user ?? payload?.user ?? null;
+  const normalized = unwrapLoginResponse(payload);
+  const data = normalized?.data ?? normalized;
+  return data?.user ?? normalized?.user ?? payload?.user ?? null;
 };
 
 
@@ -165,6 +190,11 @@ export const wechatMiniLoginByConfig = async () => {
   const user = extractUser(response) ?? profile.userInfo ?? null;
 
   if (!token) {
+    const normalized = unwrapLoginResponse(response);
+    const looksLikeEchoPayload = Boolean(normalized?.code && normalized?.encryptedData && normalized?.iv);
+    if (looksLikeEchoPayload) {
+      throw new Error('云函数返回了请求入参，未拿到后端登录结果，请检查 miniLogin 的 LOGIN_API_URL 与网络连通性');
+    }
     throw new Error('后端未返回 token，请检查接口响应结构');
   }
 

@@ -93,7 +93,7 @@
                     </view>
                     <image alt="" class="w-full h-full object-cover mix-blend-overlay opacity-20"
                         data-alt="Soft abstract light patterns and shadows"
-                        src="/static/unnamed.png" />
+                        src="./static/unnamed.png" />
                 </view>
 
                 <!-- 五、知识产权 -->

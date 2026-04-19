@@ -1,6 +1,6 @@
 <template>
     <view class="flex flex-col min-h-screen w-full max-w-full overflow-x-hidden box-border pb-32 theme-bg meditation-page">
-        <HomeBar :title="'报告'" description="观 照 身 心" :titleIcon="'icon-xinshuai'" :leftIcon="'icon-Trophy'" :handleClick="gotoRank" />
+        <HomeBar :title="'心迹'" description="观 照 身 心" :titleIcon="'icon-xinshuai'" :leftIcon="'icon-Trophy'" :handleClick="gotoRank" />
 
         <view class="flex-1 w-full max-w-full min-w-0 box-border px-6 flex flex-col">
             <view class="w-full max-w-full min-w-0 pt-6 space-y-8 box-border">

@@ -328,7 +328,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
   const views: UviewPosterJson["views"] = [
     {
       type: "image",
-      src: "/static/MeditationReportBg.jpg",
+      src: "https://jingzuoguanzhao.cn/upload/20260419/MeditationReportBg_d139d10457be40a583403c8d4091949d.jpg",
       css: {
         left: "0rpx",
         top: "0rpx",
@@ -362,7 +362,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
       type: "text",
       text: dateLine,
       css: {
-        left: "622rpx",
+        left: "624rpx",
         top: "124rpx",
         color: "#8e6b35",
         fontSize: "40rpx",
@@ -414,7 +414,17 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
       text: `${p.avgHeart} bpm`,
       css: {
         left: "178rpx",
-        top: "690rpx",
+        top: "693rpx",
+        color: "#2f281b",
+        fontSize: "34rpx",
+      },
+    },
+      {
+      type: "text",
+      text: `${p.avgBreath} 次/分`,
+      css: {
+        left: "194rpx",
+        top: "754rpx",
         color: "#2f281b",
         fontSize: "34rpx",
       },
@@ -424,21 +434,12 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
       text: movementLine,
       css: {
         left: "178rpx",
-        top: "758rpx",
+        top: "816rpx",
         color: "#2f281b",
         fontSize: "34rpx",
       },
     },
-    {
-      type: "text",
-      text: `${p.avgBreath} 次/分`,
-      css: {
-        left: "194rpx",
-        top: "826rpx",
-        color: "#2f281b",
-        fontSize: "34rpx",
-      },
-    },
+  
   ];
 
   if (trackLine) {

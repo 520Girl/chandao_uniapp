@@ -100,11 +100,11 @@ export function setTheme(mode: ThemeMode): void {
     uni.$emit("themeChanged", actualTheme);
 
     // 显示主题切换提示
-    uni.showToast({
-        title: "主题已切换为: " + (actualTheme === "light" ? "浅色" : "深色"),
-        icon: "none",
-        duration: 2000
-    });
+    // uni.showToast({
+    //     title: "主题已切换为: " + (actualTheme === "light" ? "浅色" : "深色"),
+    //     icon: "none",
+    //     duration: 2000
+    // });
 
     // 注册一次系统主题监听：auto 模式下跟随系统变化
     ensureNativeThemeListener();

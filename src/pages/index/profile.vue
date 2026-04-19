@@ -1,6 +1,6 @@
 <template>
   <view class="flex flex-col min-h-screen pb-[32rpx] theme-bg">
-    <HomeBar :title="'账号设置'" description="云 息 自 我" :titleIcon="'icon-yonghu'" :leftIcon="'icon-Trophy'"  :handleClick="onGoToShop" />
+    <HomeBar :title="'设置'" description="随 心 自 在" :titleIcon="'icon-yonghu'" :leftIcon="'icon-Trophy'"  :handleClick="onGoToShop" />
    
     <view class="mobile-container">
     <!-- Profile view -->
@@ -146,6 +146,16 @@
             <view class="flex items-center gap-4">
               <text class="iconfont icon-info text-[40rpx] theme-color-1" data-icon="info"></text>
               <text class="font-body text-[28rpx] theme-color-5">免责声明</text>
+            </view>
+            <text class="iconfont icon-jinru text-[30rpx] theme-color-12 text-outline-gold group-hover:translate-x-1 transition-transform"
+              data-icon="chevron_right"></text>
+          </view>
+          <!-- One Info List -->
+          <view @click="onGoToManage('oneInfoList')"
+            class="flex bg-theme-13  items-center justify-between p-4 bg-accent-light/20 hover:bg-accent-light/40 transition-colors cursor-pointer group border-t border-outline-gold/30">
+            <view class="flex items-center gap-4">
+              <text class="iconfont icon-wodedingdan text-[40rpx] theme-color-1" data-icon="info"></text>
+              <text class="font-body text-[28rpx] theme-color-5">个人信息列表</text>
             </view>
             <text class="iconfont icon-jinru text-[30rpx] theme-color-12 text-outline-gold group-hover:translate-x-1 transition-transform"
               data-icon="chevron_right"></text>

@@ -4,7 +4,7 @@
         <view class="w-full px-4 pt-10 pb-24 flex flex-col gap-8 flex-grow">
             <!-- Section Header -->
             <view class="space-y-1">
-                <view class="font-label text-xs text-on-surface-variant tracking-widest opacity-60 uppercase">云息坚持内心，做自己
+                <view class="font-label text-xs text-on-surface-variant tracking-widest opacity-60 uppercase">打理自己的静心小世界
                 </view>
             </view>
             <!-- Device List -->

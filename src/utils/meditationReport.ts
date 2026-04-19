@@ -5,6 +5,8 @@ import type {
   MeditationChartSeriesItem,
   MeditationReport,
   MeditationReportSection,
+  MeditationStatisticsCompareChartData,
+  MeditationStatisticsCompareMetricBlock,
   MeditationReportStatisticsData,
   MeditationStatisticsChartBlock,
   MeditationStatisticsLast7SessionItem,
@@ -121,6 +123,45 @@ function parseStatisticsChartBlock(raw: unknown): MeditationStatisticsChartBlock
 function isSevenBucketChart(block: MeditationStatisticsChartBlock): boolean {
   if (block.categories.length !== STATISTICS_BUCKET) return false;
   return block.series.every((se) => se.data.length === STATISTICS_BUCKET);
+}
+
+function parseCompareMetricBlock(
+  raw: unknown,
+  categoriesLength: number,
+): MeditationStatisticsCompareMetricBlock | null {
+  if (raw == null || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const seriesRaw = o.series ?? o.Series;
+  if (!Array.isArray(seriesRaw) || seriesRaw.length !== 2) return null;
+  const series: MeditationChartSeriesItem[] = [];
+  for (const item of seriesRaw) {
+    const one = parseStatisticsSeriesItem(item);
+    if (!one || one.data.length !== categoriesLength) return null;
+    series.push(one);
+  }
+  return { series };
+}
+
+function parseCompareChartData(raw: unknown): MeditationStatisticsCompareChartData | null {
+  if (raw == null || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const catsRaw = o.categories ?? o.Categories;
+  if (!Array.isArray(catsRaw) || catsRaw.length !== STATISTICS_BUCKET) return null;
+  const categories = catsRaw.map((c) => String(c ?? ""));
+
+  const heartRate = parseCompareMetricBlock(o.heartRate ?? o.heart_rate, categories.length);
+  const breathRate = parseCompareMetricBlock(o.breathRate ?? o.breath_rate, categories.length);
+  const movement = parseCompareMetricBlock(o.movement, categories.length);
+  const duration = parseCompareMetricBlock(o.duration, categories.length);
+  if (!heartRate || !breathRate || !movement || !duration) return null;
+
+  return {
+    categories,
+    heartRate,
+    breathRate,
+    movement,
+    duration,
+  };
 }
 
 function parseStatisticsRangeField(v: unknown): MeditationStatisticsRange {
@@ -247,13 +288,8 @@ export function parseMeditationReportStatisticsPayload(raw: unknown): Meditation
   const durationChartData = parseStatisticsChartBlock(
     o.durationChartData ?? o.duration_chart_data,
   );
-  const compareChartData = parseStatisticsChartBlock(o.compareChartData ?? o.compare_chart_data);
-  if (
-    !durationChartData ||
-    !compareChartData ||
-    !isSevenBucketChart(durationChartData) ||
-    !isSevenBucketChart(compareChartData)
-  ) {
+  const compareChartData = parseCompareChartData(o.compareChartData ?? o.compare_chart_data);
+  if (!durationChartData || !compareChartData || !isSevenBucketChart(durationChartData)) {
     return null;
   }
 

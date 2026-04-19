@@ -203,6 +203,20 @@ export interface MeditationStatisticsChartBlock {
   series: MeditationChartSeriesItem[];
 }
 
+/** 对比图单指标数据块（上一周期 vs 当前周期） */
+export interface MeditationStatisticsCompareMetricBlock {
+  series: MeditationChartSeriesItem[];
+}
+
+/** `compareChartData`：四个独立对比图共用同一横轴 `categories` */
+export interface MeditationStatisticsCompareChartData {
+  categories: string[];
+  heartRate: MeditationStatisticsCompareMetricBlock;
+  breathRate: MeditationStatisticsCompareMetricBlock;
+  movement: MeditationStatisticsCompareMetricBlock;
+  duration: MeditationStatisticsCompareMetricBlock;
+}
+
 /**
  * 整段周期汇总 + 时间范围（`currentPeriod` / `previousPeriod`）。
  * `rangeEnd` 不含，与 SQL `endDate < ?` 语义一致。
@@ -263,6 +277,6 @@ export interface MeditationReportStatisticsData {
   last7Sessions: MeditationStatisticsLast7SessionItem[];
   trend: MeditationStatisticsTrendPoint[];
   durationChartData: MeditationStatisticsChartBlock;
-  compareChartData: MeditationStatisticsChartBlock;
+  compareChartData: MeditationStatisticsCompareChartData;
   latestSessionId: number;
 }

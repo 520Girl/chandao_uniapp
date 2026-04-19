@@ -81,7 +81,7 @@
                         <view class="flex flex-col min-w-0 flex-1">
                             <text class="font-label text-[18rpx] tracking-[0.12em] text-outline uppercase">体姿</text>
                             <text class="text-[26rpx] font-semibold text-on-surface leading-tight mt-0.5">
-                                {{ currentIsBed ? '在床' : '离床' }}
+                                {{ currentIsBed ? '在座' : '离座' }}
                             </text>
                         </view>
                     </view>
@@ -156,7 +156,7 @@ const trackUrl = ref('');
 const sessionNumericId = ref(0);
 /**
  * 轮询间隔（毫秒）：来自 `POST /app/meditation/start` 的 `pollInterval`（或兼容字段 `pollDelayMs`），
- * 供 `schedulePollLoop` 在两次 `POST /app/meditation/poll` 之间等待，直到会话 `ended` 或本地结束。
+ * 供 `startPollLoop` 里 `setInterval` 节拍调用 `poll`，直到会话 `ended` 或本地结束。
  */
 const pollDelayMs = ref(5000);
 /** 首页选择：是否使用外接设备（决定 `start.type` 与是否解析 `poll.resp`） */
@@ -174,12 +174,61 @@ const currentIsBodyMovement = ref(false);
 const statSamples = ref<RealtimeStat[]>([]);
 
 let timerId: ReturnType<typeof setInterval> | null = null;
-let pollTimer: ReturnType<typeof setTimeout> | null = null;
+let pollTimer: ReturnType<typeof setInterval> | null = null;
+/** 防止 `pollDelayMs` 节拍与单次请求耗时重叠导致并发 poll */
+let pollInFlight = false;
 let ended = false;
 /** 禅修进行中背景音乐（单曲循环，曲目短于禅修时长时自动重播） */
 let meditationAudio: UniApp.InnerAudioContext | null = null;
+/** 小程序端：后台音频（息屏后更稳定） */
+let meditationBgAudio: UniApp.BackgroundAudioManager | null = null;
+let bgAudioEndedHandler: (() => void) | null = null;
+let bgAudioErrorHandler: ((err: unknown) => void) | null = null;
+
+function enableKeepScreenOn() {
+  try {
+    uni.setKeepScreenOn({ keepScreenOn: true });
+  } catch {
+    /* noop */
+  }
+}
+
+function disableKeepScreenOn() {
+  try {
+    uni.setKeepScreenOn({ keepScreenOn: false });
+  } catch {
+    /* noop */
+  }
+}
 
 function disposeMeditationAudio() {
+  // #ifdef MP-WEIXIN
+  if (meditationBgAudio) {
+    try {
+      if (bgAudioEndedHandler && typeof (meditationBgAudio as any).offEnded === 'function') {
+        (meditationBgAudio as any).offEnded(bgAudioEndedHandler);
+      }
+    } catch {
+      /* noop */
+    }
+    try {
+      if (bgAudioErrorHandler && typeof (meditationBgAudio as any).offError === 'function') {
+        (meditationBgAudio as any).offError(bgAudioErrorHandler);
+      }
+    } catch {
+      /* noop */
+    }
+    try {
+      meditationBgAudio.stop();
+    } catch {
+      /* noop */
+    }
+    meditationBgAudio = null;
+  }
+  bgAudioEndedHandler = null;
+  bgAudioErrorHandler = null;
+  // #endif
+
   if (!meditationAudio) return;
   try {
     meditationAudio.stop();
@@ -202,6 +251,39 @@ function startMeditationBgMusic() {
   if (!url) return;
 
   disposeMeditationAudio();
+
+  // #ifdef MP-WEIXIN
+  const bg = uni.getBackgroundAudioManager();
+  meditationBgAudio = bg;
+
+  bgAudioEndedHandler = () => {
+    if (ended) return;
+    try {
+      bg.seek(0);
+      bg.play();
+    } catch {
+      /* noop */
+    }
+  };
+  bgAudioErrorHandler = (err) => {
+    console.error('禅修后台音乐', err);
+  };
+
+  bg.onEnded(bgAudioEndedHandler);
+  bg.onError(bgAudioErrorHandler);
+  bg.title = trackTitle.value || '禅修背景音';
+  bg.epname = '禅修';
+  bg.singer = '静心';
+  bg.coverImgUrl = '/static/logo.png';
+  bg.src = url;
+  try {
+    bg.play();
+  } catch {
+    /* noop */
+  }
+  return;
+  // #endif
+
   const ctx = uni.createInnerAudioContext();
   meditationAudio = ctx;
   ctx.obeyMuteSwitch = false;
@@ -333,7 +415,7 @@ function buildMeditationStartBody(targetDuration: number): MeditationStartDTO {
 
 function clearPollTimer() {
   if (pollTimer != null) {
-    clearTimeout(pollTimer);
+    clearInterval(pollTimer);
     pollTimer = null;
   }
 }
@@ -424,20 +506,26 @@ async function doOnePoll() {
 }
 
 /**
- * 按 `start` 返回的 `pollDelayMs` 间隔反复 `poll`，同步设备/会话状态，直到：
- * - 接口返回 `status === 'ended'`，或
- * - 用户手动结束 / 本地倒计时归零触发 `finishMeditationSession`（会先 `ended=true` 并清定时器）。
+ * 按墙钟节拍拉 `poll`（`setInterval`）：先立即跑一轮，再每隔 `pollDelayMs` 触发；
+ * 若上一轮尚未结束则跳过本次 tick，避免并发。注意：小程序后台仍可能整体节流定时器，与音频后台能力无关。
  */
-async function schedulePollLoop() {
+async function tickPoll() {
   if (ended || sessionNumericId.value <= 0) return;
+  if (pollInFlight) return;
+  pollInFlight = true;
   try {
     await doOnePoll();
   } catch (e) {
-    console.error('schedulePollLoop', e);
+    console.error('tickPoll', e);
+  } finally {
+    pollInFlight = false;
   }
-  if (ended) return;
+}
+
+function startPollLoop() {
   clearPollTimer();
-  pollTimer = setTimeout(() => void schedulePollLoop(), pollDelayMs.value);
+  void tickPoll();
+  pollTimer = setInterval(() => void tickPoll(), pollDelayMs.value);
 }
 
 function getAvg(list: number[]) {
@@ -448,6 +536,7 @@ function getAvg(list: number[]) {
 async function finishMeditationSession(manualStop: boolean) {
   if (ended) return;
   ended = true;
+  disableKeepScreenOn();
   clearPollTimer();
   if (timerId) clearInterval(timerId);
   timerId = null;
@@ -564,10 +653,12 @@ onLoad((query) => {
 });
 
 async function bootstrapMeditation() {
+  enableKeepScreenOn();
   uni.showLoading({ title: '准备中…', mask: true });
   try {
     await startRemoteSession();
   } catch {
+    disableKeepScreenOn();
     return;
   } finally {
     uni.hideLoading();
@@ -581,11 +672,12 @@ async function bootstrapMeditation() {
     }
   }, 1000);
 
-  void schedulePollLoop();
+  startPollLoop();
   startMeditationBgMusic();
 }
 
 onUnload(() => {
+  disableKeepScreenOn();
   if (timerId) clearInterval(timerId);
   timerId = null;
   clearPollTimer();
@@ -593,6 +685,7 @@ onUnload(() => {
 });
 
 onBeforeUnmount(() => {
+  disableKeepScreenOn();
   if (timerId) clearInterval(timerId);
   timerId = null;
   clearPollTimer();

@@ -242,7 +242,7 @@
   
   /** 分钟范围（与 UI 文案 05–60 一致） */
   const minMinutes = 1;
-  const maxMinutes = 60;
+  const maxMinutes = 300;
   const stepMinutes = 1;
   
   /** 默认取区间中间偏下，避免为 min 时进度条/圆环为 0 看起来像「无填充」 */
@@ -880,10 +880,10 @@
       try {
         const body: ActivityCheckinDTO = { id: activity.id };
         try {
-          const pos = await getCurrentLatLng();
-          body.lat = pos.latitude;
-          body.lng = pos.longitude;
-          if (pos.accuracy != null) body.accuracy = pos.accuracy;
+          // const pos = await getCurrentLatLng();
+          // body.lat = pos.latitude;
+          // body.lng = pos.longitude;
+          // if (pos.accuracy != null) body.accuracy = pos.accuracy;
         } catch {
           /* 与活动详情页一致：无定位时仅传 id */
         }

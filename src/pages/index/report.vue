@@ -1,6 +1,6 @@
 <template>
     <view class="flex flex-col min-h-screen w-full max-w-full overflow-x-hidden box-border pb-32 theme-bg meditation-page">
-        <HomeBar :title="'报告'" description="回 顾 历 史" :titleIcon="'icon-xinshuai'" :leftIcon="'icon-Trophy'" />
+        <HomeBar :title="'报告'" description="观 照 身 心" :titleIcon="'icon-xinshuai'" :leftIcon="'icon-Trophy'" :handleClick="gotoRank" />
 
         <view class="flex-1 w-full max-w-full min-w-0 box-border px-6 flex flex-col">
             <view class="w-full max-w-full min-w-0 pt-6 space-y-8 box-border">
@@ -15,7 +15,7 @@
                         </view>
                         <view class="space-y-1">
                             <view class="text-[10px] tracking-[0.15rem] uppercase text-on-surface-variant/60 font-medium"></view>
-                            <view class="font-headline text-[40rpx] theme-color-7">最近冥想</view>
+                            <view class="font-headline text-[40rpx] theme-color-7">本次心迹</view>
                         </view>
                         <view class="space-y-1 theme-color-6">
                             <view class="text-[48rpx] font-semibold text-primary">{{ latestSessionMinutesDisplay }}<span
@@ -58,7 +58,7 @@
                 <!-- Duration Chart -->
                 <view class="space-y-4 w-full max-w-full min-w-0 box-border">
                     <view class="flex justify-between items-end gap-2 px-2 min-w-0">
-                        <view class="font-headline text-[40rpx] theme-color-7">冥想时长</view>
+                        <view class="font-headline text-[40rpx] theme-color-7">静坐时长</view>
                         <view class="text-xs font-label tracking-widest text-on-surface-variant/60">分钟 / 日期</view>
                     </view>
                     <view class="bg-white/30 rounded-[32px] p-4 w-full max-w-full min-w-0 overflow-hidden box-border">
@@ -78,33 +78,67 @@
                 <view class="space-y-6 w-full max-w-full min-w-0">
                     <view class="flex justify-between items-center gap-2 min-w-0">
                         <view class="font-headline text-[40rpx] theme-color-7 shrink-0">数据对比</view>
-                        <view v-if="compareSeriesPair.length >= 2" class="flex gap-2 shrink-0">
+                    <view class="flex gap-2 shrink-0">
                             <view class="flex items-center gap-1 px-[2rpx] py-1.5 bg-surface-container-low rounded-full">
-                                <span class="text-[10px] text-on-surface font-medium">体动/总数</span>
+                        <span class="text-[10px] text-on-surface font-medium">心率</span>
                             </view>
                             <view class="flex items-center gap-1 px-[2rpx] py-1.5 bg-surface-container-low rounded-full">
-                                <span class="text-[10px] text-on-surface font-medium">心率/平均</span>
+                        <span class="text-[10px] text-on-surface font-medium">呼吸</span>
                             </view>
                             <view class="flex items-center gap-1 px-[2rpx] py-1.5 bg-surface-container-low rounded-full">
-                                <span class="text-[10px] text-on-surface font-medium">心率/平均</span>
-                            </view>
+                        <span class="text-[10px] text-on-surface font-medium">体动</span>
+                      </view>
                         </view>
                     </view>
+                  <view class="grid grid-cols-1 gap-4 w-full max-w-full min-w-0">
                     <view
-                        class="w-full max-w-full min-w-0 bg-surface-container-lowest/20 border border-white/30 box-border overflow-hidden">
-                        <!-- 高度需容纳折线区 + 底部内置图例；点击图例可显隐对应折线（qiun / uCharts tapLegend） -->
-                        <view class="w-full max-w-full min-w-0 box-border" style="height: 172px">
-                            <qiun-data-charts
-                                :key="'cmp-' + chartsRemountKey"
-                                type="line"
-                                canvas-id="weeklyCompareChart"
-                                :canvas2d="true"
-                                background="transparent"
-                                :tap-legend="true"
-                                tooltip-format="statisticsCompareTooltip"
-                                :chart-data="compareChartData"
-                                :opts="compareOpts" />
-                        </view>
+                      class="w-full max-w-full min-w-0 bg-surface-container-lowest/20 border border-white/30 box-border overflow-hidden rounded-3xl p-3 space-y-2">
+                      <view class="px-1 text-xs tracking-widest text-on-surface-variant/60">平均心率对比</view>
+                      <view class="w-full max-w-full min-w-0 box-border" style="height: 168px">
+                        <qiun-data-charts
+                          :key="'cmp-heart-' + chartsRemountKey"
+                          type="line"
+                          canvas-id="weeklyCompareHeartChart"
+                          :canvas2d="true"
+                          background="transparent"
+                          :tap-legend="true"
+                          tooltip-format="statisticsCompareTooltip"
+                          :chart-data="heartRateCompareChartData"
+                          :opts="compareHeartRateOpts" />
+                      </view>
+                    </view>
+                    <view
+                      class="w-full max-w-full min-w-0 bg-surface-container-lowest/20 border border-white/30 box-border overflow-hidden rounded-3xl p-3 space-y-2">
+                      <view class="px-1 text-xs tracking-widest text-on-surface-variant/60">平均呼吸率对比</view>
+                      <view class="w-full max-w-full min-w-0 box-border" style="height: 168px">
+                        <qiun-data-charts
+                          :key="'cmp-breath-' + chartsRemountKey"
+                          type="line"
+                          canvas-id="weeklyCompareBreathChart"
+                          :canvas2d="true"
+                          background="transparent"
+                          :tap-legend="true"
+                          tooltip-format="statisticsCompareTooltip"
+                          :chart-data="breathRateCompareChartData"
+                          :opts="compareBreathRateOpts" />
+                      </view>
+                    </view>
+                    <view
+                      class="w-full max-w-full min-w-0 bg-surface-container-lowest/20 border border-white/30 box-border overflow-hidden rounded-3xl p-3 space-y-2">
+                      <view class="px-1 text-xs tracking-widest text-on-surface-variant/60">体动总数对比</view>
+                      <view class="w-full max-w-full min-w-0 box-border" style="height: 168px">
+                        <qiun-data-charts
+                          :key="'cmp-movement-' + chartsRemountKey"
+                          type="column"
+                          canvas-id="weeklyCompareMovementChart"
+                          :canvas2d="true"
+                          background="transparent"
+                          :tap-legend="true"
+                          tooltip-format="statisticsCompareTooltip"
+                          :chart-data="movementCompareChartData"
+                          :opts="compareBarOpts" />
+                      </view>
+                    </view>
                     </view>
                 </view>
                 <!-- Aesthetic Quote/Insight Footer -->
@@ -123,6 +157,8 @@
 import { fetchMeditationReportStatistics } from '@/assets/js/api/meditation';
 import HomeBar from '@/components/homeBar.vue';
 import type {
+  MeditationStatisticsCompareChartData,
+  MeditationStatisticsCompareMetricBlock,
   MeditationReportStatisticsData,
   MeditationStatisticsChartBlock,
   MeditationStatisticsRange,
@@ -136,12 +172,32 @@ const FALLBACK_DURATION: MeditationStatisticsChartBlock = {
   categories: ['-'],
   series: [{ name: '时长', data: [0] }],
 };
-const FALLBACK_COMPARE: MeditationStatisticsChartBlock = {
+const FALLBACK_COMPARE: MeditationStatisticsCompareChartData = {
   categories: ['-'],
-  series: [
-    { name: '-', data: [0] },
-    { name: '-', data: [0] },
-  ],
+  heartRate: {
+    series: [
+      { name: '-', data: [0] },
+      { name: '-', data: [0] },
+    ],
+  },
+  breathRate: {
+    series: [
+      { name: '-', data: [0] },
+      { name: '-', data: [0] },
+    ],
+  },
+  movement: {
+    series: [
+      { name: '-', data: [0] },
+      { name: '-', data: [0] },
+    ],
+  },
+  duration: {
+    series: [
+      { name: '-', data: [0] },
+      { name: '-', data: [0] },
+    ],
+  },
 };
 
 const statistics = ref<MeditationReportStatisticsData | null>(null);
@@ -189,6 +245,28 @@ const durationChartData = computed(
 );
 const compareChartData = computed(() => statistics.value?.compareChartData ?? FALLBACK_COMPARE);
 
+function buildCompareMetricChartData(
+  metric: MeditationStatisticsCompareMetricBlock,
+  categories: string[],
+): MeditationStatisticsChartBlock {
+  return {
+    categories,
+    series: metric.series,
+  };
+}
+
+const heartRateCompareChartData = computed(() =>
+  buildCompareMetricChartData(compareChartData.value.heartRate, compareChartData.value.categories),
+);
+
+const breathRateCompareChartData = computed(() =>
+  buildCompareMetricChartData(compareChartData.value.breathRate, compareChartData.value.categories),
+);
+
+const movementCompareChartData = computed(() =>
+  buildCompareMetricChartData(compareChartData.value.movement, compareChartData.value.categories),
+);
+
 /** 优先用统计根字段；不足 1 分钟时保留最多两位小数，否则四舍五入为整数分钟 */
 const latestSessionMinutesDisplay = computed(() => {
   const m =
@@ -226,7 +304,7 @@ const durationMaxY = computed(() => {
 });
 
 const compareYBounds = computed(() => {
-  const vals = flatBlockValues(compareChartData.value);
+  const vals = flatBlockValues(heartRateCompareChartData.value);
   if (!vals.length) return { min: 0, max: 60 };
   const minV = Math.min(...vals);
   const maxV = Math.max(...vals);
@@ -237,6 +315,22 @@ const compareYBounds = computed(() => {
     max: Math.ceil(maxV + pad),
   };
 });
+
+function calcYBounds(block: MeditationStatisticsChartBlock, fallbackMax: number) {
+  const vals = flatBlockValues(block);
+  if (!vals.length) return { min: 0, max: fallbackMax };
+  const minV = Math.min(...vals);
+  const maxV = Math.max(...vals);
+  const span = maxV - minV || 1;
+  const pad = Math.max(span * 0.1, 1);
+  return {
+    min: Math.max(0, Math.floor(minV - pad)),
+    max: Math.max(2, Math.ceil(maxV + pad)),
+  };
+}
+
+const breathRateYBounds = computed(() => calcYBounds(breathRateCompareChartData.value, 30));
+const movementYBounds = computed(() => calcYBounds(movementCompareChartData.value, 20));
 
 const durationOpts = computed(() => ({
   color: ['#705900'],
@@ -272,11 +366,14 @@ const durationOpts = computed(() => ({
   },
 }));
 
-/** 与下方图例色条一致，须与 compareLegendItems 索引对应 */
-const COMPARE_CHART_LINE_COLORS: readonly [string, string] = ['rgba(112,89,0,0.25)', '#705900'];
+/** 三个对比图使用同主题不同色阶，保持金色体系一致 */
+const HEART_COMPARE_COLORS: readonly [string, string] = ['rgba(212,175,53,0.28)', '#705900'];
+const HEART_COMPARE_COLORS_2: readonly [string, string] = ['#4A90E2', '#B4D4F5'];
+const BREATH_COMPARE_COLORS: readonly [string, string] = ['#F9BCB0', '#E6644F'];
+const MOVEMENT_COMPARE_COLORS: readonly [string, string] = ['rgba(218,187,83,0.26)', '#DABB53'];
 
-const compareOpts = computed(() => ({
-  color: [...COMPARE_CHART_LINE_COLORS],
+const compareHeartRateOpts = computed(() => ({
+  color: [...HEART_COMPARE_COLORS_2],
   /** 底部图例色块与折线同色（opts.color）；点击图例切换该系列 show，由 uCharts touchLegend 处理 */
   legend: {
     show: true,
@@ -328,7 +425,75 @@ const compareOpts = computed(() => ({
   },
 }));
 
-const compareSeriesPair = computed(() => compareChartData.value.series);
+const compareBarOpts = computed(() => ({
+  color: [...MOVEMENT_COMPARE_COLORS],
+  legend: {
+    show: true,
+    position: 'bottom',
+    float: 'center',
+    fontSize: 10,
+    lineHeight: 12,
+    padding: 4,
+    margin: 4,
+    itemGap: 14,
+    fontColor: '#5c5548',
+    backgroundColor: 'rgba(0,0,0,0)',
+    borderWidth: 0,
+    hiddenColor: '#b9b0a0',
+  },
+  padding: [8, 8, 2, 8],
+  xAxis: {
+    disableGrid: true,
+    fontSize: 10,
+    fontColor: '#7d7463',
+  },
+  yAxis: {
+    data: [
+      {
+        min: movementYBounds.value.min,
+        max: movementYBounds.value.max,
+        axisLine: false,
+      },
+    ],
+    splitNumber: 4,
+    gridType: 'dash' as const,
+    dashLength: 3,
+    fontSize: 10,
+    fontColor: '#7d7463',
+  },
+  extra: {
+    column: {
+      type: 'group' as const,
+      width: 9,
+      borderRadius: [4, 4, 0, 0],
+    },
+    tooltip: {
+      showCategory: false,
+      lineHeight: 22,
+      fontSize: 11,
+      boxPadding: 4,
+    },
+  },
+}));
+
+const compareBreathRateOpts = computed(() => ({
+  ...compareHeartRateOpts.value,
+  color: [...BREATH_COMPARE_COLORS],
+  yAxis: {
+    data: [
+      {
+        min: breathRateYBounds.value.min,
+        max: breathRateYBounds.value.max,
+        axisLine: false,
+      },
+    ],
+    splitNumber: 4,
+    gridType: 'dash' as const,
+    dashLength: 3,
+    fontSize: 10,
+    fontColor: '#7d7463',
+  },
+}));
 
 function rangePillClass(range: MeditationStatisticsRange) {
   return statsRange.value === range
@@ -373,6 +538,12 @@ const handleLatestSessionClick = () => {
     url: `/pages/meditation/report?sessionId=${statistics.value?.currentPeriod?.latestSessionId}`,
   });
 };
+
+function gotoRank() {
+  uni.navigateTo({
+    url: '/pages/profile/rank',
+  });
+}
 
 onMounted(() => {
   void loadStatistics(statsRange.value);

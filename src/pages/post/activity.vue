@@ -231,10 +231,10 @@ async function onCheckin() {
   const body: ActivityCheckinDTO = { id: activityId.value };
   try {
     try {
-      const pos = await getCurrentLatLng();
-      body.lat = pos.latitude;
-      body.lng = pos.longitude;
-      if (pos.accuracy != null) body.accuracy = pos.accuracy;
+      // const pos = await getCurrentLatLng();
+      // body.lat = pos.latitude;
+      // body.lng = pos.longitude;
+      // if (pos.accuracy != null) body.accuracy = pos.accuracy;
     } catch {
       /* 未授权或定位失败时仍尝试仅 id 打卡，由后端按活动规则校验 */
     }

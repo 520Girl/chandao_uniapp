@@ -245,11 +245,10 @@ function onTag() {
 async function onLocation() {
   try {
     uni.showLoading({ title: "定位中…", mask: true });
-    const { latitude, longitude, accuracy } = await getCurrentLatLng({ type: "wgs84" });
-    console.log('onLocation', latitude, longitude, accuracy);
-    postLat.value = latitude;
-    postLng.value = longitude;
-    postAccuracy.value = accuracy;
+    // const { latitude, longitude, accuracy } = await getCurrentLatLng({ type: "wgs84" });
+    // postLat.value = latitude;
+    // postLng.value = longitude;
+    // postAccuracy.value = accuracy;
     uni.showToast({ title: "已记录发布位置", icon: "success" });
   } catch {
     uni.showToast({ title: "定位失败，请开启定位权限", icon: "none" });
@@ -369,9 +368,9 @@ async function submitPost() {
     });
     if (lat != null && lng != null) {
       void postUserLocationReport({
-        lat,
-        lng,
-        accuracy: postAccuracy.value,
+        // lat,
+        // lng,
+        // accuracy: postAccuracy.value,
         scene: "post_publish",
       }).catch(() => {});
     }

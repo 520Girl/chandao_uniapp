@@ -230,6 +230,13 @@
           }
         },
         {
+          "path": "oneInfoList",
+          "style": {
+            "navigationBarTitleText": "个人信息列表",
+            "navigationStyle": "custom"
+          }
+        },
+        {
           "path": "disclaimer",
           "style": {
             "navigationBarTitleText": "免责声明",
@@ -349,8 +356,8 @@
       {
         "pagePath": "pages/index/report",
         "text": "心迹",
-        "iconPath": "static/nav/chaye.png",
-        "selectedIconPath": "static/nav/chayesle.png"
+        "iconPath": "static/nav/chaye.jpg",
+        "selectedIconPath": "static/nav/chayesle.jpg"
       },
       {
         "pagePath": "pages/index/community",

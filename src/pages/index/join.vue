@@ -39,9 +39,8 @@ const onLcrBack = () => {
 
 async function confirmInviteJoin() {
     const code = inviteCode.value.trim();
-    console.log('sssssssssss', code, userStore.isLoggedIn);
     if (!code) return;
-    console.log(code);
+    uni.removeStorageSync("PENDING_INVITE_CODE");
     if (!userStore.isLoggedIn) {
         try {
             uni.setStorageSync('PENDING_INVITE_CODE', code);
@@ -57,11 +56,12 @@ async function confirmInviteJoin() {
     try {
         const res = await postUserJoinByInvite({ code });
         const data = unwrapApiData<JoinByInviteResult>(res);
-            console.log('data',data);
         if (data && data?.personalFormation !== null) {
             uni.showToast({ title: '加入成功', icon: 'success' });
             return;
         }
+        uni.removeStorageSync("PENDING_INVITE_CODE");
+
         setTimeout(() => {
           uni.switchTab({ url: '/pages/index/home' });
         }, 500);

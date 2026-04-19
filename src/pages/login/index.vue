@@ -80,6 +80,13 @@ const onWechatLogin = async () => {
 if (loading.value) {
     return;
   }
+  if(!agreeChecked.value) {
+        uni.showToast({
+            title: '请同意用户协议和隐私政策',
+            icon: 'none'
+        });
+        return;
+    };
   // #ifndef MP-WEIXIN
   uni.showToast({
     title: '请在微信小程序环境测试',

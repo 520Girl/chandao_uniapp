@@ -53,6 +53,18 @@ export interface MeditationReportSharePayload {
   posterInviteMinimal?: boolean;
   /** `posterInviteMinimal` 时主标题下的说明行（如社群名称），不传则不画该行 */
   posterInviteSubtitle?: string;
+  /** 报告海报：用户昵称（展示在头像旁） */
+  posterUserName?: string;
+  /** 报告海报：用户头像 URL（可为本地路径、绝对 URL） */
+  posterUserAvatarUrl?: string;
+  /** 报告海报：累计冥想天数 */
+  posterTotalDays?: number | null;
+  /** 报告海报：累计冥想时长（小时） */
+  posterTotalHours?: number | null;
+  /** 报告海报：连续冥想天数 */
+  posterConsecutiveDays?: number | null;
+  /** 报告海报：本次体动次数 */
+  posterMovementCount?: number | null;
 }
 
 /** uview-plus `up-poster` 根节点样式（与官方 poster json 对齐） */

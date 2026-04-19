@@ -6,7 +6,7 @@
         <view
           class="flex flex-wrap justify-center items-end gap-x-[10rpx] gap-y-2 px-2 mb-6 text-[48rpx] font-bold leading-tight"
         >
-          <text class="shrink-0">今日照见：</text>
+          <text class="shrink-0">观照手记：</text>
           <view
             class="min-w-[140rpx] max-w-[85%] pb-[8rpx] border-b-2 border-dashed border-[#d4af35]/45 box-border"
           >
@@ -23,7 +23,7 @@
             style="height: 100rpx; min-height: auto; line-height: 2"
             v-model="content"
             class="flex-1 min-w-0 bg-white border border-theme-12 rounded-full text-center italic text-[#d4af35]/60 shadow-sm box-border"
-            placeholder="分享你的内心天空..."
+            placeholder="记录今日静坐心得与身心感受..."
           />
           <view
             hover-class="opacity-90"

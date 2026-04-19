@@ -1,8 +1,8 @@
 @font-face {
   font-family: "iconfont"; /* Project id 5133341 */
-  src: url('iconfont.woff2?t=1776177714740') format('woff2'),
-       url('iconfont.woff?t=1776177714740') format('woff'),
-       url('iconfont.ttf?t=1776177714740') format('truetype');
+  src: url('iconfont.woff2?t=1776244125188') format('woff2'),
+       url('iconfont.woff?t=1776244125188') format('woff'),
+       url('iconfont.ttf?t=1776244125188') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,10 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-jiarutuandui:before {
+  content: "\e792";
 }
 
 .icon-huizhangguanli:before {

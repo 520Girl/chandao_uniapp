@@ -297,153 +297,215 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
   const minutes = Math.floor(p.elapsedSec / 60);
   const sec = p.elapsedSec % 60;
   const { qrImageSrc, qrText } = resolvePosterQrBlock(p);
-  const mainTitle = (p.posterMainTitle ?? "心迹报告").trim() || "心迹报告";
+  const mainTitle = (p.posterMainTitle ?? "坐观其心").trim() || "坐观其心";
   const bottomHint =
     (p.posterBottomHint ?? "长按图片可保存 · 扫码查看完整报告").trim() ||
     "长按图片可保存 · 扫码查看完整报告";
+  const userName = (p.posterUserName ?? "静心用户").trim() || "静心用户";
+  const avatar = (p.posterUserAvatarUrl ?? "").trim() || "/static/logo.png";
+  const todayLine = `${minutes}分${sec}秒`;
+  const totalDaysLine = p.posterTotalDays != null ? `${Math.max(0, Math.floor(p.posterTotalDays))} 天` : "--";
+  const totalHoursLine =
+    p.posterTotalHours != null ? `${Math.max(0, Number(p.posterTotalHours)).toFixed(1)} 小时` : "--";
+  const progressLine =
+    p.posterConsecutiveDays != null
+      ? `已连续 ${Math.max(0, Math.floor(p.posterConsecutiveDays))} 天`
+      : p.manualStop
+        ? "手动收束"
+        : "自然收束";
+  const movementLine =
+    p.posterMovementCount != null ? `${Math.max(0, Math.floor(p.posterMovementCount))} 次` : "--";
+  const dateLine = (() => {
+    const d = new Date();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    // return `${d.getFullYear()}/${m}/${day}`;
+    return `${day}`;
+  })();
   const track = p.trackTitle?.trim();
-  const trackLine = track ? `伴乐「${truncateTrackTitle(track, 20)}」` : "";
+  const trackLine = track ? `伴乐：${truncateTrackTitle(track, 16)}` : "";
 
   const views: UviewPosterJson["views"] = [
     {
-      type: "view",
+      type: "image",
+      src: "/static/MeditationReportBg.jpg",
       css: {
         left: "0rpx",
         top: "0rpx",
         width: "750rpx",
-        height: "10rpx",
-        background: C_PRIMARY,
+        height: "1333rpx",
       },
     },
     {
-      type: "view",
-      css: {
-        left: "36rpx",
-        top: "52rpx",
-        width: "678rpx",
-        height: "420rpx",
-        background: C_CARD,
-        radius: "32rpx",
-      },
-    },
-    {
-      type: "view",
+      type: "image",
+      src: avatar,
       css: {
         left: "64rpx",
-        top: "88rpx",
-        width: "96rpx",
-        height: "8rpx",
-        background: C_PRIMARY,
+        top: "64rpx",
+        width: "88rpx",
+        height: "88rpx",
+        radius: "44rpx",
       },
     },
     {
       type: "text",
-      text: mainTitle,
+      text: userName,
       css: {
-        left: "64rpx",
-        top: "116rpx",
-        color: C_INK,
-        fontSize: "48rpx",
+        left: "176rpx",
+        top: "110rpx",
+        color: "#2b2518",
+        fontSize: "30rpx",
         fontWeight: "bold",
       },
     },
     {
       type: "text",
-      text: "坐观其心 · 静心觉察",
+      text: dateLine,
       css: {
-        left: "64rpx",
-        top: "184rpx",
-        color: C_HINT,
-        fontSize: "24rpx",
+        left: "622rpx",
+        top: "124rpx",
+        color: "#8e6b35",
+        fontSize: "40rpx",
+        fontWeight: 'bold'
       },
     },
     {
       type: "text",
-      text: `本次 ${minutes} 分 ${sec} 秒  ·  平均心率 ${p.avgHeart} bpm`,
+      text: progressLine,
       css: {
-        left: "64rpx",
-        top: "236rpx",
-        color: C_TEXT,
-        fontSize: "30rpx",
+        left: "220rpx",
+        top: "298rpx",
+        color: "#3f5246",
+        fontSize: "34rpx",
       },
     },
     {
       type: "text",
-      text: `呼吸 ${p.avgBreath} 次/分  ·  心率 ${p.minHeart}–${p.maxHeart} bpm`,
+      text: totalDaysLine,
       css: {
-        left: "64rpx",
-        top: "292rpx",
-        color: C_TEXT_MUTED,
-        fontSize: "26rpx",
+        left: "220rpx",
+        top: "373rpx",
+        color: "#2f281b",
+        fontSize: "34rpx",
+      },
+    },
+    {
+      type: "text",
+      text: totalHoursLine,
+      css: {
+        left: "220rpx",
+        top: "448rpx",
+        color: "#2f281b",
+        fontSize: "34rpx",
+      },
+    },
+    {
+      type: "text",
+      text: todayLine,
+      css: {
+        left: "220rpx",
+        top: "523rpx",
+        color: "#2f281b",
+        fontSize: "34rpx",
+      },
+    },
+    {
+      type: "text",
+      text: `${p.avgHeart} bpm`,
+      css: {
+        left: "178rpx",
+        top: "690rpx",
+        color: "#2f281b",
+        fontSize: "34rpx",
+      },
+    },
+    {
+      type: "text",
+      text: movementLine,
+      css: {
+        left: "178rpx",
+        top: "758rpx",
+        color: "#2f281b",
+        fontSize: "34rpx",
+      },
+    },
+    {
+      type: "text",
+      text: `${p.avgBreath} 次/分`,
+      css: {
+        left: "194rpx",
+        top: "826rpx",
+        color: "#2f281b",
+        fontSize: "34rpx",
       },
     },
   ];
 
-  let nextTop = 348;
   if (trackLine) {
     views.push({
       type: "text",
       text: trackLine,
       css: {
-        left: "64rpx",
-        top: `${nextTop}rpx`,
-        color: C_TEXT_MUTED,
-        fontSize: "26rpx",
+        left: "272rpx",
+        top: "1164rpx",
+        color: "#6e6045",
+        fontSize: "22rpx",
       },
     });
-    nextTop += 56;
   }
 
   views.push(
-    {
-      type: "view",
-      css: {
-        left: "64rpx",
-        top: `${nextTop + 8}rpx`,
-        width: "622rpx",
-        height: "6rpx",
-        background: C_PRIMARY_SOFT,
-      },
-    },
-    {
-      type: "text",
-      text: bottomHint,
-      css: {
-        left: "64rpx",
-        top: `${nextTop + 36}rpx`,
-        color: C_HINT,
-        fontSize: "24rpx",
-      },
-    },
     qrImageSrc
       ? {
           type: "image",
           src: qrImageSrc,
           css: {
-            left: "255rpx",
-            top: "600rpx",
-            width: "240rpx",
-            height: "240rpx",
+            left: "100rpx",
+            top: "1062rpx",
+            width: "136rpx",
+            height: "136rpx",
+            radius: "10rpx",
           },
         }
       : {
           type: "qrcode",
           text: qrText,
           css: {
-            left: "255rpx",
-            top: "600rpx",
-            width: "240rpx",
-            height: "240rpx",
+            left: "110rpx",
+            top: "1025rpx",
+            width: "136rpx",
+            height: "136rpx",
           },
         },
     {
       type: "text",
-      text: "—— 非医疗诊断，以舒适为宜 ——",
+      text: mainTitle,
       css: {
-        left: "120rpx",
-        top: "900rpx",
-        color: C_HINT,
-        fontSize: "22rpx",
+        left: "272rpx",
+        top: "1080rpx",
+        color: "#3f3320",
+        fontSize: "30rpx",
+        fontWeight: "bold",
+      },
+    },
+    {
+      type: "text",
+      text: bottomHint,
+      css: {
+        left: "272rpx",
+        top: "1128rpx",
+        color: "#6e6045",
+        fontSize: "20rpx",
+      },
+    },
+    {
+      type: "text",
+      text: "温馨提示：本报告仅供静心参考，非医疗诊断",
+      css: {
+        left: "272rpx",
+        top: "1172rpx",
+        color: "#8d8067",
+        fontSize: "18rpx",
       },
     },
   );
@@ -451,8 +513,8 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
   return {
     css: {
       width: "750rpx",
-      height: "930rpx",
-      background: C_BG,
+      height: "1333rpx",
+      background: "#f2f0e6",
     },
     views,
   };

@@ -169,7 +169,6 @@ const errorHandler = async (error: any, retrySnapshot: Record<string, any>): Pro
     title: error.message || "网络请求失败",
     icon: "none",
   });
-console.log('isCurrentRoute',isCurrentRoute("/pages/index/join"));
 
   setTimeout(() => {
     if (isCurrentRoute("/pages/index/join")) return;

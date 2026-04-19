@@ -11,18 +11,18 @@
             <!-- Content Area -->
             <view class="px-4 space-y-12">
 
-                <!-- 简介 -->
+                <!-- 一、服务性质声明 -->
                 <view>
-                    <view class="font-headline text-2xl text-on-surface mb-4">简介</view>
+                    <view class="font-headline text-2xl text-on-surface mb-4">一、服务性质声明</view>
                     <view class="space-y-4 text-on-surface-variant font-body text-sm leading-[1.8] font-light">
-                        <view>本小程序提供禅修、冥想、正念、呼吸引导等内容，仅作为日常身心放松、舒缓压力的辅助工具，不构成宗教服务、医疗服务或心理治疗服务。</view>
-                        <view>使用本小程序，即表示您已阅读、理解并同意本免责声明全部内容。</view>
+                        <view>1.本小程序及配套设备提供的静坐时长、呼吸、心率、身心状态等数据，仅为日常静心、身心放松参考数据，不具备医疗诊断、治疗、康复、养生诊疗等专业医疗效力，不属于医疗设备及医疗服务范畴。</view>
+                        <view>2.平台提供的静坐、冥想引导内容，仅为身心放松、情绪调节、静心修行的辅助方式，不能替代专业医疗诊断、心理咨询、疾病治疗、精神干预等专业服务。</view>
                     </view>
                 </view>
 
-                <!-- 适用人群与健康提示 -->
+                <!-- 二、使用风险提示 -->
                 <view class="p-6 rounded-2xl bg-theme-3 bg-surface-container-low border border-primary/10">
-                    <view class="font-headline text-2xl text-on-surface mb-4">适用人群与健康提示</view>
+                    <view class="font-headline text-2xl text-on-surface mb-4">二、使用风险提示</view>
                     <view class="space-y-6">
                         <view class="flex gap-4">
                             <view
@@ -31,9 +31,9 @@
                                     class="iconfont icon-tubiaozhizuomoban- text-[48rpx] text-on-primary-container"></text>
                             </view>
                             <view>
-                                <view class="font-label text-xs uppercase tracking-widest text-primary mb-1">特殊人群</view>
+                                <view class="font-label text-xs uppercase tracking-widest text-primary mb-1">身体状况</view>
                                 <view class="font-body text-sm text-on-surface-variant leading-relaxed">
-                                    孕妇、严重高血压、心脏病、癫痫、精神类疾病及身体不适者，请在专业医师指导下使用。
+                                    用户需根据自身身体状况自愿使用，特殊疾病、孕期等情况需及时就医，不得依赖本平台替代专业诊疗。
                                 </view>
                             </view>
                         </view>
@@ -45,45 +45,46 @@
                                     class="iconfont icon-surroundsound text-[48rpx] text-on-tertiary-container"></text>
                             </view>
                             <view>
-                                <view class="font-label text-xs uppercase tracking-widest text-primary mb-1">练习安全</view>
+                                <view class="font-label text-xs uppercase tracking-widest text-primary mb-1">安全使用</view>
                                 <view class="font-body text-sm text-on-surface-variant leading-relaxed">
-                                    练习中如出现头晕、胸闷、情绪不适等情况，请立即停止并休息，必要时及时就医。
+                                    禁止在驾驶、高空作业等危险场景使用；练习中出现不适请立即停止，自行承担健康风险。
+                                </view>
+                            </view>
+                        </view>
+						
+						<view class="flex gap-4">
+                            <view
+                                class="h-10 w-10 shrink-0 bg-theme-2 rounded-full bg-primary-container flex items-center justify-center">
+                                <text
+                                    class="iconfont icon-MapPin text-[48rpx] text-on-primary-container"></text>
+                            </view>
+                            <view>
+                                <view class="font-label text-xs uppercase tracking-widest text-primary mb-1">位置信息</view>
+                                <view class="font-body text-sm text-on-surface-variant leading-relaxed">
+                                    自愿授权位置信息，内容公开后隐私风险自行承担；禁止在敏感/私密/危险场所分享位置。
                                 </view>
                             </view>
                         </view>
                     </view>
                 </view>
 
-                <!-- 责任声明 -->
+                <!-- 三、社区内容免责 -->
                 <view>
-                    <view class="font-headline text-2xl text-on-surface mb-4">责任声明</view>
+                    <view class="font-headline text-2xl text-on-surface mb-4">三、社区内容免责</view>
                     <view class="space-y-4 text-on-surface-variant font-body text-sm leading-[1.8] font-light">
-                        <view>本平台不承担以下情形导致的任何责任：</view>
-                        <view class="list-none space-y-3">
-                            <view class="flex items-start gap-3">
-                                <view class="w-1.5 h-1.5 rounded-full bg-primary mt-2"></view>
-                                <view>用户不当使用、自行操作失误所造成的身体或心理不适。</view>
-                            </view>
-                            <view class="flex items-start gap-3">
-                                <view class="w-1.5 h-1.5 rounded-full bg-primary mt-2"></view>
-                                <view>未遵循提示，在不适宜的状态下强行练习所产生的风险。</view>
-                            </view>
-                            <view class="flex items-start gap-3">
-                                <view class="w-1.5 h-1.5 rounded-full bg-primary mt-2"></view>
-                                <view>因个人设备、网络、第三方软件等问题导致的服务中断或数据异常。</view>
-                            </view>
-                        </view>
+                        <view>1.共修社区内用户发布的观照手记、心得、评论、位置打卡、定位内容等，仅代表用户个人观点，不代表平台立场，平台不对内容的真实性、准确性、合法性、安全性负责。</view>
+                        <view>2.若用户发布内容侵犯第三方合法权益，由发布者自行承担全部责任，平台将依法履行违规内容审核、删除、账号处理等义务。</view>
                     </view>
                 </view>
 
-                <!-- 服务说明 -->
+                <!-- 四、其他免责 -->
                 <view
                     class="relative bg-theme-5 text-white overflow-hidden p-8 rounded-2xl bg-on-surface text-surface-container-lowest">
                     <view class="absolute -top-12 -right-12 w-32 h-32 bg-primary blur-[40px] opacity-20"></view>
-                    <view class="font-headline text-2xl mb-4 relative z-10">服务说明</view>
+                    <view class="font-headline text-2xl mb-4 relative z-10">四、其他免责</view>
                     <view class="font-body text-sm leading-relaxed opacity-80 relative z-10">
-                        我们不承诺冥想效果、情绪改善或心理疗愈，所有内容仅供辅助放松使用。
-                        平台将尽力维护服务稳定，但不对不可抗力、系统维护等不可控因素承担责任。
+                        1.因不可抗力、网络故障、第三方服务故障、系统维护等不可抗因素导致服务中断、数据丢失的，平台不承担责任。<br/><br/>
+                        2.用户因自身操作不当、账号保管不善、设备故障、擅自授权第三方、违反平台规则等行为造成的信息泄露、财产损失等，由用户自行承担。
                     </view>
                     <view class="mt-6 pt-6 border-t border-white/10 flex items-center gap-3">
                         <view class="iconfont icon-yuanlinyanghuxitong theme-color-1 text-tertiary-fixed"

@@ -6,6 +6,13 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "39552574",
+      "name": "加入团队",
+      "font_class": "jiarutuandui",
+      "unicode": "e792",
+      "unicode_decimal": 59282
+    },
+    {
       "icon_id": "32511267",
       "name": "徽章管理",
       "font_class": "huizhangguanli",

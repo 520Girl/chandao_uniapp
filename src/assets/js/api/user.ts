@@ -268,7 +268,6 @@ export const miniProgramLogin = (data: {
     code: string;
     iv?: string;
     encryptedData?: string;
-    rawData?: string;
     signature?: string;
     userInfo?: any;
 }) => {

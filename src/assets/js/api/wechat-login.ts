@@ -114,7 +114,26 @@ const assertLoginSuccess = (payload: any) => {
 
 // 兼容不同后端字段命名，提取 token。
 const extractToken = (payload: any): string | null => {
-  return payload?.data
+  const data = payload?.data ?? payload;
+  const token = data?.token ?? payload?.token ?? payload?.signature;
+  if (typeof token === 'string' && token.trim()) return token.trim();
+  if (token != null) {
+    const t = String(token).trim();
+    if (t) return t;
+  }
+  return null;
+};
+
+const extractRefreshToken = (payload: any): string | null => {
+  const data = payload?.data ?? payload;
+  const rt = data?.refreshToken ?? payload?.refreshToken;
+  if (typeof rt === 'string' && rt.trim()) return rt.trim();
+  return null;
+};
+
+const extractUser = (payload: any): any => {
+  const data = payload?.data ?? payload;
+  return data?.user ?? payload?.user ?? null;
 };
 
 
@@ -124,14 +143,15 @@ const extractToken = (payload: any): string | null => {
 // - 生产环境：直接请求线上后端
 export const wechatMiniLoginByConfig = async () => {
   const profile = await getEncryptedWechatUserData();
+  console.log('profile',JSON.stringify(profile));
   const code = await getWechatLoginCode();
   const payload: WechatLoginPayload = {
     code,
     encryptedData: profile.encryptedData,
     iv: profile.iv,
-    rawData: profile.rawData,
-    signature: profile.signature,
-    userInfo: profile.userInfo,
+    // rawData: profile.rawData,
+    // signature: profile.signature,
+    // userInfo: profile.userInfo,
   };
 
   const response = config.debug
@@ -140,13 +160,18 @@ export const wechatMiniLoginByConfig = async () => {
 
   assertLoginSuccess(response);
 
-  const token = config.debug ? { token: response.signature} : extractToken(response);
-//   console.log('微信登录响应:', response);
+  const token = extractToken(response);
+  const refreshToken = extractRefreshToken(response);
+  const user = extractUser(response) ?? profile.userInfo ?? null;
+
   if (!token) {
     throw new Error('后端未返回 token，请检查接口响应结构');
   }
 
   return {
-    token
+    token,
+    refreshToken,
+    user,
+    raw: response,
   };
 };

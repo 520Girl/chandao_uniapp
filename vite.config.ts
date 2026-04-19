@@ -8,6 +8,7 @@ import path from "path";
 
 const ish5 = process.env.UNI_PLATFORM === "h5";
 const isApp = process.env.UNI_PLATFORM === "app";
+const devBackendTarget = process.env.VITE_DEV_BACKEND_TARGET || "http://127.0.0.1:8001";
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -32,9 +33,13 @@ export default defineConfig({
   server:{
     proxy: {
       '/api': {
-        target: 'http://192.168.31.78:8001', // 后端API服务器地址
+        target: devBackendTarget, // 后端API服务器地址
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
+      },
+      '/upload': {
+        target: devBackendTarget,
+        changeOrigin: true,
       }
     }
   },

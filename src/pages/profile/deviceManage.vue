@@ -6,7 +6,7 @@
             <view class="space-y-1">
                 <view class="font-headline text-2xl text-on-surface tracking-tight">我的设备</view>
                 <view class="font-label text-xs text-on-surface-variant tracking-widest opacity-60 uppercase">
-                    云息设备坚持内心，做自己
+                    打理自己的静心小世界
                 </view>
             </view>
             <!-- Device List -->
@@ -23,8 +23,8 @@
                     <view
                         v-for="item in deviceList"
                         :key="item.id"
-                        class="bg-white p-4 rounded-[100rpx] border-theme flex items-center gap-4 hover:border-primary/40 transition-colors shadow-sm active:opacity-90"
-                        @tap="() => openEditDeviceToast(item)">
+                        class="bg-white p-4 rounded-[100rpx] border-theme flex items-center gap-4 transition-colors shadow-sm "
+                        @tap="openEditDeviceToast(item)">
                         <view
                             class="size-14 bg-theme-10 rounded-full flex items-center justify-center text-primary shrink-0">
                             <text class="iconfont text-[60rpx] theme-color-1" :class="item.icon || 'icon-grid-view'"></text>
@@ -47,7 +47,7 @@
                     <!-- 空插槽：添加设备 -->
                     <view
                         v-if="deviceList.length < MAX_DEVICES"
-                        class="border-2 border-dashed border-primary/20 p-4 rounded-[100rpx] flex items-center gap-4 bg-primary/5 group cursor-pointer hover:bg-primary/10 transition-colors active:opacity-90"
+                        class="border-2 border-dashed border-primary/20 p-4 rounded-[100rpx] flex items-center gap-4 bg-primary/5 group cursor-pointer "
                         @tap="openAddDeviceToast">
                         <view
                             class="size-14 border-2 border-dashed border-primary/30 rounded-full flex items-center justify-center text-primary/30 group-hover:text-primary shrink-0">
@@ -85,7 +85,7 @@
                 v-model:show="showExit"
                 title="解绑设备"
                 :message="`确定要解绑「${currentDevice?.name}」吗？`"
-                @confirm="() => onConfirm()"
+                @confirm="onConfirm"
                 />
         </view>
     </view>
@@ -156,18 +156,7 @@ async function openEditDeviceToast(item: DeviceItem) {
     let name = item.name;
     let mac = item.mac;
     let sn = item.sn;
-    try {
-        const res = await fetchDeviceDetails({ mac: item.mac });
-        deviceStore.mergeDeviceFromDetailResponse(item.id, res);
-        const d = extractDeviceDetailPayload(res);
-        if (d) {
-            name = String(d.name ?? item.name);
-            mac = String(d.mac ?? mac);
-            sn = String(d.sn ?? sn);
-        }
-    } catch (e) {
-        console.error('fetchDeviceDetails', e);
-    }
+    // 先用当前列表数据立刻打开弹窗，避免详情接口慢时用户误以为点击无效。
     toastParams.fields = [
         {
             key: 'name',
@@ -194,6 +183,47 @@ async function openEditDeviceToast(item: DeviceItem) {
         }
     ];
     showToast.value = true;
+
+    try {
+        const res = await fetchDeviceDetails({ mac: item.mac });
+        deviceStore.mergeDeviceFromDetailResponse(item.id, res);
+        const d = extractDeviceDetailPayload(res);
+        if (d) {
+            name = String(d.name ?? item.name);
+            mac = String(d.mac ?? mac);
+            sn = String(d.sn ?? sn);
+        }
+    } catch (e) {
+        console.error('fetchDeviceDetails', e);
+    }
+
+    // 若用户已切到其它设备或关闭弹窗，则不覆盖当前输入状态。
+    if (!showToast.value || editingDeviceId.value !== item.id) return;
+    toastParams.fields = [
+        {
+            key: 'name',
+            label: '设备昵称',
+            placeholder: '设置设备昵称',
+            defaultValue: name,
+            required: true
+        },
+        {
+            key: 'remark',
+            label: '',
+            placeholder: '请输入设备 SN',
+            defaultValue: sn,
+            icon:'',
+            disabled: true
+        },
+        {
+            key: 'mac',
+            label: '',
+            placeholder: '请输入设备 MAC 地址',
+            defaultValue: mac,
+            icon:'',
+            disabled: true
+        }
+    ];
 }
 
 /** 绑定新设备：需 SN / 型号 / MAC，对应 addDevice */

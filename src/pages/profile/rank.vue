@@ -154,10 +154,12 @@ import { fetchLeaderboardDuration } from "@/assets/js/api/leaderboard";
 import { config } from "@/assets/js/config";
 import type {
   LeaderboardDurationItem,
+  LeaderboardDurationQuery,
   LeaderboardDurationPage,
   LeaderboardRange,
 } from "@/types/api/leaderboard";
 import { unwrapApiData } from "@/utils/apiResponse";
+import { leaderboardItemDurationMinutes } from "@/utils/leaderboardItem";
 import { navigateBack } from "@/utils/navigation";
 import { useTeamStore } from "@/stores/team";
 import { useUserStore } from "@/stores/user";
@@ -182,7 +184,7 @@ const teamStore = useTeamStore();
 
 /** 默认与接口文档一致：week；可通过 Tab 切换 day / month / total */
 const selectedRange = ref<LeaderboardRange>("week");
-/** `null` 表示全站；有值则仅统计该团队在职成员；有团队时默认选中其一 */
+/** `null` 为全站（请求中不带 `teamId`）；有值则带 `teamId` 仅该团队。有团队时 onMounted 会默认选团队，可再切全站 */
 const selectedTeamId = ref<number | null>(null);
 
 /** 有在职团队时默认选中一个（与发布默认团队一致，否则首团队） */
@@ -243,7 +245,7 @@ function numField(v: unknown): number {
 
 function mapLeaderItem(item: LeaderboardDurationItem, rank: number, selfId: number): RankRow {
   const loc = [item.lastProvince, item.lastCity].filter((x) => (x || "").trim()).join(" · ");
-  const minutes = numField(item.minutes);
+  const minutes = leaderboardItemDurationMinutes(item);
   const reports = numField(item.reportCount);
   const sub = loc || `报告 ${reports} · ${formatScore(minutes)} 分钟`;
   return {
@@ -330,12 +332,15 @@ async function fetchRankPage(reset: boolean) {
 
   try {
     const page = rank.page;
-    const res = await fetchLeaderboardDuration({
+    const q: LeaderboardDurationQuery = {
       range: selectedRange.value,
-      teamId: selectedTeamId.value ?? undefined,
       page,
       size: RANK_PAGE_SIZE,
-    });
+    };
+    if (selectedTeamId.value != null) {
+      q.teamId = selectedTeamId.value;
+    }
+    const res = await fetchLeaderboardDuration(q);
     const data = unwrapApiData<LeaderboardDurationPage>(res);
     const rawList = data?.list ?? [];
     const pagination = data?.pagination;

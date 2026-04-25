@@ -68,6 +68,7 @@ export function mapApiRowToDeviceItem(raw: Record<string, unknown>): DeviceItem 
     iface != null && iface.name != null && String(iface.name).trim() !== ""
       ? String(iface.name)
       : mapApiStatusToLabel(statusCode);
+  const sortN = Number(raw.sortOrder);
   return {
     id: Number(raw.id ?? 0),
     sn: String(raw.sn ?? ""),
@@ -77,6 +78,7 @@ export function mapApiRowToDeviceItem(raw: Record<string, unknown>): DeviceItem 
     statusCode,
     status,
     remark: String(raw.remark ?? ""),
+    sortOrder: Number.isFinite(sortN) ? sortN : 0,
     icon: "icon-grid-view",
     iconColor: "theme-color-1",
   };

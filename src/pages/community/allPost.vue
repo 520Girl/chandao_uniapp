@@ -4,12 +4,12 @@
     <view class="px-6 pb-32 flex-1">
       <view class="mb-8 mt-8">
         <view class="text-2xl font-serif font-light tracking-tight text-on-surface mb-1 leading-tight italic">
-          庇护所守护者
+          花满养护人
         </view>
         <text class="text-[12px] font-body text-on-surface-variant/60 tracking-wider">
           <text v-if="contextTeamDisplayName" class="text-[26rpx] font-semibold theme-color-5 truncate">{{ contextTeamDisplayName }}</text>
           <text v-else class="text-[26rpx] font-semibold theme-color-5 truncate">管理社群</text>
-          内的每一个宁静时刻</text>
+          守一方静心，待一路花开</text>
       </view>
       <!-- Filter Tabs -->
       <view class="flex gap-3 mb-8 overflow-x-auto pb-2 no-scrollbar text-[22rpx]">

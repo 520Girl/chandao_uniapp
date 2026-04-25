@@ -286,7 +286,11 @@
           "path": "startMeditaiton",
           "style": {
             "navigationBarTitleText": "开始冥想",
-            "navigationStyle": "custom"
+            "navigationStyle": "custom",
+            "disableSwipeBack": true,
+            "app-plus": {
+              "popGesture": "none"
+            }
           }
         },
         {

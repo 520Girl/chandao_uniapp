@@ -12,6 +12,7 @@ import type {
   LoginPayload,
   MiniPhoneBindDTO,
   MyTeamsQuery,
+  MyTeamsReorderBody,
   QuitTeamDTO,
   ReverseGeoDTO,
   UpdatePasswordDTO,
@@ -47,6 +48,7 @@ const USER_CREATE_TEAM_INVITE = "/app/user/createTeamInvite";
 const USER_CREATE_PERSONAL_INVITE = "/app/user/createPersonalInvite";
 const USER_QUIT_TEAM = "/app/user/quitTeam";
 const USER_MY_TEAMS = "/app/user/myTeams";
+const USER_MY_TEAMS_REORDER = "/app/user/myTeams/reorder";
 
 /**
  * 获取当前登录用户资料（UserPerson）；需登录。
@@ -163,6 +165,16 @@ export const postUserQuitTeam = (body: QuitTeamDTO) => {
  */
 export const fetchMyTeams = (query?: MyTeamsQuery) => {
   return get(USER_MY_TEAMS, query ?? {});
+};
+
+/**
+ * 重排我的团队显示顺序；需登录。
+ *
+ * @param body `teamIds` 须为当前全部在职团队 ID 的一个全排列
+ * @returns 与 `myTeams`（`status=0`）相同列表结构
+ */
+export const postUserMyTeamsReorder = (body: MyTeamsReorderBody) => {
+  return post(USER_MY_TEAMS_REORDER, body);
 };
 
 

@@ -3,7 +3,7 @@
  * 不持久化列表，登录态下每次进入首页等会 `refreshList` 拉取最新。
  */
 import { defineStore } from "pinia";
-import { fetchDeviceList, fetchDeviceDetails } from "@/assets/js/api/device";
+import { fetchDeviceList, fetchDeviceDetails, postDeviceSort } from "@/assets/js/api/device";
 import type { DeviceItem } from "@/types/pages/device";
 import {
   extractDeviceDetailPayload,
@@ -59,16 +59,32 @@ export const useDeviceStore = defineStore("device", {
      * 拉取已绑定设备列表并写入 `devices`。
      * @param size 每页条数，默认与绑定上限一致
      */
-    async refreshList(size: number = DEVICE_BIND_SLOT_MAX) {
-      this.listLoading = true;
+    /**
+     * @param silent 为 true 时不切换 `listLoading`（不隐藏列表），适合排序成功后紧跟一次同步，避免 `up-dragsort` 整段卸挂抖动。
+     */
+    async refreshList(
+      size: number = DEVICE_BIND_SLOT_MAX,
+      options?: { silent?: boolean },
+    ) {
+      const silent = options?.silent === true;
+      if (!silent) {
+        this.listLoading = true;
+      }
       try {
         const res = await fetchDeviceList({ page: 1, size });
         const rows = extractDeviceListPayload(res);
-        this.devices = rows.map(mapApiRowToDeviceItem);
+        const list = rows.map(mapApiRowToDeviceItem);
+        list.sort(
+          (a, b) =>
+            (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.id - b.id,
+        );
+        this.devices = list;
       } catch (e) {
         console.error("fetchDeviceList", e);
       } finally {
-        this.listLoading = false;
+        if (!silent) {
+          this.listLoading = false;
+        }
       }
     },
 
@@ -118,6 +134,15 @@ export const useDeviceStore = defineStore("device", {
      * 首页开始禅修等入口：先拉绑定列表，再对**第一台具备 MAC** 的设备请求 `/app/device/info`，
      * 用返回的 `interface` 等与列表项合并，供 `hasMeditationReadyDevice` 判断是否「使用中」。
      */
+    /**
+     * 全量重排已绑定设备 SN 顺序；`order[0]` 为主设备。成功后再 `refreshList` 同步展示。
+     */
+    async reorderDevicesBySnOrder(order: string[], size: number = DEVICE_BIND_SLOT_MAX) {
+      if (order.length === 0) return;
+      await postDeviceSort({ order });
+      await this.refreshList(size, { silent: true });
+    },
+
     async refreshListAndSyncFirstDeviceDetail() {
       await this.refreshList(DEVICE_BIND_SLOT_MAX);
       const row = this.devices.find((d) => String(d.mac ?? "").trim() !== "");

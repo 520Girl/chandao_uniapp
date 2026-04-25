@@ -6,6 +6,7 @@ import type {
   MeditationEndDTO,
   MeditationPollDTO,
   MeditationReportStatisticsQuery,
+  MeditationSessionActiveData,
   MeditationStartDTO,
 } from "@/types/api/meditation";
 
@@ -14,6 +15,7 @@ const MEDITATION_POLL = "/app/meditation/poll";
 const MEDITATION_END = "/app/meditation/end";
 const MEDITATION_REPORT_DETAIL = "/app/meditation/report/detail";
 const MEDITATION_REPORT_STATISTICS = "/app/meditation/report/statistics";
+const MEDITATION_SESSION_ACTIVE = "/app/meditation/session/active";
 
 /**
  * 开始冥想（设备 / 无设备）；需登录。
@@ -63,4 +65,13 @@ export const fetchMeditationReportDetail = (query: { sessionId: number }) => {
  */
 export const fetchMeditationReportStatistics = (query?: MeditationReportStatisticsQuery) => {
   return get(MEDITATION_REPORT_STATISTICS, query ?? {});
+};
+
+/**
+ * 当前是否有进行中的冥想会话（`status=1`）；需登录。
+ *
+ * @returns 业务包，`data` 为 `MeditationSessionActiveData`
+ */
+export const fetchMeditationSessionActive = () => {
+  return get(MEDITATION_SESSION_ACTIVE);
 };

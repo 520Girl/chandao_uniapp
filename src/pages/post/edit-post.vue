@@ -138,14 +138,14 @@
           <text class="iconfont icon-sell text-[48rpx] group-hover:text-primary transition-colors" />
           <text class="text-[16rpx] tracking-widest uppercase">标签</text>
         </view>
-        <view
+        <!-- <view
           class="flex flex-col items-center  gap-[2rpx] group"
           :class="locationReady ? 'theme-color-1' : 'theme-color-6'"
           @click="onLocation"
         >
           <text class="iconfont icon-MapPin text-[48rpx] transition-colors" />
           <text class="text-[16rpx] tracking-widest uppercase">位置</text>
-        </view>
+        </view> -->
         <view
           class="flex flex-col items-center gap-[2rpx] group"
           :class="publishVisibility === 2 ? 'theme-color-1 ' : 'theme-color-6'"

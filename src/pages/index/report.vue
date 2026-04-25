@@ -145,7 +145,10 @@
                 <view class="pb-12 text-center">
                     <view
                         class="font-headline theme-color-8 italic text-on-surface-variant/40 text-sm max-w-[200px] mx-auto leading-relaxed">
-                        “数据不是生活的终点，而是觉知的镜子。”
+                        “数据不是生活的终点,
+                        <view class="text-on-surface-variant/40 text-sm max-w-[200px] mx-auto leading-relaxed">
+                            而是觉知的镜子。”
+                        </view>
                     </view>
                 </view>
             </view>
@@ -210,6 +213,10 @@ let statisticsLoadSeq = 0;
  * 注意：不要用 `statsRange` 作图表 :key，否则切换周期会先销毁组件再用「上一周期」的 statistics 挂载，易与当前选中项错位。
  */
 const chartsRemountKey = ref(0);
+/** 本页第几次 onShow；首次不递增 key，避免与 onMounted 拉数竞态导致首次无图 */
+const reportPageShowCount = ref(0);
+/** 首次成功拉到统计后强制重建一次，保证 H5/小程序在数据到达后 canvas 再 init */
+const hasRemountedChartsAfterFirstLoad = ref(false);
 
 
 
@@ -511,6 +518,13 @@ async function loadStatistics(range: MeditationStatisticsRange) {
     const data = parseMeditationReportStatisticsPayload(raw);
     if (data) {
       statistics.value = data;
+      if (!hasRemountedChartsAfterFirstLoad.value) {
+        hasRemountedChartsAfterFirstLoad.value = true;
+        await nextTick();
+        setTimeout(() => {
+          chartsRemountKey.value += 1;
+        }, 80);
+      }
     } else {
       statistics.value = null;
       uni.showToast({ title: '统计数据格式异常', icon: 'none' });
@@ -550,9 +564,12 @@ onMounted(() => {
 });
 
 onShow(() => {
-  void nextTick(() => {
-    chartsRemountKey.value += 1;
-  });
+  reportPageShowCount.value += 1;
+  if (reportPageShowCount.value > 1) {
+    void nextTick(() => {
+      chartsRemountKey.value += 1;
+    });
+  }
 });
 </script>
 

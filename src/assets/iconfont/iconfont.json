@@ -6,6 +6,34 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "20536981",
+      "name": "扫描设备:刷新",
+      "font_class": "saomiaoshebeishuaxin",
+      "unicode": "e61c",
+      "unicode_decimal": 58908
+    },
+    {
+      "icon_id": "4933356",
+      "name": "离线",
+      "font_class": "lixian",
+      "unicode": "e73e",
+      "unicode_decimal": 59198
+    },
+    {
+      "icon_id": "16542441",
+      "name": "站立",
+      "font_class": "zhanli",
+      "unicode": "e67d",
+      "unicode_decimal": 59005
+    },
+    {
+      "icon_id": "40470123",
+      "name": "人工服务已就绪",
+      "font_class": "rengongfuwuyijiuxu",
+      "unicode": "e6c9",
+      "unicode_decimal": 59081
+    },
+    {
       "icon_id": "39552574",
       "name": "加入团队",
       "font_class": "jiarutuandui",

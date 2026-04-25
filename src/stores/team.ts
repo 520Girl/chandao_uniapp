@@ -1,12 +1,18 @@
 import { defineStore } from "pinia";
-import { fetchMyTeams } from "@/assets/js/api/user";
+import { fetchMyTeams, postUserMyTeamsReorder } from "@/assets/js/api/user";
 import { BUSINESS_CODE } from "@/assets/js/config";
 import type { MyTeamItem } from "@/types/api/user";
-
 /**
  * 当前用户团队列表（`fetchMyTeams`）及发布动态等场景选用的 `teamId`。
  * 不落盘；登录后由 `user` store 拉取资料成功后同步刷新。
  */
+function sortMyTeamItems(list: MyTeamItem[]): MyTeamItem[] {
+  return [...list].sort(
+    (a, b) =>
+      (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.teamId - b.teamId,
+  );
+}
+
 export const useTeamStore = defineStore("team", {
   state: () => ({
     /** `status=0`：当前在职团队 */
@@ -42,7 +48,7 @@ export const useTeamStore = defineStore("team", {
       try {
         const res = await fetchMyTeams({ status: 0 });
         if (res.code === BUSINESS_CODE.SUCCESS && Array.isArray(res.data)) {
-          this.myCurrentTeams = res.data as MyTeamItem[];
+          this.myCurrentTeams = sortMyTeamItems(res.data as MyTeamItem[]);
           const list = this.myCurrentTeams;
           if (
             this.selectedTeamIdForPublish != null &&
@@ -82,6 +88,24 @@ export const useTeamStore = defineStore("team", {
     clearTeams() {
       this.myCurrentTeams = [];
       this.selectedTeamIdForPublish = null;
+    },
+
+    /**
+     * 重排当前在职团队显示顺序；`teamIds` 须为全部在职团队 ID 的一个全排列。
+     */
+    async reorderMyTeamsByTeamIds(teamIds: number[]) {
+      if (teamIds.length === 0) return;
+      this.loading = true;
+      try {
+        await postUserMyTeamsReorder({ teamIds });
+        await this.fetchMyCurrentTeams();
+      } catch (e) {
+        console.error("postUserMyTeamsReorder", e);
+        uni.showToast({ title: "调整顺序失败", icon: "none" });
+        await this.fetchMyCurrentTeams();
+      } finally {
+        this.loading = false;
+      }
     },
   },
 });

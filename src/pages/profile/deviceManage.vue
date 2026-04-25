@@ -17,33 +17,65 @@
                     <text
                         class="theme-color-1 bg-theme-10 text-primary text-[20rpx] font-bold px-2 py-1 rounded-full">{{ remainingSlots }}个可用名额</text>
                 </view>
-                <view v-if="listLoading" class="py-12 text-center text-sm text-on-surface-variant">加载中…</view>
+                    
+                <view
+                    v-if="listLoading && deviceList.length === 0"
+                    class="py-12 text-center text-sm text-on-surface-variant"
+                >加载中…</view>
                 <template v-else>
-                    <!-- 已绑定设备 -->
-                    <view
-                        v-for="item in deviceList"
-                        :key="item.id"
-                        class="bg-white p-4 rounded-[100rpx] border-theme flex items-center gap-4 transition-colors shadow-sm "
-                        @tap="openEditDeviceToast(item)">
-                        <view
-                            class="size-14 bg-theme-10 rounded-full flex items-center justify-center text-primary shrink-0">
-                            <text class="iconfont text-[60rpx] theme-color-1" :class="item.icon || 'icon-grid-view'"></text>
-                        </view>
-                        <view class="flex-1 min-w-0">
-                            <view class="font-bold text-sm tracking-tight">{{ item.name }}</view>
-                            <view class=" flex items-center gap-1">
-                                <text class="iconfont icon-shebei1 text-[30rpx] theme-color-12 font-bold"></text>
-                                <text class="text-[26rpx] theme-color-12 ">{{ item.sn }}</text>
+                    <up-dragsort
+                        v-if="deviceList.length > 0"
+                        :key="`device-dragsort-${deviceDragsortListKey}`"
+                        :initial-list="deviceDragsortItems"
+                        direction="vertical"
+                        class="w-full"
+                        @drag-end="onDeviceDragsortEnd"
+                    >
+                        <template #default="{ item, index: dIndex }">
+                            <view
+                                class="bg-white p-4 rounded-[100rpx] border-theme flex items-center gap-4 transition-colors shadow-sm mb-4"
+                                @tap="openEditDeviceToast(deviceItemFromDragsort(item))"
+                            >
+                                <view
+                                    class="size-14 bg-theme-10 rounded-full flex items-center justify-center text-primary shrink-0"
+                                >
+                                    <text
+                                        class="iconfont text-[60rpx] theme-color-1"
+                                        :class="item.icon || 'icon-grid-view'"
+                                    />
+                                </view>
+                                <view class="flex-1 min-w-0">
+                                    <view class="flex items-center gap-2 flex-wrap">
+                                        <text class="font-bold text-sm tracking-tight">{{ item.name }}</text>
+                                        <text
+                                            v-if="dIndex === 0"
+                                            class="text-[20rpx] font-label px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20"
+                                        >主设备</text>
+                                    </view>
+                                    <view class=" flex items-center gap-1">
+                                        <text class="iconfont icon-shebei1 text-[30rpx] theme-color-12 font-bold"></text>
+                                        <text class="text-[26rpx] theme-color-12 ">{{ item.sn }}</text>
+                                    </view>
+                                    <view class="flex items-center gap-1.5">
+                                        <view
+                                            class="size-2 rounded-full animate-pulse"
+                                            :class="statusDotClass(item.statusCode)"
+                                        />
+                                        <text
+                                            class="text-[11px] font-medium"
+                                            :class="statusTextClass(item.statusCode)"
+                                        >{{ item.status }}</text>
+                                    </view>
+                                </view>
+                                <view
+                                    class="theme-color-12 bg-white border-0 shrink-0"
+                                    @tap.stop="onUnbindDevice(deviceItemFromDragsort(item))"
+                                >
+                                    <text class="iconfont icon-setting text-[48rpx]"></text>
+                                </view>
                             </view>
-                            <view class="flex items-center gap-1.5">
-                                <view class="size-2 rounded-full animate-pulse" :class="statusDotClass(item.statusCode)"></view>
-                                <text class="text-[11px] font-medium" :class="statusTextClass(item.statusCode)">{{ item.status }}</text>
-                            </view>
-                        </view>
-                        <view class="theme-color-12 bg-white border-0 shrink-0" @tap.stop="onUnbindDevice(item)">
-                            <text class="iconfont icon-setting text-[48rpx]"></text>
-                        </view>
-                    </view>
+                        </template>
+                    </up-dragsort>
                     <!-- 空插槽：添加设备 -->
                     <view
                         v-if="deviceList.length < MAX_DEVICES"
@@ -67,7 +99,8 @@
             <!-- Hint Text -->
             <view class="mt-auto pt-10 text-center">
                 <view class="font-label text-[10px] leading-relaxed text-on-surface-variant/40 tracking-[0.15em] px-4">
-                    当前支持绑定最多{{ MAX_DEVICES }}个设备<br />确保数据精准采集
+                    当前支持绑定最多{{ MAX_DEVICES }}个设备
+                    <view class="text-[22rpx] font-bold leading-relaxed text-on-surface-variant/40 tracking-[0.15em] px-4">长按拖动排序，首台为主设备</view>
                 </view>
             </view>
             <ToastConfirm
@@ -91,6 +124,7 @@
     </view>
 </template>
 <script setup lang="ts">
+import { computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { navigateBack } from '@/utils/navigation';
 import { showSuccessToast } from '@/utils/toast';
@@ -107,11 +141,23 @@ const showExit = ref(false);
 const MAX_DEVICES = DEVICE_BIND_SLOT_MAX;
 const showToast = ref(false);
 const submitLoading = ref(false);
+const reorderLoading = ref(false);
 
 const deviceStore = useDeviceStore();
 const { devices: deviceList, listLoading } = storeToRefs(deviceStore);
 
 const remainingSlots = computed(() => Math.max(0, MAX_DEVICES - deviceList.value.length));
+
+const deviceDragsortItems = computed(() =>
+  deviceList.value.map((d) => ({ ...d, id: d.id })),
+);
+
+const deviceDragsortListKey = computed(() =>
+  deviceList.value
+    .map((d) => d.id)
+    .sort((a, b) => a - b)
+    .join("-"),
+);
 
 /** 弹窗：null 为「添加设备」，有值为正在编辑的设备 id */
 const editingDeviceId = ref<number | null>(null);
@@ -148,6 +194,36 @@ function statusTextClass(code: number) {
 onMounted(() => {
     void deviceStore.refreshList(MAX_DEVICES);
 });
+
+function buildSnOrderFromDevices(list: DeviceItem[]): string[] {
+  return list.map((d) => String(d.sn ?? '').trim()).filter((s) => s.length > 0);
+}
+
+async function applyDeviceOrder(ordered: DeviceItem[]) {
+  const order = buildSnOrderFromDevices(ordered);
+  if (order.length !== ordered.length || order.length === 0) return;
+  if (reorderLoading.value) return;
+  reorderLoading.value = true;
+  try {
+    await deviceStore.reorderDevicesBySnOrder(order, MAX_DEVICES);
+  } catch (e) {
+    console.error('reorderDevicesBySnOrder', e);
+  } finally {
+    reorderLoading.value = false;
+  }
+}
+
+function deviceItemFromDragsort(
+  row: DeviceItem & { x?: number; y?: number; id: number },
+): DeviceItem {
+  const { x: _x, y: _y, ...rest } = row;
+  return rest as DeviceItem;
+}
+
+function onDeviceDragsortEnd(list: (DeviceItem & { x?: number; y?: number; id: number })[]) {
+  const ordered: DeviceItem[] = list.map((row) => deviceItemFromDragsort(row));
+  void applyDeviceOrder(ordered);
+}
 
 /** 点击某一设备：拉详情后编辑展示名/备注（无后端修改接口时仅本地更新） */
 async function openEditDeviceToast(item: DeviceItem) {

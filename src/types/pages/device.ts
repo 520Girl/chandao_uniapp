@@ -11,6 +11,8 @@ export interface DeviceItem {
     sn: string;
     model: string;
     mac: string;
+    /** 与接口 `sortOrder` 一致，越小越靠前；首条即主设备 */
+    sortOrder?: number;
     icon?: string;
     iconColor?: string;
 }

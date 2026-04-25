@@ -650,7 +650,43 @@ onLoad((query) => {
   }
 
   void bootstrapMeditation();
+  // #ifdef H5
+  installH5BackGuard();
+  // #endif
 });
+
+/** 拦截系统返回键 / 小程序返回：不直接出页，与暂停键一致弹出「是否结束」 */
+onBackPress(() => {
+  if (ended) return false;
+  showConfirmDialog.value = true;
+  return true;
+});
+
+let h5PopStateHandler: (() => void) | null = null;
+
+function installH5BackGuard() {
+  if (typeof window === 'undefined' || h5PopStateHandler) return;
+  const push = () => {
+    try {
+      history.pushState({ _meditationGuard: 1 }, '', location.href);
+    } catch {
+      /* noop */
+    }
+  };
+  h5PopStateHandler = () => {
+    if (ended) return;
+    showConfirmDialog.value = true;
+    push();
+  };
+  window.addEventListener('popstate', h5PopStateHandler);
+  push();
+}
+
+function uninstallH5BackGuard() {
+  if (typeof window === 'undefined' || !h5PopStateHandler) return;
+  window.removeEventListener('popstate', h5PopStateHandler);
+  h5PopStateHandler = null;
+}
 
 async function bootstrapMeditation() {
   enableKeepScreenOn();
@@ -677,6 +713,9 @@ async function bootstrapMeditation() {
 }
 
 onUnload(() => {
+  // #ifdef H5
+  uninstallH5BackGuard();
+  // #endif
   disableKeepScreenOn();
   if (timerId) clearInterval(timerId);
   timerId = null;
@@ -685,6 +724,9 @@ onUnload(() => {
 });
 
 onBeforeUnmount(() => {
+  // #ifdef H5
+  uninstallH5BackGuard();
+  // #endif
   disableKeepScreenOn();
   if (timerId) clearInterval(timerId);
   timerId = null;

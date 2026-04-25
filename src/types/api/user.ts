@@ -131,6 +131,13 @@ export interface MyTeamItem {
   teamName: string;
   ownerId: number;
   memberCount: number;
+  /** 用户内展示排序，越小越靠前（缺省 0） */
+  sortOrder?: number;
+}
+
+/** POST `/app/user/myTeams/reorder` Body：须为当前全部在职团队 ID 的一个全排列 */
+export interface MyTeamsReorderBody {
+  teamIds: number[];
 }
 
 /** POST `/app/user/joinByInvite` Body */

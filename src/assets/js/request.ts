@@ -53,6 +53,15 @@ function isCurrentRoute(path: string): boolean {
   return normalized === path;
 }
 
+/**
+ * 设备轮询类请求（首页等定时拉取）。业务失败时仅提示，不应 `navigateBack` 误关当前页。
+ * @param snapshot `request` 调用时的 options，含完整 `url`
+ */
+function isDeviceStatusOrRealtimeRequest(snapshot: Record<string, unknown>): boolean {
+  const u = String(snapshot?.url ?? "");
+  return u.includes("/app/device/realtime") || u.includes("/app/device/status");
+}
+
 // 请求拦截器
 const requestInterceptor = (config: any) => {
   const { token } = storeToRefs(useUserStore());
@@ -159,7 +168,13 @@ const errorHandler = async (error: any, retrySnapshot: Record<string, any>): Pro
       icon: "none",
     });
     setTimeout(() => {
-      if (isCurrentRoute("/pages/index/join")) return;
+      if (
+        isCurrentRoute("/pages/index/join") ||
+        isCurrentRoute("/pages/login/inputLogin") ||
+        isDeviceStatusOrRealtimeRequest(retrySnapshot)
+      ) {
+        return;
+      }
       uni.navigateBack();
     }, 1500);
     return;

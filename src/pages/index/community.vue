@@ -59,7 +59,7 @@
                 :show-menu="false"
               />
             </view>
-            <span :class="index === 0 ? 'theme-color-1' : 'theme-color-8'" class="text-[20rpx] font-bold">{{
+            <span :class="index === 0 ? 'theme-color-1' : 'theme-color-8'" class="text-[20rpx] font-bold line-clamp-1">{{
               item.name
             }}</span>
           </view>

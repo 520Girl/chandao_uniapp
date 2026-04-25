@@ -8,8 +8,8 @@ export type LeaderboardRange = "day" | "week" | "month" | "total";
 /** GET `/app/leaderboard/score` Query */
 export interface LeaderboardScoreQuery {
   range?: LeaderboardRange;
-  /** 传入则仅统计该团队在职成员 */
-  teamId?: number | null;
+  /** 全站时省略；传入正整数为仅该团队在职成员。 */
+  teamId?: number;
   page?: number;
   /** 默认 20，最大 100 */
   size?: number;
@@ -62,7 +62,7 @@ export interface LeaderboardDurationItem {
   lastCity?: string | null;
   /** 该时间范围内报告数 */
   reportCount: number;
-  /** 该时间范围内冥想分钟 */
+  /** 该时间范围内冥想分钟；缺省视为 0，仍入榜 */
   minutes: number;
   /** 该时间范围内冥想小时 */
   hours: number;

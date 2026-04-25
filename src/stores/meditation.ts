@@ -2,7 +2,9 @@
  * 禅修模块本地状态：首页活动偏好、最近一次禅修的时间/时长/音乐等（持久化，非用户表字段）。
  */
 import { defineStore } from "pinia";
-import type { MeditationReport } from "@/types/api/meditation";
+import { fetchMeditationSessionActive } from "@/assets/js/api/meditation";
+import type { MeditationReport, MeditationSessionActiveData } from "@/types/api/meditation";
+import { unwrapApiData } from "@/utils/apiResponse";
 
 /** 禅修结束时写入的一条摘要（本地） */
 export interface LastMeditationSessionPayload {
@@ -55,6 +57,10 @@ export interface MeditationState {
    * 最近一次 `POST /app/meditation/end` 返回的报告；**不持久化**，报告页读取后应 `consume` 清空。
    */
   lastMeditationServerReport: MeditationReport | null;
+  /**
+   * `GET /app/meditation/session/active` 快照；**不持久化**，供首页/设置等提示「进行中的禅修」。
+   */
+  activeSessionInfo: MeditationSessionActiveData | null;
 }
 
 export const useMeditationStore = defineStore("meditation", {
@@ -88,8 +94,28 @@ export const useMeditationStore = defineStore("meditation", {
     lastMeditationTrackTitle: null,
     lastMeditationTrackUrl: null,
     lastMeditationServerReport: null,
+    activeSessionInfo: null,
   }),
+  getters: {
+    /** 是否存在 `status=1` 的进行中会话 */
+    hasActiveMeditationSession(): boolean {
+      return this.activeSessionInfo?.hasActive === true;
+    },
+  },
   actions: {
+    /** 拉取当前是否有进行中的冥想（5.0）；失败时不清空旧快照，避免闪烁 */
+    async fetchActiveSession() {
+      try {
+        const res = await fetchMeditationSessionActive();
+        const data = unwrapApiData<MeditationSessionActiveData | null>(res);
+        if (data && typeof data.hasActive === "boolean") {
+          this.activeSessionInfo = data;
+        }
+      } catch (e) {
+        console.error("fetchMeditationSessionActive", e);
+      }
+    },
+
     /**
      * 进入禅修页前写入：更新 `lastMeditationPlannedMinutes`、三 track 字段；
      * 仅场景卡等需要指定活动时传 `activityId` / `activityTemplateId`（会写 homePreferred）。
@@ -161,6 +187,7 @@ export const useMeditationStore = defineStore("meditation", {
       this.lastMeditationTrackTitle = null;
       this.lastMeditationTrackUrl = null;
       this.lastMeditationServerReport = null;
+      this.activeSessionInfo = null;
     },
   },
 });

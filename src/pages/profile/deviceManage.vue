@@ -33,7 +33,7 @@
                     >
                         <template #default="{ item, index: dIndex }">
                             <view
-                                class="bg-white p-4 rounded-[100rpx] border-theme flex items-center gap-4 transition-colors shadow-sm mb-4"
+                                class="bg-white p-4 rounded-[100rpx] border-theme flex items-center gap-4 transition-colors shadow-sm mb-2"
                                 @tap="openEditDeviceToast(deviceItemFromDragsort(item))"
                             >
                                 <view

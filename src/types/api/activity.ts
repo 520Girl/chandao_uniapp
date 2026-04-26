@@ -3,12 +3,48 @@
  * 与后端 `Activity` 模块 DTO 对齐。
  */
 
-/** POST `/app/activity/page` Body */
+/**
+ * GET/POST `/app/activity/page` 查询参数（`ActivityAppPageQueryDTO`）。
+ * - 不传 `teamId`：全局活动（`teamId` 为空）+ 可访问团队下活动；
+ * - 传 `teamId`：仅该团队已发布活动（不含全局），且须在可访问团队内。
+ */
 export interface ActivityPageQuery {
   /** 页码，默认 1 */
   page?: number;
-  /** 每页条数，默认 20 */
+  /** 每页条数，默认 20，最大 100 */
   size?: number;
+  /** 指定团队时仅该团队；不传则含全局+多团队 */
+  teamId?: number;
+}
+
+/**
+ * 团队可发布用活动模板项（`GET /app/activity/templates` 单行）。
+ */
+export interface ActivityTemplateItem {
+  id: number;
+  name: string;
+  description?: string | null;
+  icon?: string | null;
+  allowTeamPublish?: boolean;
+}
+
+/**
+ * `POST /app/activity/createFromTemplate` Body（团队负责人发活动）。
+ * `status=2` 发布时 `startDate`、`endDate` 必填（ISO 字符串）。
+ */
+export interface ActivityCreateFromTemplateBody {
+  teamId: number;
+  templateId: number;
+  title: string;
+  startDate?: string;
+  endDate?: string;
+  content?: string;
+  /** `1` 草稿 / `2` 直接发布，默认 `2` */
+  status?: number;
+  /** `1` 每日打卡 / `2` 仅一次，默认 `1` */
+  checkinMode?: number;
+  targetMeditationSeconds?: number;
+  passPercent?: number;
 }
 
 /**

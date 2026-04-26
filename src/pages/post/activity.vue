@@ -108,6 +108,9 @@
           {{ actionLoading ? "处理中…" : "今日打卡" }}
         </button>
       </view>
+      <view v-else-if="isMember && activityHasEnded" class="text-center py-3 text-sm theme-color-8">
+        活动已结束
+      </view>
       <view v-else-if="meRow?.todayChecked" class="text-center py-3 text-sm theme-color-1 font-medium">
         今日已打卡
       </view>
@@ -123,7 +126,7 @@ import { config } from "@/assets/js/config";
 import { useUserStore } from "@/stores/user";
 import type { ActivityCheckinDTO, ActivityDetail } from "@/types/api/activity";
 import { unwrapApiData } from "@/utils/apiResponse";
-import { formatDate } from "@/utils";
+import { formatDate, parseCrossPlatformDateInput } from "@/utils";
 import { getCurrentLatLng } from "@/utils/location";
 import { navigateBack } from "@/utils/navigation";
 import lcrBar from "@/components/lcrBar.vue";
@@ -132,12 +135,10 @@ const userStore = useUserStore();
 const { userID } = storeToRefs(userStore);
 
 const activityId = ref(0);
-/** 从列表带入：已加入 */
-const optimisticJoined = ref(false);
-/** 本页成功调用加入接口 */
+/** 本页刚调用加入成功、详情尚未出现本人行时的短暂态；最终以 checkinList 是否含当前用户为准 */
 const sessionJoined = ref(false);
 // 阅读消息
-const queryType = ref('');
+const queryType = ref("");
 
 const loading = ref(true);
 const loadError = ref("");
@@ -176,12 +177,28 @@ const meRow = computed(() => {
   return list.find((r) => r.userId === uid);
 });
 
-const isMember = computed(
-  () => optimisticJoined.value || sessionJoined.value || !!meRow.value,
-);
+/** 是否已加入活动：以详情返回的 `checkinList` 中是否存在当前 `userId` 为准，不接受仅 URL `joined=1` */
+const isMember = computed(() => {
+  if (userID.value == null) return false;
+  if (meRow.value) return true;
+  return sessionJoined.value;
+});
+
+/** 当前时间已超过 `endDate` 则视为已结束，不可再打卡；无/无效 `endDate` 时不限制 */
+const activityHasEnded = computed(() => {
+  const d = detail.value;
+  if (!d) return false;
+  const raw = d.endDate?.trim();
+  if (!raw) return false;
+  const end = parseCrossPlatformDateInput(raw);
+  if (Number.isNaN(end.getTime())) return false;
+  return Date.now() > end.getTime();
+});
 
 const showJoinBtn = computed(() => !isMember.value);
-const showCheckinBtn = computed(() => isMember.value && !meRow.value?.todayChecked);
+const showCheckinBtn = computed(
+  () => isMember.value && !meRow.value?.todayChecked && !activityHasEnded.value,
+);
 
 async function loadActivity() {
   if (!activityId.value) {
@@ -200,6 +217,13 @@ async function loadActivity() {
       return;
     }
     detail.value = data;
+    const uid = userID.value;
+    if (uid != null) {
+      const inList = data.checkinStats?.checkinList?.some((r) => r.userId === uid) ?? false;
+      if (inList) {
+        sessionJoined.value = false;
+      }
+    }
   } catch (e) {
     console.error("fetchActivityDetail", e);
     loadError.value = "加载失败，请稍后重试";
@@ -227,6 +251,10 @@ async function onJoin() {
 
 async function onCheckin() {
   if (!activityId.value || actionLoading.value) return;
+  if (activityHasEnded.value) {
+    uni.showToast({ title: "活动已结束，无法打卡", icon: "none" });
+    return;
+  }
   actionLoading.value = true;
   const body: ActivityCheckinDTO = { id: activityId.value };
   try {
@@ -257,7 +285,6 @@ onLoad((options) => {
   const q = options ?? {};
   const id = Number(q.id);
   activityId.value = Number.isFinite(id) && id > 0 ? id : 0;
-  optimisticJoined.value = String(q.joined ?? "") === "1";
 });
 
 onShow(() => {

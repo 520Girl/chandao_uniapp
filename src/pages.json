@@ -119,6 +119,13 @@
           }
         },
         {
+          "path": "allActivity",
+          "style": {
+            "navigationBarTitleText": "全部活动",
+            "navigationStyle": "custom"
+          }
+        },
+        {
           "path": "allPost",
           "style": {
             "navigationBarTitleText": "全部动态",
@@ -136,6 +143,13 @@
           "path": "manage",
           "style": {
             "navigationBarTitleText": "社群管理",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "activity-create",
+          "style": {
+            "navigationBarTitleText": "发布团队活动",
             "navigationStyle": "custom"
           }
         }

@@ -242,6 +242,11 @@
         </view>
       </scroll-view>
       <view v-if="activitiesLoading" class="text-center text-xs theme-color-8 -mt-6 pb-2">活动加载中…</view>
+      <view class="flex flex-wrap justify-center items-center gap-x-4 gap-y-1 py-3 px-2 text-[22rpx] theme-color-8">
+        <text class="text-primary/90 active:opacity-80" @click="openUserAgreementFromHome">用户协议</text>
+        <text class="opacity-30">|</text>
+        <text class="text-primary/90 active:opacity-80" @click="openPrivacyFromHome">隐私政策</text>
+      </view>
     </view>
     <!-- //开始按钮 -->
     <view class="fixed bottom-24 right-6 flex flex-col gap-3">
@@ -284,6 +289,7 @@ import { unwrapApiData } from '@/utils/apiResponse';
 import { formatDate } from '@/utils/common';
 import { mapApiStatusToLabel, normalizeDeviceStatusCode } from '@/utils/deviceMap';
 import { mapMusicListItemToRow, resolveMusicAssetUrl } from '@/utils/musicPage';
+import { reLaunchAgreementFromHome } from '@/utils/agreementNavigation';
 import { getCurrentLatLng } from '@/utils/location';
 
 /** 5 分钟为 1 档；5–300 分（5 小时） */
@@ -338,6 +344,14 @@ const goProfile = () => {
     url: '/pages/message/index'
   });
 };
+
+function openUserAgreementFromHome() {
+  reLaunchAgreementFromHome("user");
+}
+
+function openPrivacyFromHome() {
+  reLaunchAgreementFromHome("privacy");
+}
 
 const userStore = useUserStore();
 const meditationStore = useMeditationStore();
@@ -394,7 +408,12 @@ const homeRingTitle = computed((): string => {
   if (!primaryDeviceMac.value) return "";
   if (deviceSnapshotLoading.value && !homeDeviceStatus.value) return "同步中…";
   if (homeDeviceIsOffline.value) return "设备离线";
-  if (homeRealtimeErrorText.value) return "已连接";
+  const rtErr = homeDeviceRealtime.value;
+  if (rtErr != null && Number(rtErr.ret) === 3) {
+    const m = rtErr.msg != null ? String(rtErr.msg).trim() : "";
+    return m || "问题";
+  }
+  if (homeRealtimeErrorText.value) return homeRealtimeErrorText.value;
   const p = homeRealtimeLatest.value;
   if (p?.inbed != null) {
     return p.inbed ? "已就绪" : "已连接 · 离座";
@@ -493,9 +512,6 @@ const homeRealtimeErrorText = computed(() => {
   const r = homeDeviceRealtime.value;
   if (!r) return "";
   if (r.ret != null && Number(r.ret) !== 0) {
-    return String(r.msg ?? "实时数据暂不可用");
-  }
-  if (r.err_code != null && Number(r.err_code) !== 0) {
     return String(r.msg ?? "实时数据暂不可用");
   }
   return "";

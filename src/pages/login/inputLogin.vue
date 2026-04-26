@@ -69,11 +69,17 @@
                                 <view v-if="agreeChecked" class="custom-checkbox-dot"></view>
                             </view>
                         </view>
-                        <view class="flex items-center leading-relaxed theme-color-6">
+                        <view class="flex items-center flex-wrap justify-center leading-relaxed theme-color-6">
                             我已阅读并同意
-                            <text class="text-primary font-medium theme-color-1 px-[3rpx]" href="#">用户协议</text>
+                            <text
+                                class="text-primary font-medium theme-color-1 px-[3rpx] underline decoration-primary/50"
+                                @click.stop="openUserAgreement"
+                            >用户协议</text>
                             和
-                            <text class="text-primary font-medium theme-color-1 px-[3rpx]" href="#">隐私政策</text>
+                            <text
+                                class="text-primary font-medium theme-color-1 px-[3rpx] underline decoration-primary/50"
+                                @click.stop="openPrivacyPolicy"
+                            >隐私政策</text>
                         </view>
                     </view>
                 </form>
@@ -111,9 +117,13 @@
     </view>
 </template>
 <script setup lang="ts">
-import { onLoad } from "@dcloudio/uni-app";
+import { onLoad, onShow } from "@dcloudio/uni-app";
 import { ref } from "vue";
 import { useUserStore } from "@/stores/user";
+import {
+  navigateToAgreementFromLogin,
+  STORAGE_LOGIN_AGREEMENT_CHECKED,
+} from "@/utils/agreementNavigation";
 
 const userStore = useUserStore();
 
@@ -127,6 +137,7 @@ onLoad((options) => {
 //     /* ignore */
 //   }
 });
+
 const phone = ref('12810909149');
 const password = ref('123456');
 
@@ -145,6 +156,17 @@ const toLogin = () => {
 const passwordVisible = ref(false);
 const agreeChecked = ref(true);
 
+onShow(() => {
+  if (uni.getStorageSync(STORAGE_LOGIN_AGREEMENT_CHECKED) === "1") {
+    agreeChecked.value = true;
+    try {
+      uni.removeStorageSync(STORAGE_LOGIN_AGREEMENT_CHECKED);
+    } catch {
+      /* 忽略 */
+    }
+  }
+});
+
 const togglePasswordVisible = () => {
     passwordVisible.value = !passwordVisible.value;
 };
@@ -152,6 +174,14 @@ const togglePasswordVisible = () => {
 const toggleAgree = () => {
     agreeChecked.value = !agreeChecked.value;
 };
+
+function openUserAgreement() {
+  navigateToAgreementFromLogin("user");
+}
+
+function openPrivacyPolicy() {
+  navigateToAgreementFromLogin("privacy");
+}
 </script>
 <style scoped lang="scss">
 /* 改造复选框中间白点 */

@@ -133,10 +133,12 @@
                 </view>
             </article>
 
-            <!-- Footer Action -->
+            <!-- Footer Action：source=login 时确认后回写登录页勾选项 -->
             <view class="mt-24 mb-12 text-center">
                 <button
-                    class="w-full py-5 px-8 rounded-full bg-primary text-white font-label text-sm font-semibold uppercase tracking-[0.15rem] shadow-lg shadow-primary/20 button-transition">
+                    class="w-full py-5 px-8 rounded-full bg-primary text-white font-label text-sm font-semibold uppercase tracking-[0.15rem] shadow-lg shadow-primary/20 button-transition"
+                    @click="onAgreeRead"
+                >
                     我已阅读并同意
                 </button>
                 <view class="mt-6 font-label text-[20rpx] text-on-surface-variant/60 uppercase tracking-widest">
@@ -147,11 +149,47 @@
     </view>
 </template>
 <script setup lang="ts">
-import { navigateBack } from '@/utils/navigation';
-import lcrBar from '@/components/lcrBar.vue';
+import { onLoad } from "@dcloudio/uni-app";
+import { ref } from "vue";
+import { STORAGE_LOGIN_AGREEMENT_CHECKED } from "@/utils/agreementNavigation";
+import { navigateBack } from "@/utils/navigation";
+import lcrBar from "@/components/lcrBar.vue";
+
+/** 空：自「我的」等 `navigateTo` 无参数 */
+const source = ref<"home" | "login" | "">("");
+
+onLoad((q) => {
+  const s = (q as Record<string, string | undefined>)?.source;
+  if (s === "home" || s === "login") {
+    source.value = s;
+  } else {
+    source.value = "";
+  }
+});
 
 const onBack = () => {
-    navigateBack();
+  if (source.value === "home") {
+    uni.switchTab({ url: "/pages/index/community" });
+    return;
+  }
+  navigateBack();
 };
+
+function onAgreeRead() {
+  if (source.value === "login") {
+    try {
+      uni.setStorageSync(STORAGE_LOGIN_AGREEMENT_CHECKED, "1");
+    } catch {
+      /* 忽略 */
+    }
+    navigateBack();
+    return;
+  }
+  if (source.value === "home") {
+    uni.switchTab({ url: "/pages/index/community" });
+    return;
+  }
+  navigateBack();
+}
 </script>
 <style scoped lang="scss"></style>

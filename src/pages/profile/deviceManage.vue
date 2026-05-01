@@ -23,59 +23,64 @@
                     class="py-12 text-center text-sm text-on-surface-variant"
                 >加载中…</view>
                 <template v-else>
-                    <up-dragsort
+                    <su-drag
                         v-if="deviceList.length > 0"
-                        :key="`device-dragsort-${deviceDragsortListKey}`"
-                        :initial-list="deviceDragsortItems"
-                        direction="vertical"
-                        class="w-full"
-                        @drag-end="onDeviceDragsortEnd"
+                        ref="deviceDragRef"
+                        v-model="deviceDragData"
+                        :columns="1"
+                        :item-height="DEVICE_DRAG_ITEM_HEIGHT"
+                        :touch-dragging="true"
+                        item-margin="0"
+                        custom-class="device-drag-item"
+                        custom-drag-class="device-dragging"
+                        class="w-full device-drag-wrap"
+                        @end="onDeviceDragsortEnd"
                     >
-                        <template #default="{ item, index: dIndex }">
+                        <template #default="{ data }">
                             <view
-                                class="bg-white p-4 rounded-[100rpx] border-theme flex items-center gap-4 transition-colors shadow-sm mb-2"
-                                @tap="openEditDeviceToast(deviceItemFromDragsort(item))"
+                                class="w-full box-border bg-white p-4 rounded-[100rpx] border-theme flex items-center gap-4 transition-colors shadow-sm mb-2"
+                                @tap="openEditDeviceToast(deviceItemFromDragsort(data))"
                             >
                                 <view
                                     class="size-14 bg-theme-10 rounded-full flex items-center justify-center text-primary shrink-0"
                                 >
                                     <text
                                         class="iconfont text-[60rpx] theme-color-1"
-                                        :class="item.icon || 'icon-grid-view'"
+                                        :class="data.icon || 'icon-grid-view'"
                                     />
                                 </view>
                                 <view class="flex-1 min-w-0">
                                     <view class="flex items-center gap-2 flex-wrap">
-                                        <text class="font-bold text-sm tracking-tight">{{ item.name }}</text>
+                                        <text class="font-bold text-sm tracking-tight">{{ data.name }}</text>
                                         <text
-                                            v-if="dIndex === 0"
+                                            v-if="Number(data.sort ?? 0) === 0"
                                             class="text-[20rpx] font-label px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20"
                                         >主设备</text>
                                     </view>
                                     <view class=" flex items-center gap-1">
                                         <text class="iconfont icon-shebei1 text-[30rpx] theme-color-12 font-bold"></text>
-                                        <text class="text-[26rpx] theme-color-12 ">{{ item.sn }}</text>
+                                        <text class="text-[26rpx] theme-color-12 ">{{ data.sn }}</text>
                                     </view>
                                     <view class="flex items-center gap-1.5">
                                         <view
                                             class="size-2 rounded-full animate-pulse"
-                                            :class="statusDotClass(item.statusCode)"
+                                            :class="statusDotClass(data.statusCode)"
                                         />
                                         <text
                                             class="text-[11px] font-medium"
-                                            :class="statusTextClass(item.statusCode)"
-                                        >{{ item.status }}</text>
+                                            :class="statusTextClass(data.statusCode)"
+                                        >{{ data.status }}</text>
                                     </view>
                                 </view>
                                 <view
                                     class="theme-color-12 bg-white border-0 shrink-0"
-                                    @tap.stop="onUnbindDevice(deviceItemFromDragsort(item))"
+                                    @tap.stop="onUnbindDevice(deviceItemFromDragsort(data))"
                                 >
                                     <text class="iconfont icon-setting text-[48rpx]"></text>
                                 </view>
                             </view>
                         </template>
-                    </up-dragsort>
+                    </su-drag>
                     <!-- 空插槽：添加设备 -->
                     <view
                         v-if="deviceList.length < MAX_DEVICES"
@@ -147,6 +152,7 @@ const deviceStore = useDeviceStore();
 const { devices: deviceList, listLoading } = storeToRefs(deviceStore);
 
 const remainingSlots = computed(() => Math.max(0, MAX_DEVICES - deviceList.value.length));
+const DEVICE_DRAG_ITEM_HEIGHT = 98;
 
 const deviceDragsortItems = computed(() =>
   deviceList.value.map((d) => ({ ...d, id: d.id })),
@@ -157,6 +163,25 @@ const deviceDragsortListKey = computed(() =>
     .map((d) => d.id)
     .sort((a, b) => a - b)
     .join("-"),
+);
+
+type DeviceDragRuntimeRow = DeviceItem & { id: number; sort: number };
+const deviceDragData = ref<DeviceDragRuntimeRow[]>([]);
+type SuDragExpose = { switchDragging?: (value: boolean) => void };
+const deviceDragRef = ref<SuDragExpose | null>(null);
+
+watch(
+  deviceDragsortListKey,
+  () => {
+    deviceDragData.value = deviceDragsortItems.value.map((item, index) => ({
+      ...item,
+      sort: index,
+    }));
+    void nextTick(() => {
+      deviceDragRef.value?.switchDragging?.(true);
+    });
+  },
+  { immediate: true },
 );
 
 /** 弹窗：null 为「添加设备」，有值为正在编辑的设备 id */
@@ -193,6 +218,9 @@ function statusTextClass(code: number) {
 
 onMounted(() => {
     void deviceStore.refreshList(MAX_DEVICES);
+    void nextTick(() => {
+      deviceDragRef.value?.switchDragging?.(true);
+    });
 });
 
 function buildSnOrderFromDevices(list: DeviceItem[]): string[] {
@@ -214,14 +242,16 @@ async function applyDeviceOrder(ordered: DeviceItem[]) {
 }
 
 function deviceItemFromDragsort(
-  row: DeviceItem & { x?: number; y?: number; id: number },
+  row: DeviceItem & { x?: number; y?: number; id: number; sort?: number },
 ): DeviceItem {
-  const { x: _x, y: _y, ...rest } = row;
+  const { x: _x, y: _y, sort: _sort, ...rest } = row;
   return rest as DeviceItem;
 }
 
-function onDeviceDragsortEnd(list: (DeviceItem & { x?: number; y?: number; id: number })[]) {
-  const ordered: DeviceItem[] = list.map((row) => deviceItemFromDragsort(row));
+function onDeviceDragsortEnd() {
+  const ordered: DeviceItem[] = [...deviceDragData.value]
+    .sort((a, b) => Number(a.sort ?? 0) - Number(b.sort ?? 0))
+    .map((row) => deviceItemFromDragsort(row));
   void applyDeviceOrder(ordered);
 }
 
@@ -376,4 +406,19 @@ const onConfirm = async () => {
     }
 };
 </script>
-<style scoped lang="scss"></style>
+<style scoped lang="scss">
+:deep(.device-drag-wrap .wrap-drag) {
+  width: 100%;
+}
+
+:deep(.device-drag-wrap .device-drag-item) {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+:deep(.device-drag-wrap .device-dragging) {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box;
+}
+</style>

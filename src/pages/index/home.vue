@@ -405,6 +405,7 @@ const homeStatusBarIcon = computed((): "offline" | "ready" | "refresh" => {
 });
 
 const homeRingTitle = computed((): string => {
+  const normalizeSeatText = (text: string) => text.replace(/床/g, "座");
   if (!primaryDeviceMac.value) return "";
   if (deviceSnapshotLoading.value && !homeDeviceStatus.value) return "同步中…";
   if (homeDeviceIsOffline.value) return "设备离线";
@@ -423,7 +424,10 @@ const homeRingTitle = computed((): string => {
     const iface = s.interface;
     if (iface && typeof iface === "object" && iface.name != null) {
       const n = String(iface.name).trim();
-      if (n) return /离线|未激活|无人/.test(n) ? n : `已连接 · ${n}`;
+      if (n) {
+        const normalized = normalizeSeatText(n);
+        return /离线|未激活|无人/.test(normalized) ? normalized : `已连接 · ${normalized}`;
+      }
     }
     const code = normalizeDeviceStatusCode(s.status);
     if (code === 3) return "已连接 · 离座";
@@ -1092,13 +1096,19 @@ function applyLastMeditationTrackSelection() {
   if (id) {
     const hit = audioTracks.value.find((t) => t.id === id);
     if (hit) {
-      playingId.value = hit.id;
+      selectedTrackId.value = hit.id;
       return;
     }
   }
   if (url) {
     const byUrl = audioTracks.value.find((t) => t.url === url);
-    if (byUrl) playingId.value = byUrl.id;
+    if (byUrl) {
+      selectedTrackId.value = byUrl.id;
+      return;
+    }
+  }
+  if (!selectedTrackId.value && audioTracks.value[0]) {
+    selectedTrackId.value = audioTracks.value[0].id;
   }
 }
 
@@ -1140,10 +1150,15 @@ onHide(() => {
 });
 
 const playingId = ref<string | null>(null);
+const selectedTrackId = ref<string | null>(null);
 let innerAudio: UniApp.InnerAudioContext | null = null;
+let previewBgAudio: UniApp.BackgroundAudioManager | null = null;
+let previewBgEndedHandler: (() => void) | null = null;
+let previewBgErrorHandler: ((err: unknown) => void) | null = null;
 
 const currentTrackTitle = computed(() => {
-  const t = audioTracks.value.find((x: AudioTrack) => x.id === playingId.value);
+  const selectedId = selectedTrackId.value || playingId.value;
+  const t = audioTracks.value.find((x: AudioTrack) => x.id === selectedId);
   return t?.title || '音乐播放（开始播放）';
 });
 
@@ -1162,7 +1177,38 @@ function ensureAudio() {
   return innerAudio;
 }
 
+function ensurePreviewBackgroundAudio() {
+  // #ifdef MP-WEIXIN
+  if (previewBgAudio) return previewBgAudio;
+  const bg = uni.getBackgroundAudioManager();
+  previewBgAudio = bg;
+  previewBgEndedHandler = () => {
+    playingId.value = null;
+  };
+  previewBgErrorHandler = (err) => {
+    console.error('background audio error', err);
+    playingId.value = null;
+    uni.showToast({ title: '音频无法播放，请检查网络或更换地址', icon: 'none' });
+  };
+  bg.onEnded(previewBgEndedHandler);
+  bg.onError(previewBgErrorHandler);
+  return bg;
+  // #endif
+
+  return null;
+}
+
 function stopAudio() {
+  // #ifdef MP-WEIXIN
+  if (previewBgAudio) {
+    try {
+      previewBgAudio.stop();
+    } catch {
+      /* noop */
+    }
+  }
+  // #endif
+
   if (!innerAudio) return;
   try {
     innerAudio.stop();
@@ -1176,6 +1222,35 @@ function togglePlay(track: AudioTrack) {
     uni.showToast({ title: '无效音频地址', icon: 'none' });
     return;
   }
+  selectedTrackId.value = track.id;
+
+  // #ifdef MP-WEIXIN
+  const bg = ensurePreviewBackgroundAudio();
+  if (!bg) return;
+  if (playingId.value === track.id) {
+    try {
+      bg.pause();
+    } catch {
+      /* noop */
+    }
+    playingId.value = null;
+    return;
+  }
+  stopAudio();
+  bg.title = track.title || '疗愈音乐';
+  bg.epname = '疗愈音乐';
+  bg.singer = '静心';
+  bg.coverImgUrl = '/static/logo.png';
+  bg.src = track.url;
+  playingId.value = track.id;
+  try {
+    bg.play();
+  } catch {
+    /* noop */
+  }
+  return;
+  // #endif
+
   const ctx = ensureAudio();
   if (playingId.value === track.id) {
     ctx.pause();
@@ -1254,7 +1329,10 @@ async function confirmStartMeditationWithDevice(hasDevice: boolean) {
     }
   }
 
-  const selected = audioTracks.value.find((x) => x.id === playingId.value) || audioTracks.value[0];
+  const selected =
+    audioTracks.value.find((x) => x.id === selectedTrackId.value) ||
+    audioTracks.value.find((x) => x.id === playingId.value) ||
+    audioTracks.value[0];
   stopAudio();
   playingId.value = null;
 
@@ -1342,6 +1420,29 @@ function onRingTouch(e: TouchEvent) {
 
 function disposeAudio() {
   stopAudio();
+
+  // #ifdef MP-WEIXIN
+  if (previewBgAudio) {
+    try {
+      if (previewBgEndedHandler && typeof (previewBgAudio as any).offEnded === 'function') {
+        (previewBgAudio as any).offEnded(previewBgEndedHandler);
+      }
+    } catch {
+      /* noop */
+    }
+    try {
+      if (previewBgErrorHandler && typeof (previewBgAudio as any).offError === 'function') {
+        (previewBgAudio as any).offError(previewBgErrorHandler);
+      }
+    } catch {
+      /* noop */
+    }
+  }
+  previewBgAudio = null;
+  previewBgEndedHandler = null;
+  previewBgErrorHandler = null;
+  // #endif
+
   if (innerAudio) {
     innerAudio.destroy();
     innerAudio = null;

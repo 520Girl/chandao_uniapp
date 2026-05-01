@@ -73,10 +73,10 @@
                             class="size-[88rpx] rounded-2xl flex items-center justify-center shrink-0 bg-white/70 dark:bg-white/10 border border-black/5">
                             <view
                                 v-if="currentIsBed"
-                                class="iconfont icon-bed text-[48rpx] leading-none text-emerald-600" />
+                                class="iconfont icon-zhihuifuyou_chankangyuyuemianxing text-[48rpx] leading-none text-emerald-600" />
                             <view
                                 v-else
-                                class="iconfont icon-lichuangshijian text-[48rpx] leading-none text-orange-600" />
+                                class="iconfont  icon-a-icon-dianzi1 text-[48rpx] leading-none text-orange-600" />
                         </view>
                         <view class="flex flex-col min-w-0 flex-1">
                             <text class="font-label text-[18rpx] tracking-[0.12em] text-outline uppercase">体姿</text>
@@ -184,6 +184,55 @@ let meditationAudio: UniApp.InnerAudioContext | null = null;
 let meditationBgAudio: UniApp.BackgroundAudioManager | null = null;
 let bgAudioEndedHandler: (() => void) | null = null;
 let bgAudioErrorHandler: ((err: unknown) => void) | null = null;
+const END_REMINDER_HOLD_MS = 2600;
+const MEDITATION_BG_VOLUME = 0;
+const END_REMINDER_VOLUME = 0.45;
+const END_REMINDER_START_VOLUME = 0.02;
+const END_REMINDER_FADE_MS = 5200;
+const END_REMINDER_FADE_STEP_MS = 120;
+
+let endReminderFadeTimer: ReturnType<typeof setInterval> | null = null;
+
+function setAudioVolumeSafe(target: unknown, volume: number) {
+  const v = Math.min(1, Math.max(0, Number(volume)));
+  if (!Number.isFinite(v)) return;
+  const anyTarget = target as { volume?: number };
+  if (!anyTarget || typeof anyTarget !== 'object' || !('volume' in anyTarget)) return;
+  try {
+    anyTarget.volume = v;
+  } catch {
+    /* noop */
+  }
+}
+
+function clearEndReminderFadeTimer() {
+  if (!endReminderFadeTimer) return;
+  clearInterval(endReminderFadeTimer);
+  endReminderFadeTimer = null;
+}
+
+function fadeInAudioVolume(target: unknown, from: number, to: number) {
+  clearEndReminderFadeTimer();
+  const start = Math.min(1, Math.max(0, from));
+  const end = Math.min(1, Math.max(0, to));
+  if (end <= start) {
+    setAudioVolumeSafe(target, end);
+    return;
+  }
+  const stepCount = Math.max(1, Math.ceil(END_REMINDER_FADE_MS / END_REMINDER_FADE_STEP_MS));
+  const delta = (end - start) / stepCount;
+  let current = start;
+  setAudioVolumeSafe(target, current);
+  endReminderFadeTimer = setInterval(() => {
+    current += delta;
+    if (current >= end) {
+      setAudioVolumeSafe(target, end);
+      clearEndReminderFadeTimer();
+      return;
+    }
+    setAudioVolumeSafe(target, current);
+  }, END_REMINDER_FADE_STEP_MS);
+}
 
 function enableKeepScreenOn() {
   try {
@@ -202,6 +251,7 @@ function disableKeepScreenOn() {
 }
 
 function disposeMeditationAudio() {
+  clearEndReminderFadeTimer();
   // #ifdef MP-WEIXIN
   if (meditationBgAudio) {
     try {
@@ -271,6 +321,7 @@ function startMeditationBgMusic() {
 
   bg.onEnded(bgAudioEndedHandler);
   bg.onError(bgAudioErrorHandler);
+  setAudioVolumeSafe(bg, MEDITATION_BG_VOLUME);
   bg.title = trackTitle.value || '禅修背景音';
   bg.epname = '禅修';
   bg.singer = '静心';
@@ -287,6 +338,7 @@ function startMeditationBgMusic() {
   const ctx = uni.createInnerAudioContext();
   meditationAudio = ctx;
   ctx.obeyMuteSwitch = false;
+  setAudioVolumeSafe(ctx, MEDITATION_BG_VOLUME);
   ctx.loop = true;
   ctx.src = url;
   /** 与首页试听分离：独立 InnerAudioContext，从头播放（首页已 stop） */
@@ -303,6 +355,44 @@ function startMeditationBgMusic() {
     console.error('禅修背景音乐', err);
   });
   ctx.play();
+}
+
+function playEndReminderAudio(): boolean {
+  const endReminderUrl = resolveMusicAssetUrl(trackUrl.value);
+  if (!endReminderUrl) return false;
+
+  // #ifdef MP-WEIXIN
+  try {
+    const bg = uni.getBackgroundAudioManager();
+    setAudioVolumeSafe(bg, END_REMINDER_START_VOLUME);
+    bg.title = '禅修完成提醒';
+    bg.epname = '禅修完成';
+    bg.singer = '静心';
+    bg.coverImgUrl = '/static/logo.png';
+    bg.src = endReminderUrl;
+    bg.play();
+    fadeInAudioVolume(bg, END_REMINDER_START_VOLUME, END_REMINDER_VOLUME);
+    return true;
+  } catch (e) {
+    console.error('playEndReminderAudio(mp)', e);
+    return false;
+  }
+  // #endif
+
+  try {
+    const ctx = meditationAudio ?? uni.createInnerAudioContext();
+    meditationAudio = ctx;
+    ctx.obeyMuteSwitch = false;
+    setAudioVolumeSafe(ctx, END_REMINDER_START_VOLUME);
+    ctx.loop = false;
+    ctx.src = endReminderUrl;
+    ctx.play();
+    fadeInAudioVolume(ctx, END_REMINDER_START_VOLUME, END_REMINDER_VOLUME);
+    return true;
+  } catch (e) {
+    console.error('playEndReminderAudio', e);
+    return false;
+  }
 }
 
 const meditationStore = useMeditationStore();
@@ -585,9 +675,22 @@ async function finishMeditationSession(manualStop: boolean) {
     activityTemplateId: sessionActivityTemplateId,
   });
 
-  uni.redirectTo({
-    url: `/pages/meditation/report?${query}`
-  });
+  const goReport = () => {
+    uni.redirectTo({
+      url: `/pages/meditation/report?${query}`
+    });
+  };
+
+  if (manualStop) {
+    goReport();
+    return;
+  }
+
+  const startedReminder = playEndReminderAudio();
+  const holdMs = startedReminder ? END_REMINDER_HOLD_MS : 80;
+  setTimeout(() => {
+    goReport();
+  }, holdMs);
 }
 
 function onTapStop(hasDevice: boolean) {
@@ -777,6 +880,6 @@ onBeforeUnmount(() => {
 }
 
 .breath-halo {
-  animation: breath-halo 4s ease-in-out infinite;
+  animation: breath-halo 8s ease-in-out infinite;
 }
 </style>

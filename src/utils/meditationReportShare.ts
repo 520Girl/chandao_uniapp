@@ -306,7 +306,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
   const todayLine = `${minutes}分${sec}秒`;
   const totalDaysLine = p.posterTotalDays != null ? `${Math.max(0, Math.floor(p.posterTotalDays))} 天` : "--";
   const totalHoursLine =
-    p.posterTotalHours != null ? `${Math.max(0, Number(p.posterTotalHours)).toFixed(1)} 小时` : "--";
+    p.posterTotalHours != null ? `${Math.max(0, Number(p.posterTotalHours)).toFixed(1)} 小时 ` : "--";
   const progressLine =
     p.posterConsecutiveDays != null
       ? `已连续 ${Math.max(0, Math.floor(p.posterConsecutiveDays))} 天`
@@ -320,15 +320,15 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
     const m = String(d.getMonth() + 1).padStart(2, "0");
     const day = String(d.getDate()).padStart(2, "0");
     // return `${d.getFullYear()}/${m}/${day}`;
-    return `${day}`;
+    return `${m}月${day}日`;
   })();
   const track = p.trackTitle?.trim();
   const trackLine = track ? `伴乐：${truncateTrackTitle(track, 16)}` : "";
-
+// /static/MeditationReportBg.jpg
   const views: UviewPosterJson["views"] = [
     {
       type: "image",
-      src: "https://jingzuoguanzhao.cn/upload/20260419/MeditationReportBg_d139d10457be40a583403c8d4091949d.jpg",
+      src: "/static/MeditationReportBg.jpg",
       css: {
         left: "0rpx",
         top: "0rpx",
@@ -362,8 +362,8 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
       type: "text",
       text: dateLine,
       css: {
-        left: "624rpx",
-        top: "124rpx",
+        left: "450rpx",
+        top: "120rpx",
         color: "#8e6b35",
         fontSize: "40rpx",
         fontWeight: 'bold'
@@ -376,6 +376,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
         left: "220rpx",
         top: "298rpx",
         color: "#3f5246",
+        fontWeight: 'bold',
         fontSize: "34rpx",
       },
     },
@@ -386,6 +387,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
         left: "220rpx",
         top: "373rpx",
         color: "#2f281b",
+        fontWeight: 'bold',
         fontSize: "34rpx",
       },
     },
@@ -396,6 +398,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
         left: "220rpx",
         top: "448rpx",
         color: "#2f281b",
+        fontWeight: 'bold',
         fontSize: "34rpx",
       },
     },
@@ -406,6 +409,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
         left: "220rpx",
         top: "523rpx",
         color: "#2f281b",
+        fontWeight: 'bold',
         fontSize: "34rpx",
       },
     },
@@ -416,6 +420,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
         left: "178rpx",
         top: "693rpx",
         color: "#2f281b",
+        fontWeight: 'bold',
         fontSize: "34rpx",
       },
     },
@@ -426,6 +431,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
         left: "194rpx",
         top: "754rpx",
         color: "#2f281b",
+        fontWeight: 'bold',
         fontSize: "34rpx",
       },
     },
@@ -483,7 +489,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
       text: mainTitle,
       css: {
         left: "272rpx",
-        top: "1080rpx",
+        top: "1045rpx",
         color: "#3f3320",
         fontSize: "30rpx",
         fontWeight: "bold",
@@ -494,7 +500,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
       text: bottomHint,
       css: {
         left: "272rpx",
-        top: "1128rpx",
+        top: "1090rpx",
         color: "#6e6045",
         fontSize: "20rpx",
       },
@@ -504,7 +510,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
       text: "温馨提示：本报告仅供静心参考，非医疗诊断",
       css: {
         left: "272rpx",
-        top: "1172rpx",
+        top: "1125rpx",
         color: "#8d8067",
         fontSize: "18rpx",
       },

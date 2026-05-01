@@ -1,0 +1,213 @@
+	var historySort = -1;
+	var dragging = false;
+	var firstDragging = true;
+	var translatePageX = 0;
+	var translatePageY = 0;
+	var moveEvent, moveOwnerInstance, isScroll;
+	var isOutRange = function(x1, y1, x2, y2, x3, y3) {
+	  return x1 < 0 || x1 >= y1 || x2 < 0 || x2 >= y2 || x3 < 0 || x3 >= y3
+	}
+	function touchstart(event, ownerInstance) {
+		//开启拖拽
+		var instance = event.instance
+		var dataset = instance.getDataset()
+		var list = ownerInstance.getState().list
+		var state = ownerInstance.getState()
+		var basedata = state.basedata
+		var sortField = basedata.sortField
+		var touches = event.changedTouches[0]
+		if ((basedata.touchDragging && !basedata.dragging) || (basedata.touchDragging && event.type === 'longpress') ||
+			(!basedata.touchDragging && event.type === 'touchstart') ||
+			list[dataset.index].fixed
+		) return
+		if (!touches) return
+		dragging = true
+		ownerInstance.callMethod("switchDrag", {value: true})
+		ownerInstance.callMethod("triggerEmit", {name: 'start', event: event, index: dataset.index})
+		instance.addClass("drag-item " + basedata.customDragClass)
+		var translateX = touches.clientX - (basedata.itemWidth / 2 + basedata.left)
+		var translateY = touches.clientY - (basedata.itemHeight / 2 + basedata.top)
+		translatePageX = touches.pageX - (basedata.itemWidth / 2 + basedata.left)
+		translatePageY = touches.pageY - (basedata.itemHeight / 2 + basedata.top)
+		if (basedata.columns == 1)
+			translateX = translatePageX = 0
+		instance.setStyle({
+		  'transform': 'translate3d(' + translateX + 'px,' + (translateY + basedata.top) +'px, 0)',
+		  'width': basedata.itemWidth +'px',
+		  "position": 'fixed'
+		})
+	}
+	
+	function touchmove(event, ownerInstance, scrollPositionTo) {
+		if(!dragging) return;
+		moveEvent = event
+		moveOwnerInstance = ownerInstance
+		var instance = event.instance
+		var list = ownerInstance.getState().list
+		var touches = event.changedTouches[0]
+		var state = ownerInstance.getState()
+		var basedata = state.basedata
+		var sortField = basedata.sortField
+		var dataset = instance.getDataset()
+		var translateX = touches.clientX - (basedata.itemWidth / 2 + basedata.left)
+		var translateY = touches.clientY - (basedata.itemHeight / 2 + basedata.top)
+		translatePageX = touches.pageX - (basedata.itemWidth / 2 + basedata.left)
+		if (basedata.columns == 1)
+			translateX = translatePageX = 0
+		var mf = Math.min(Math.max(75, basedata.itemHeight), 300)
+		if (scrollPositionTo !== undefined && scrollPositionTo !== null && scrollPositionTo < 0)
+			touches.pageY -= mf
+		if (scrollPositionTo !== undefined && scrollPositionTo !== null && scrollPositionTo > 0)
+			touches.pageY += mf
+		translatePageY = touches.pageY - (basedata.itemHeight / 2 + basedata.top)
+		
+		if (touches.clientY < basedata.scrollingThreshold && touches.pageY !== touches.clientY && !isScroll) {
+			ownerInstance.callMethod("scrollWindow", {data: (touches.pageY - touches.clientY) * -1})
+			isScroll = true
+		} else if (touches.clientY > basedata.windowHeight - basedata.scrollingThreshold && !isScroll) {
+			ownerInstance.callMethod("scrollWindow", {data: touches.pageY - touches.clientY})
+			isScroll = true
+		} else if ((touches.clientY <= basedata.windowHeight - basedata.scrollingThreshold && touches.clientY >= basedata.scrollingThreshold) && isScroll) {
+			ownerInstance.callMethod("stopScrollWindow")
+			isScroll = false
+		}
+		
+		instance.setStyle({
+		  'transform': 'translate3d(' + translateX + 'px,' + (translateY + basedata.top) +'px, 0)',
+		  'width': basedata.itemWidth +'px',
+		  "position": 'fixed'
+		})
+		var currentX = Math.round(translatePageX / basedata.itemWidth)
+		var currentY = Math.round(translatePageY / basedata.itemHeight)
+		var endSort = currentX + basedata.columns * currentY
+		// X轴或者Y轴超出范围则返回
+		if (isOutRange(currentX, basedata.columns, currentY, Math.ceil(state.activeDataListCount / basedata.columns), endSort, state.activeDataListCount)) return
+		var currentSort = list[dataset.index][sortField]
+		if (historySort == endSort || state.fixedItemSort.indexOf(endSort) !== -1)
+			return;
+		historySort = endSort
+		list[dataset.index][sortField] = endSort
+		ownerInstance.callMethod("triggerEmit", {name: 'update', event: event, index: dataset.index})
+		//移动方向
+		var fx = endSort > currentSort ? -1 : 1
+		var vibrateShort = false
+		state.itemsInstance.forEach(function(itemInstance, index) {
+		  var item = list[index]
+		  if (item && index !== dataset.index && ((item[sortField] >= currentSort && item[sortField] <= endSort) || (item[sortField] <= currentSort && item[sortField] >= endSort)) && !item.fixed) {
+			  var sort = item[sortField] + fx
+			  if (state.fixedItemSort.indexOf(sort) !== -1)
+			  	sort += fx
+			  item[sortField] = sort
+		    itemInstance.setStyle({
+		      'transform': 'translate3d(' + (item[sortField] % basedata.columns * 100) + '%,' + (Math.floor(item[sortField] / basedata.columns) * 100) + '%, 0)'
+		    })
+			vibrateShort = true
+		  }
+		})
+		if (vibrateShort)
+			ownerInstance.callMethod("vibrateShort")
+	}
+	function touchend(event, ownerInstance) {
+		console.log('touchend', dragging);
+		ownerInstance.callMethod("stopScrollWindow")
+		isScroll = false
+		if (!dragging) return;
+		dragging = false;
+		historySort = -1;
+		var dataset = event.instance.getDataset()
+		var list = ownerInstance.getState().list
+		var state = ownerInstance.getState()
+		var basedata = state.basedata
+		var sortField = basedata.sortField
+		var touches = event.changedTouches[0]
+		ownerInstance.callMethod("triggerEmit", {name: 'end', event: event, index: dataset.index})
+		event.instance.removeClass("drag-item " + basedata.customDragClass)
+		ownerInstance.callMethod("touchend", {data: list, index: dataset.index})
+		ownerInstance.callMethod("switchDrag", {value: false})
+		event.instance.setStyle({
+		  'transform': 'translate3d(' + translatePageX + 'px,' + translatePageY +'px, 0)',
+		  'transition': 'none !important'
+		})
+	}
+	
+	function listObserver(newVal, oldVal, ownerInstance, instance) {
+		var state = ownerInstance.getState()
+		var basedata = state.basedata
+		if (!basedata) return
+		var sortField = basedata.sortField
+		state.list = newVal || []
+		state.fixedItemSort = state.list.filter(function(item) {
+		  return item.fixed;
+		}).map(function(item) {
+		  return item[sortField]; 
+		});
+		state.activeDataListCount = state.list.filter(function(item) {
+		  return !item['delete'];
+		}).length
+		oldVal = oldVal || []
+		
+		var listDeleteCount = state.list.filter(function(item) {
+		  return item['delete'];
+		}).length
+		var oldValDeleteCount = oldVal.filter(function(item) {
+		  return item['delete'];
+		}).length
+		ownerInstance.callMethod("switchDrag", {value: false})
+		if (!state.list.length || (state.list.length == oldVal.length  && listDeleteCount == oldValDeleteCount && !firstDragging)) return
+		firstDragging = false
+		state.itemsInstance = ownerInstance.selectAllComponents('.item')
+		state.list.forEach(function(item, index) {
+			if (index < oldVal.length && oldVal[index][sortField] === item[sortField] && oldVal.length <= state.list.length) 
+				return;
+			console.log("重新排序");
+			var itemInstance = state.itemsInstance[index]
+			if (item && itemInstance) {
+				if (index >= oldVal.length || !oldVal.length) {
+					itemInstance.setStyle({
+						'transform': 'translate3d(' + (item[sortField] % basedata.columns * 100) + '%,' + (Math.floor(item[sortField] / basedata.columns) * 100) + '%, 0)',
+						'transition': 'none !important',
+					})
+				} else {
+					itemInstance.setStyle({
+						'transform': 'translate3d(' + (item[sortField] % basedata.columns * 100) + '%,' + (Math.floor(item[sortField] / basedata.columns) * 100) + '%, 0)'
+					})
+				}
+			}
+		})
+	}
+	
+	function baseDataObserver(newVal, oldVal, ownerInstance, instance) {
+	  var state = ownerInstance.getState()
+	  state.basedata = newVal
+	}
+	
+	function scrollPositionToChange(newVal, oldVal, ownerInstance, instance) {
+	  var state = ownerInstance.getState()
+	  state.scrollPositionTo = newVal
+	  touchmove(moveEvent, moveOwnerInstance, newVal)
+	}
+	
+	function draggingItemChange(newVal, oldVal, ownerInstance, instance) {
+		if (!newVal || !newVal.endDraggingTime) return
+		var state = ownerInstance.getState()
+		var basedata = state.basedata
+		if (!basedata) return
+		var sortField = basedata.sortField
+		
+		state.itemsInstance = ownerInstance.selectAllComponents('.item')
+		var itemInstance = state.itemsInstance[newVal.index]
+		var item = state.list[newVal.index]
+		itemInstance.setStyle({
+			'transform': 'translate3d(' + (item[sortField] % basedata.columns * 100) + '%,' + (Math.floor(item[sortField] / basedata.columns) * 100) + '%, 0)'
+		})
+	}
+	
+	module.exports = {
+		touchstart: touchstart,
+		touchmove: touchmove,
+		touchend: touchend,
+		listObserver: listObserver,
+		baseDataObserver: baseDataObserver,
+		scrollPositionToChange: scrollPositionToChange,
+		draggingItemChange: draggingItemChange
+	};

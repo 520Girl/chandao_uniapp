@@ -6,6 +6,20 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "19113046",
+      "name": "智慧妇幼_产康预约（面性） ",
+      "font_class": "zhihuifuyou_chankangyuyuemianxing",
+      "unicode": "e612",
+      "unicode_decimal": 58898
+    },
+    {
+      "icon_id": "46055070",
+      "name": "icon-垫子 1",
+      "font_class": "a-icon-dianzi1",
+      "unicode": "e74b",
+      "unicode_decimal": 59211
+    },
+    {
       "icon_id": "20536981",
       "name": "扫描设备:刷新",
       "font_class": "saomiaoshebeishuaxin",

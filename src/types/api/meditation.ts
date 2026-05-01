@@ -280,21 +280,3 @@ export interface MeditationReportStatisticsData {
   compareChartData: MeditationStatisticsCompareChartData;
   latestSessionId: number;
 }
-
-/** `GET /app/meditation/session/active` 进行中会话摘要 */
-export interface MeditationActiveSession {
-  sessionId: number;
-  sn?: string | null;
-  type?: number;
-  startDate?: string;
-  targetDuration?: number;
-  lastActiveTime?: string;
-}
-
-/** `GET /app/meditation/session/active` 的 `data` */
-export interface MeditationSessionActiveData {
-  hasActive: boolean;
-  session: MeditationActiveSession | null;
-  /** 仅 `hasActive=true` 时建议轮询间隔（毫秒） */
-  pollInterval?: number;
-}

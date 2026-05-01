@@ -70,7 +70,7 @@
           <view :class="podiumNameClass(item.rank, item.isVacant)">{{ item.name }}</view>
           <view :class="podiumScoreWrapClass(item.rank)">
             <text v-if="item.isVacant" :class="podiumScoreTextClass(item.rank)">—</text>
-            <text v-else :class="podiumScoreTextClass(item.rank)">{{ item.score }} {{ podiumScoreSuffix }}</text>
+            <text v-else :class="podiumScoreTextClass(item.rank)">{{ item.score }} {{ item.scoreUnit || scoreUnitLabel }}</text>
           </view>
         </view>
       </view>
@@ -110,7 +110,7 @@
               <view class="text-right">
                 <text class="font-label text-[20rpx] font-bold theme-color-1">{{ row.score }}</text>
                 <text class="block text-[16rpx] theme-color-6 uppercase tracking-tighter">{{
-                  scoreUnitLabel
+                  row.scoreUnit || scoreUnitLabel
                 }}</text>
               </view>
             </view>
@@ -142,7 +142,7 @@
         </view>
         <view class="text-right">
           <text class="font-label text-xs font-bold text-tertiary">{{ rank.myRank.score }}</text>
-          <text class="block text-[8px] text-white/40 uppercase tracking-tighter">{{ scoreUnitLabel }}</text>
+          <text class="block text-[8px] text-white/40 uppercase tracking-tighter">{{ rank.myRank.scoreUnit || scoreUnitLabel }}</text>
         </view>
       </view>
     </view>
@@ -172,6 +172,7 @@ type RankRow = {
   avatar: string;
   avatarAlt: string;
   score: number | string;
+  scoreUnit?: "分钟" | "小时";
   isSelf?: boolean;
   /** 领奖台空缺占位（无榜单数据时 1–3 名） */
   isVacant?: boolean;
@@ -229,9 +230,15 @@ function resolveMediaUrl(raw: string | null | undefined): string {
   return `${base}${path}`;
 }
 
-function formatScore(n: number): string {
-  if (!Number.isFinite(n)) return "0";
-  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+function formatDurationScore(n: number): { value: string; unit: "分钟" | "小时" } {
+  if (!Number.isFinite(n)) return { value: "0", unit: "分钟" };
+  if (n > 1000) {
+    return { value: (n / 60).toFixed(1), unit: "小时" };
+  }
+  return {
+    value: Number.isInteger(n) ? String(n) : n.toFixed(1),
+    unit: "分钟",
+  };
 }
 
 function selfUserId(): number {
@@ -246,13 +253,15 @@ function numField(v: unknown): number {
 function mapLeaderItem(item: LeaderboardDurationItem, rank: number, selfId: number): RankRow {
   const loc = [item.lastProvince, item.lastCity].filter((x) => (x || "").trim()).join(" · ");
   const minutes = leaderboardItemDurationMinutes(item);
+  const duration = formatDurationScore(minutes);
   const reports = numField(item.reportCount);
-  const sub = loc || `报告 ${reports} · ${formatScore(minutes)} 分钟`;
+  const sub = loc || `报告 ${reports} · ${duration.value} ${duration.unit}`;
   return {
     rank,
     name: item.nickName?.trim() || "云友",
     subtitle: sub,
-    score: formatScore(minutes),
+    score: duration.value,
+    scoreUnit: duration.unit,
     avatar: resolveMediaUrl(item.avatarUrl),
     avatarAlt: "",
     isSelf: selfId > 0 && item.userId === selfId,
@@ -278,6 +287,7 @@ function vacantPodiumSlot(rankNum: 1 | 2 | 3): RankRow {
     name: "虚位以待",
     subtitle: "",
     score: "—",
+    scoreUnit: "分钟",
     avatar: PODIUM_PLACEHOLDER_AVATAR,
     avatarAlt: "",
     isVacant: true,
@@ -294,8 +304,7 @@ const podiumTop = computed((): RankRow[] => {
   return [second, first, third];
 });
 
-const scoreUnitLabel = "Stability";
-const podiumScoreSuffix = "安定";
+const scoreUnitLabel = "分钟";
 
 const listCardClass =
   "zen-glass rounded-2xl p-4 flex items-center justify-between border border-white/20 transition-all";

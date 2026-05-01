@@ -6,7 +6,7 @@
       <view class="px-8 pt-10 pb-6 text-center">
         <view class="theme-color-5 text-[60rpx] font-medium leading-snug">
           今日，你照见 <text class="font-bold text-primary">{{ elapsedMin }}</text> 分{{ elapsedRemainSec }}秒
-          <text class="italic font- text-[38rpx]">{{ reportFromApi?.breathText }}</text>
+          <view class="italic font- text-[38rpx]">{{ reportFromApi?.breathText }}</view>
         </view>
       </view>
       <!-- <view class="relative px-6 py-4">
@@ -116,8 +116,8 @@
             身体节律趋势
           </view>
           <view class="w-full" style="height: 200px">
-            <qiun-data-charts type="line" canvas-id="meditationTrendChart" :canvas2d="true" background="transparent"
-              :chart-data="bodyTrendChartData" :opts="bodyTrendOpts" />
+            <qiun-data-charts :key="'body-trend-' + bodyTrendChartKey" type="line" canvas-id="meditationTrendChart"
+              :canvas2d="true" background="transparent" :chart-data="bodyTrendChartData" :opts="bodyTrendOpts" />
           </view>
         </view>
       </view>
@@ -544,6 +544,9 @@ const focusScoreFromApi = ref<number | null>(null);
 const harmonyProgress = ref(0.5);
 const harmonyPercent = computed(() => Math.round(harmonyProgress.value));
 
+/** canvas2d 下图表首帧常为占位数据；接口返回后递增 key 强制重挂载（与 `pages/index/report.vue` 一致） */
+const bodyTrendChartKey = ref(0);
+
 const stabilityIndex = computed(() => {
   const r = reportFromApi.value;
   if (focusScoreFromApi.value != null) {
@@ -571,10 +574,16 @@ const stabilityCardHint = computed(() => {
   return '综合评估';
 });
 
+function stripMeditationPrefix(raw: string | null | undefined): string {
+  const t = String(raw ?? '').trim();
+  if (!t) return '';
+  return t.replace(/^本次静坐\s*[：:]\s*/u, '').trim();
+}
+
 const reportSubtitle = computed(() => {
-  const t = reportFromApi.value?.stabilityText?.trim();
-  if (t) return `本次静坐：${t}`;
-  const s = reportFromApi.value?.summaryText?.trim();
+  const t = stripMeditationPrefix(reportFromApi.value?.stabilityText);
+  if (t) return `${t}`;
+  const s = stripMeditationPrefix(reportFromApi.value?.summaryText);
   if (s) return s;
   return '你的心律反映出一种深沉的晨雾——静谧、稳健且充满潜力。';
 });
@@ -587,7 +596,7 @@ const movementCountDisplay = computed(() => {
 });
 
 const secondaryTitle = computed(() => {
-  const t = reportFromApi.value?.heartText?.trim();
+  const t = stripMeditationPrefix(reportFromApi.value?.heartText);
   return t || '如雾般的韧性';
 });
 

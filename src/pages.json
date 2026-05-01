@@ -119,13 +119,6 @@
           }
         },
         {
-          "path": "allActivity",
-          "style": {
-            "navigationBarTitleText": "全部活动",
-            "navigationStyle": "custom"
-          }
-        },
-        {
           "path": "allPost",
           "style": {
             "navigationBarTitleText": "全部动态",
@@ -147,9 +140,16 @@
           }
         },
         {
+          "path": "allActivity",
+          "style": {
+            "navigationBarTitleText": "全部活动",
+            "navigationStyle": "custom"
+          }
+        },
+        {
           "path": "activity-create",
           "style": {
-            "navigationBarTitleText": "发布团队活动",
+            "navigationBarTitleText": "创建活动",
             "navigationStyle": "custom"
           }
         }
@@ -300,11 +300,7 @@
           "path": "startMeditaiton",
           "style": {
             "navigationBarTitleText": "开始冥想",
-            "navigationStyle": "custom",
-            "disableSwipeBack": true,
-            "app-plus": {
-              "popGesture": "none"
-            }
+            "navigationStyle": "custom"
           }
         },
         {

@@ -194,7 +194,7 @@ const submitting = ref(false);
 const selectedUserState = ref(2);
 
 /** 0=仅团队 1=公开 2=仅自己（与 PostManualDTO.visibility 约定一致） */
-const publishVisibility = ref(1);
+const publishVisibility = ref(2);
 
 const postLat = ref<number | null>(null);
 const postLng = ref<number | null>(null);

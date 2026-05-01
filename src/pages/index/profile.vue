@@ -28,70 +28,24 @@
           v-if="teamDragsortItems.length"
           class="w-full max-w-md mx-auto flex flex-col items-center justify-center mb-1 mt-1"
         >
-          <up-dragsort
-            v-if="teamDragsortItems.length > 1"
-            :key="`team-drag-${teamDragsortListKey}`"
-            :initial-list="teamDragsortItems"
-            direction="horizontal"
-            :draggable="!teamReorderLoading"
-            class="team-avatar-dragsort"
-            @drag-end="onTeamDragEnd"
-          >
-            <template #default="{ item, index }">
-              <view
-                class="team-avatar-ds-cell box-border flex items-center justify-start overflow-visible"
-                :style="teamDragsortCellStyle()"
-              >
-                <view
-                  class="relative flex flex-shrink-0"
-                  :style="teamDragsortAvatarGroupStyle(index)"
-                  @click="onGoToManage('postManage', item.teamId)"
-                >
-                  <view
-                    class="relative rounded-full border-2 border-white/95 shadow-sm box-border"
-                    :style="{
-                      zIndex: teamDragsortItems.length - index,
-                    }"
-                  >
-                    <up-avatar
-                      :text="item.letter"
-                      :size="TEAM_AVATAR_SIZE"
-                      :font-size="16"
-                      color="#ffffff"
-                      :random-bg-color="true"
-                      :color-index="item.colorIndex"
-                    />
-                    <view
-                      v-if="item.isTeamOwner"
-                      class="absolute -bottom-[2rpx] -right-[2rpx] w-[30rpx] h-[30rpx] rounded-full bg-primary border-2 border-white flex items-center justify-center shadow-sm z-10"
-                      aria-label="团队管理员"
-                    >
-                      <text
-                        class="iconfont icon-huizhangguanli text-[18rpx] text-white leading-none"
-                        style="font-variation-settings: 'FILL' 1"
-                      />
-                    </view>
-                  </view>
-                </view>
-              </view>
-            </template>
-          </up-dragsort>
-          <view
-            v-else-if="onlyTeamItem"
-            class="flex items-center justify-center"
-            @click="onGoToManage('postManage', onlyTeamItem.teamId)"
-          >
-            <view class="relative rounded-full border-2 border-white/95 shadow-sm box-border">
+          <view class="flex items-center justify-center">
+            <view
+              v-for="(item, idx) in teamDragsortItems"
+              :key="item.teamId"
+              class="relative rounded-full border-2 border-white/95 shadow-sm box-border"
+              :style="idx > 0 ? { marginLeft: '-8px' } : undefined"
+              @click="onGoToManage('postManage', item.teamId)"
+            >
               <up-avatar
-                :text="onlyTeamItem.letter"
+                :text="item.letter"
                 :size="TEAM_AVATAR_SIZE"
                 :font-size="16"
                 color="#ffffff"
                 :random-bg-color="true"
-                :color-index="onlyTeamItem.colorIndex"
+                :color-index="item.colorIndex"
               />
               <view
-                v-if="onlyTeamItem.isTeamOwner"
+                v-if="item.isTeamOwner"
                 class="absolute -bottom-[2rpx] -right-[2rpx] w-[30rpx] h-[30rpx] rounded-full bg-primary border-2 border-white flex items-center justify-center shadow-sm z-10"
                 aria-label="团队管理员"
               >
@@ -105,13 +59,60 @@
           <view
             v-if="teamDragsortItems.length > 1"
             class="text-[20rpx] text-on-surface-variant/50 font-label tracking-wider mt-1"
+            @click="openTeamSortPanel"
           >
-            拖动头像调整顺序
+            调整团队顺序
+          </view>
+        </view>
+        <view
+          v-if="teamSortVisible"
+          class="fixed inset-0 z-[100] bg-on-background/10 backdrop-blur-md flex items-center justify-center p-6"
+          @click.self="closeTeamSortPanel"
+        >
+          <view class="toast-like-panel relative w-full max-w-[640rpx] max-h-[85vh] overflow-y-auto rounded-[40rpx] p-4 bg-surface-container-lowest shadow-2xl">
+            <view class="absolute inset-0 pointer-events-none cloud-pattern theme-bg opacity-90 rounded-[40rpx]" />
+            <view class="absolute right-4 top-4 z-10 size-8 flex items-center justify-center rounded-full bg-black/5 active:bg-black/10" @click="closeTeamSortPanel">
+              <text class="iconfont icon-close text-lg theme-color-7 text-on-surface-variant/70"></text>
+            </view>
+            <view class="relative z-[1]">
+              <view class="text-center text-[28rpx] font-semibold mb-1">调整团队顺序</view>
+              <view class="text-center text-[20rpx] text-on-surface-variant/60 mb-3">拖动后自动生效</view>
+              <su-drag
+                ref="teamSortDragRef"
+                v-model="teamSortDraft"
+                :columns="1"
+                :item-height="56"
+                :touch-dragging="true"
+                item-margin="0"
+                custom-class="team-sort-item"
+                @end="onTeamSortDragEnd"
+              >
+                <template #default="{ data }">
+                  <view class="h-[56px] px-3 flex items-center justify-between border-b border-primary/10">
+                    <view class="flex items-center gap-3">
+                      <up-avatar
+                        :text="data.letter"
+                        :size="30"
+                        :font-size="14"
+                        color="#ffffff"
+                        :random-bg-color="true"
+                        :color-index="data.colorIndex"
+                      />
+                      <text class="text-[26rpx] text-on-surface">{{ data.teamName }}</text>
+                    </view>
+                    <text v-if="Number(data.sort ?? 0) === 0" class="text-[22rpx] text-primary">首团队</text>
+                  </view>
+                </template>
+              </su-drag>
+              <view class="mt-4 h-10 rounded-full border border-primary/20 flex items-center justify-center" @click="closeTeamSortPanel">
+                完成
+              </view>
+            </view>
           </view>
         </view>
         <view class="text-center space-y-1">
-          <h2 class="font-headline text-3xl font-light italic text-primary tracking-tight" >{{ nickName }}</h2>
-          <p class="font-label text-xs uppercase tracking-[0.2em] text-secondary opacity-80" >修行始于 {{ startTime }}年</p>
+          <view class="font-headline text-3xl font-light italic text-primary tracking-tight" >{{ nickName }}</view>
+          <view class="font-label text-xs uppercase tracking-[0.2em] text-secondary opacity-80" >修行始于 {{ startTime }}年</view>
         </view>
       </view>
 
@@ -232,7 +233,7 @@
       </view>
       <!-- Version Info -->
       <view class="text-center pt-4">
-        <p class="font-label text-[18rpx] uppercase tracking-[0.3rem] text-primary/70">坐观其心 v2.4.1</p>
+        <view class="font-label text-[18rpx] uppercase tracking-[0.3rem] text-primary/70">坐观其心 v2.4.1</view>
       </view>
     </view>
   </view>
@@ -257,12 +258,8 @@ const teamReorderLoading = ref(false);
 const { nickName, avatarUrl, phone, createTime } = storeToRefs(userStore);
 const { devices, listLoading } = storeToRefs(deviceStore);
 
-/** 与原先 up-avatar-group 的 size / gap 一致：35 × 0.4 */
+/** 头像尺寸 */
 const TEAM_AVATAR_SIZE = 35;
-const TEAM_AVATAR_GAP = 0.1;
-const teamAvatarOverlapPx = TEAM_AVATAR_SIZE * TEAM_AVATAR_GAP;
-/** 与 u-dragsort 水平步进一致：量宽用此步长，与叠放后视觉总宽 n*步长 对齐，便于居中 */
-const TEAM_STRIDE_PX = TEAM_AVATAR_SIZE - teamAvatarOverlapPx;
 const TEAM_AVATAR_MAX = 5;
 
 function teamDisplayLetter(name: string): string {
@@ -275,6 +272,7 @@ function teamDisplayLetter(name: string): string {
 type TeamDragsortRow = {
   id: number;
   teamId: number;
+  teamName: string;
   letter: string;
   colorIndex: number;
   isTeamOwner: boolean;
@@ -287,6 +285,7 @@ const teamDragsortItems = computed((): TeamDragsortRow[] => {
     return {
       id: t.teamId,
       teamId: t.teamId,
+      teamName: t.teamName || `团队${t.teamId}`,
       letter: teamDisplayLetter(t.teamName || ""),
       colorIndex: Math.abs(Number(t.teamId)) % 20,
       isTeamOwner: uid > 0 && ownerId === uid,
@@ -294,44 +293,55 @@ const teamDragsortItems = computed((): TeamDragsortRow[] => {
   });
 });
 
-const onlyTeamItem = computed((): TeamDragsortRow | undefined => teamDragsortItems.value[0]);
+type TeamDragRuntimeRow = TeamDragsortRow & { sort: number };
+const teamSortDraft = ref<TeamDragRuntimeRow[]>([]);
+const teamSortVisible = ref(false);
+type SuDragExpose = { init?: () => void; switchDragging?: (value: boolean) => void };
+const teamSortDragRef = ref<SuDragExpose | null>(null);
 
-const teamDragsortListKey = computed(() =>
-  teamDragsortItems.value
-    .map((x) => x.teamId)
-    .sort((a, b) => a - b)
-    .join("-"),
+watch(
+  teamDragsortItems,
+  () => {
+    teamSortDraft.value = teamDragsortItems.value.map((item, index) => ({
+      ...item,
+      sort: index,
+    }));
+  },
+  { immediate: true },
 );
 
-function teamDragsortCellStyle(): Record<string, string> {
-  return {
-    width: `${TEAM_STRIDE_PX}px`,
-    minWidth: `${TEAM_STRIDE_PX}px`,
-    height: `${TEAM_AVATAR_SIZE}px`,
-  };
-}
-
-function teamDragsortAvatarGroupStyle(index: number): Record<string, string> {
-  return {
-    width: `${TEAM_AVATAR_SIZE}px`,
-    marginLeft: index === 0 ? "0" : `-${teamAvatarOverlapPx}px`,
-  };
-}
-
-async function onTeamDragEnd(
-  list: (TeamDragsortRow & { x?: number; y?: number })[] | { teamId?: number; id?: number }[],
-) {
+function openTeamSortPanel() {
   if (teamReorderLoading.value) return;
-  const teamIds = (list as { teamId?: number }[]).map((row) => Number(row.teamId)).filter(
-    (n) => Number.isFinite(n) && n > 0,
-  );
+  teamSortDraft.value = teamDragsortItems.value.map((item, index) => ({ ...item, sort: index }));
+  teamSortVisible.value = true;
+  void nextTick(() => {
+    teamSortDragRef.value?.init?.();
+    teamSortDragRef.value?.switchDragging?.(true);
+  });
+}
+
+function closeTeamSortPanel() {
+  teamSortVisible.value = false;
+}
+
+async function confirmTeamSort() {
+  if (teamReorderLoading.value) return;
+  const teamIds = [...teamSortDraft.value]
+    .sort((a, b) => Number(a.sort ?? 0) - Number(b.sort ?? 0))
+    .map((x) => Number(x.teamId))
+    .filter((id) => Number.isFinite(id) && id > 0);
   if (teamIds.length < 2) return;
   teamReorderLoading.value = true;
   try {
     await teamStore.reorderMyTeamsByTeamIds(teamIds);
+    await teamStore.fetchMyCurrentTeams();
   } finally {
     teamReorderLoading.value = false;
   }
+}
+
+function onTeamSortDragEnd() {
+  void confirmTeamSort();
 }
 
 const startTime = computed(() => formatDate(createTime.value, "YYYY"));
@@ -402,26 +412,24 @@ const onGoToManage = (target: string, teamId?: number) => {
 </script>
 
 <style scoped lang="scss">
-.team-avatar-dragsort {
-  max-width: 100%;
-  min-height: 88rpx;
+:deep(.toast-like-panel) {
+  transform-origin: center;
+  animation: team-sort-pop-in 0.24s ease-out;
 }
-:deep(.team-avatar-dragsort.u-dragsort--horizontal .u-dragsort-item-content) {
-  padding: 0 !important;
-  padding-bottom: 0 !important;
-  min-height: 0;
-  box-sizing: border-box;
-  overflow: visible;
-}
-:deep(.team-avatar-dragsort.u-dragsort--horizontal .u-dragsort-area) {
-  display: flex;
-  justify-content: center;
-  margin: 0 auto;
-}
-:deep(.team-avatar-dragsort.u-dragsort--horizontal) {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
+
+:deep(.team-sort-item) {
   width: 100%;
+  height: 100%;
+}
+
+@keyframes team-sort-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
 }
 </style>

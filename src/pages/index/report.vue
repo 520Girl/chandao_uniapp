@@ -256,9 +256,14 @@ function buildCompareMetricChartData(
   metric: MeditationStatisticsCompareMetricBlock,
   categories: string[],
 ): MeditationStatisticsChartBlock {
+  const seriesWithDefaultVisibility = metric.series.map((s, index) => ({
+    ...s,
+    // 默认仅展示一条系列，便于首屏阅读；用户可通过图例再开启另一条。
+    show: index === 0,
+  }));
   return {
     categories,
-    series: metric.series,
+    series: seriesWithDefaultVisibility,
   };
 }
 

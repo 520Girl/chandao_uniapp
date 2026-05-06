@@ -6,6 +6,41 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "46700667",
+      "name": "截止时间",
+      "font_class": "nest_clock_farsight_analog_24dp_595959_FILL0_wght4",
+      "unicode": "e632",
+      "unicode_decimal": 58930
+    },
+    {
+      "icon_id": "7432441",
+      "name": "下一曲",
+      "font_class": "next",
+      "unicode": "e62c",
+      "unicode_decimal": 58924
+    },
+    {
+      "icon_id": "7432524",
+      "name": "上一曲",
+      "font_class": "prev",
+      "unicode": "e630",
+      "unicode_decimal": 58928
+    },
+    {
+      "icon_id": "18176543",
+      "name": "暂停",
+      "font_class": "pause-full",
+      "unicode": "ea8c",
+      "unicode_decimal": 60044
+    },
+    {
+      "icon_id": "22227207",
+      "name": "开始",
+      "font_class": "daochu1024-15",
+      "unicode": "e618",
+      "unicode_decimal": 58904
+    },
+    {
       "icon_id": "19113046",
       "name": "智慧妇幼_产康预约（面性） ",
       "font_class": "zhihuifuyou_chankangyuyuemianxing",

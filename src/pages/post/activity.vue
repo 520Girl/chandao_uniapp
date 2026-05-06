@@ -237,7 +237,10 @@ async function onJoin() {
   if (!activityId.value || actionLoading.value) return;
   actionLoading.value = true;
   try {
-    await postActivityJoin({ id: activityId.value });
+    const res = await postActivityJoin({ id: activityId.value });
+    if (!unwrapApiData(res)) {
+      return;
+    }
     sessionJoined.value = true;
     uni.showToast({ title: "加入成功", icon: "success" });
     await loadActivity();
@@ -266,7 +269,11 @@ async function onCheckin() {
     } catch {
       /* 未授权或定位失败时仍尝试仅 id 打卡，由后端按活动规则校验 */
     }
-    await postActivityCheckin(body);
+    const res = await postActivityCheckin(body);
+    console.log("postActivityCheckin", res);
+    if (!unwrapApiData(res)) {
+      return;
+    }
     uni.showToast({ title: "打卡成功", icon: "success" });
     await loadActivity();
   } catch (e) {

@@ -19,8 +19,10 @@
                             <text class="iconfont icon-fanhui1 left-icon"></text>
                         </view>
                     </view>
-                    <view v-else>
-                      
+                    <view class="left-actions" v-else>
+                        <view @click="onHome" class="left-btn">
+                            <text class="iconfont icon-fangzi left-icon"></text>
+                        </view>
                     </view>
                     
                     

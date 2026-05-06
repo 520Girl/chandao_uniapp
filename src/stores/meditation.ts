@@ -33,6 +33,11 @@ export interface NextMeditationLaunchPayload {
   /** 场景卡进入时传入，会同步更新 `homePreferredActivity*`；右下角开始请勿传 */
   activityId?: number | null;
   activityTemplateId?: number | null;
+  /**
+   * 本次禅修结束后的报告页：首页等普通入口为心迹报告；共修等待室为共修榜单。
+   * 缺省 `heart`；不持久化，由 `takePendingPostMeditationReport` 在静坐页 onLoad 消费。
+   */
+  postReport?: "heart" | "group";
 }
 
 export interface MeditationState {
@@ -61,6 +66,11 @@ export interface MeditationState {
    * `GET /app/meditation/session/active` 快照；**不持久化**，供首页/设置等提示「进行中的禅修」。
    */
   activeSessionInfo: MeditationSessionActiveData | null;
+  /**
+   * 下一次进入静坐页结束后的报告去向；**不持久化**。
+   * `applyNextMeditationLaunch` 写入，静坐页 `onLoad` 调用 `takePendingPostMeditationReport` 读出并清空。
+   */
+  pendingPostMeditationReport: "heart" | "group" | null;
 }
 
 export const useMeditationStore = defineStore("meditation", {
@@ -95,6 +105,7 @@ export const useMeditationStore = defineStore("meditation", {
     lastMeditationTrackUrl: null,
     lastMeditationServerReport: null,
     activeSessionInfo: null,
+    pendingPostMeditationReport: null,
   }),
   getters: {
     /** 是否存在 `status=1` 的进行中会话 */
@@ -122,6 +133,7 @@ export const useMeditationStore = defineStore("meditation", {
      */
     applyNextMeditationLaunch(payload: NextMeditationLaunchPayload) {
       this.pendingUseHardwareDevice = payload.useHardwareDevice !== false;
+      this.pendingPostMeditationReport = payload.postReport ?? "heart";
       this.lastMeditationPlannedMinutes = Math.max(1, Math.round(payload.durationMinutes));
       this.lastMeditationTrackId = payload.trackId || null;
       this.lastMeditationTrackTitle = payload.trackTitle || null;
@@ -175,9 +187,17 @@ export const useMeditationStore = defineStore("meditation", {
       return r;
     },
 
+    /** 静坐页 onLoad：取出本次结束应去的报告类型并清空 pending，缺省为心迹报告 */
+    takePendingPostMeditationReport(): "heart" | "group" {
+      const v = this.pendingPostMeditationReport ?? "heart";
+      this.pendingPostMeditationReport = null;
+      return v;
+    },
+
     /** 登出等：清空禅修模块全部本地持久化字段 */
     clearHomeActivityPreference() {
       this.pendingUseHardwareDevice = true;
+      this.pendingPostMeditationReport = null;
       this.homePreferredActivityId = null;
       this.homePreferredActivityTemplateId = null;
       this.lastMeditationStartedAt = null;

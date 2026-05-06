@@ -399,6 +399,8 @@ const meditationStore = useMeditationStore();
 /** 首页带入的活动，禅修正常结束后写入禅修模块偏好（Pinia 持久化） */
 let sessionActivityId: number | null = null;
 let sessionActivityTemplateId: number | null = null;
+/** 结束跳转：由 `applyNextMeditationLaunch.postReport` 决定，onLoad 时从 store 取出 */
+let sessionPostReportKind: 'heart' | 'group' = 'heart';
 
 const progressPercent = computed(() => {
   const total = Math.max(1, targetMinutes.value * 60);
@@ -676,6 +678,13 @@ async function finishMeditationSession(manualStop: boolean) {
   });
 
   const goReport = () => {
+    const aid = sessionActivityId ?? meditationStore.homePreferredActivityId ?? null;
+    if (sessionPostReportKind === 'group' && aid != null && aid > 0) {
+      uni.redirectTo({
+        url: `/pages/community/activity-group-report?id=${aid}`,
+      });
+      return;
+    }
     uni.redirectTo({
       url: `/pages/meditation/report?${query}`
     });
@@ -751,6 +760,8 @@ onLoad((query) => {
     sessionActivityId = meditationStore.homePreferredActivityId;
     sessionActivityTemplateId = meditationStore.homePreferredActivityTemplateId;
   }
+
+  sessionPostReportKind = meditationStore.takePendingPostMeditationReport();
 
   void bootstrapMeditation();
   // #ifdef H5

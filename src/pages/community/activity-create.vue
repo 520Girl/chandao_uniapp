@@ -4,15 +4,17 @@
 
     <view v-if="!teamReady" class="py-16 text-center text-sm theme-color-8">校验团队中…</view>
     <view v-else class="px-6 pt-4">
+      <!-- 所属团队（上下文） -->
       <view class="mb-6">
-        <text class="text-[#918355] text-xs block mb-2">发布至</text>
+        <text class="text-[#918355] text-xs block mb-2">所属团队</text>
         <text class="theme-color-5 text-base font-medium">{{ teamLabel }}</text>
       </view>
 
+      <!-- 2. 模板 -->
       <view class="mb-6">
         <view class="flex items-center gap-2 mb-3">
           <view class="w-1 h-4 bg-primary rounded-full" />
-          <text class="text-primary text-xs uppercase tracking-widest font-semibold">活动模板</text>
+          <text class="text-primary text-xs uppercase tracking-widest font-semibold">活动模板（必填）</text>
         </view>
         <view v-if="templatesLoading" class="text-sm theme-color-8 py-4">加载模板中…</view>
         <view v-else-if="!templates.length" class="text-sm theme-color-8 py-4">暂无可选模板</view>
@@ -22,7 +24,7 @@
             :key="tpl.id"
             class="flex items-center gap-3 p-4 mb-3 rounded-2xl border-2 transition-colors"
             :class="selectedTemplateId === tpl.id ? 'border-primary bg-primary/5' : 'border-[#d4af35]/15 bg-white/30'"
-            @click="selectedTemplateId = tpl.id"
+            @click="onSelectTemplate(tpl.id)"
           >
             <up-image
               v-if="templateIconUrl(tpl.icon)"
@@ -48,8 +50,36 @@
         </scroll-view>
       </view>
 
+      <!-- 4. 活动类型 -->
       <view class="mb-6">
-        <text class="text-[#918355] text-sm block mb-2">活动标题</text>
+        <view class="flex items-center gap-2 mb-2">
+          <view class="w-1 h-4 bg-primary rounded-full" />
+          <text class="text-primary text-xs uppercase tracking-widest font-semibold">活动类型</text>
+        </view>
+        <view class="flex gap-3">
+          <view
+            class="flex-1 py-3 rounded-2xl text-center text-sm font-medium border-2"
+            :class="activityType === 1 ? 'border-primary theme-color-1 bg-primary/5' : 'border-[#d4af35]/15 theme-color-8'"
+            @click="setActivityType(1)"
+          >
+            普通打卡
+          </view>
+          <view
+            class="flex-1 py-3 rounded-2xl text-center text-sm font-medium border-2"
+            :class="activityType === 2 ? 'border-primary theme-color-1 bg-primary/5' : 'border-[#d4af35]/15 theme-color-8'"
+            @click="setActivityType(2)"
+          >
+            多人共修
+          </view>
+        </view>
+        <text v-if="activityType === 2" class="text-[22rpx] theme-color-6 mt-2 block leading-relaxed">
+          多人共修须绑定当前团队；打卡模式固定为「仅一次」；禅修目标与达标百分比由计划时间推算（提交为 0）。
+        </text>
+      </view>
+
+      <!-- 1. 标题 -->
+      <view class="mb-6">
+        <text class="text-[#918355] text-sm block mb-2">活动标题（必填）</text>
         <input
           v-model="title"
           class="w-full h-[88rpx] px-4 rounded-2xl bg-white/50 border border-[#d4af35]/20 text-base theme-color-5"
@@ -58,10 +88,11 @@
         />
       </view>
 
+      <!-- 9. 状态：发布方式 -->
       <view class="mb-6">
         <view class="flex items-center gap-2 mb-2">
           <view class="w-1 h-4 bg-primary rounded-full" />
-          <text class="text-primary text-xs uppercase tracking-widest font-semibold">发布方式</text>
+          <text class="text-primary text-xs uppercase tracking-widest font-semibold">状态</text>
         </view>
         <view class="flex gap-3">
           <view
@@ -81,6 +112,7 @@
         </view>
       </view>
 
+      <!-- 5. 起止时间（发布必填） -->
       <view v-if="publishStatus === 2" class="mb-6">
         <view
           class="flex items-center justify-between p-4 bg-white/40 dark:bg-white/5 rounded-xl border border-white/60 dark:border-white/5"
@@ -90,7 +122,7 @@
               <text class="iconfont icon-calendar-today text-[48rpx] theme-color-1" />
             </view>
             <view class="min-w-0">
-              <view class="text-[#918355] text-xs">起止时间（发布必填）</view>
+              <view class="text-[#918355] text-xs">开始 / 结束（发布必填，YYYY-MM-DD HH:mm:ss）</view>
               <view class="theme-color-5 text-sm leading-relaxed break-words">{{ timeRangeLine }}</view>
             </view>
           </view>
@@ -100,8 +132,9 @@
         </view>
       </view>
 
+      <!-- 6. 内容 -->
       <view class="mb-6">
-        <text class="text-[#918355] text-sm block mb-2">活动说明（可选，默认用模板说明）</text>
+        <text class="text-[#918355] text-sm block mb-2">活动说明（可选）</text>
         <textarea
           v-model="content"
           class="w-full min-h-[200rpx] p-4 rounded-2xl bg-primary/5 text-base theme-color-5 leading-relaxed"
@@ -109,42 +142,99 @@
         />
       </view>
 
-      <view class="mb-6">
-        <text class="text-[#918355] text-sm block mb-2">打卡方式</text>
+      <!-- 7a 普通：打卡、禅修目标、达标 -->
+      <template v-if="activityType === 1">
+        <view class="mb-6">
+          <text class="text-[#918355] text-sm block mb-2">打卡方式</text>
+          <view class="flex gap-3">
+            <view
+              class="flex-1 py-3 rounded-2xl text-center text-sm border-2"
+              :class="checkinMode === 1 ? 'border-primary theme-color-1' : 'border-[#d4af35]/15 theme-color-8'"
+              @click="checkinMode = 1"
+            >
+              每日打卡
+            </view>
+            <view
+              class="flex-1 py-3 rounded-2xl text-center text-sm border-2"
+              :class="checkinMode === 2 ? 'border-primary theme-color-1' : 'border-[#d4af35]/15 theme-color-8'"
+              @click="checkinMode = 2"
+            >
+              仅一次
+            </view>
+          </view>
+        </view>
+
+        <view class="mb-4 flex gap-4">
+          <view class="flex-1">
+            <text class="text-[#918355] text-xs block mb-2">禅修目标（分钟）</text>
+            <input
+              v-model.number="targetMinutes"
+              class="w-full h-[80rpx] px-3 rounded-xl bg-white/50 border border-[#d4af35]/20 text-sm theme-color-5"
+              type="number"
+            />
+          </view>
+          <view class="flex-1">
+            <text class="text-[#918355] text-xs block mb-2">达标 %（0–100）</text>
+            <input
+              v-model.number="passPercent"
+              class="w-full h-[80rpx] px-3 rounded-xl bg-white/50 border border-[#d4af35]/20 text-sm theme-color-5"
+              type="number"
+            />
+          </view>
+        </view>
+      </template>
+
+      <!-- 7b 多人共修：房间号、人数、容差 -->
+      <template v-else>
+        <view class="mb-4">
+          <text class="text-[#918355] text-sm block mb-2">房间号（可选）</text>
+          <input
+            v-model="groupRoomNo"
+            class="w-full h-[88rpx] px-4 rounded-2xl bg-white/50 border border-[#d4af35]/20 text-base theme-color-5"
+            placeholder="留空则提交为 null"
+            type="text"
+          />
+        </view>
+        <view class="mb-4 flex gap-4">
+          <view class="flex-1">
+            <text class="text-[#918355] text-xs block mb-2">人数上限（0–20）</text>
+            <input
+              v-model.number="groupMaxParticipants"
+              class="w-full h-[80rpx] px-3 rounded-xl bg-white/50 border border-[#d4af35]/20 text-sm theme-color-5"
+              type="number"
+              @blur="groupMaxParticipants = clampInt(Number(groupMaxParticipants) || 0, 0, 20)"
+            />
+          </view>
+          <view class="flex-1">
+            <text class="text-[#918355] text-xs block mb-2">榜单容差（秒，0–300）</text>
+            <input
+              v-model.number="rankGraceSeconds"
+              class="w-full h-[80rpx] px-3 rounded-xl bg-white/50 border border-[#d4af35]/20 text-sm theme-color-5"
+              type="number"
+              @blur="rankGraceSeconds = clampInt(Number(rankGraceSeconds) || 30, 0, 300)"
+            />
+          </view>
+        </view>
+      </template>
+
+      <!-- 8. 置顶 -->
+      <view class="mb-8">
+        <text class="text-[#918355] text-sm block mb-2">是否置顶</text>
         <view class="flex gap-3">
           <view
-            class="flex-1 py-3 rounded-2xl text-center text-sm border-2"
-            :class="checkinMode === 1 ? 'border-primary theme-color-1' : 'border-[#d4af35]/15 theme-color-8'"
-            @click="checkinMode = 1"
+            class="flex-1 py-3 rounded-2xl text-center text-sm font-medium border-2"
+            :class="isTop === 0 ? 'border-primary theme-color-1 bg-primary/5' : 'border-[#d4af35]/15 theme-color-8'"
+            @click="isTop = 0"
           >
-            每日打卡
+            否
           </view>
           <view
-            class="flex-1 py-3 rounded-2xl text-center text-sm border-2"
-            :class="checkinMode === 2 ? 'border-primary theme-color-1' : 'border-[#d4af35]/15 theme-color-8'"
-            @click="checkinMode = 2"
+            class="flex-1 py-3 rounded-2xl text-center text-sm font-medium border-2"
+            :class="isTop === 1 ? 'border-primary theme-color-1 bg-primary/5' : 'border-[#d4af35]/15 theme-color-8'"
+            @click="isTop = 1"
           >
-            仅一次
+            是
           </view>
-        </view>
-      </view>
-
-      <view class="mb-4 flex gap-4">
-        <view class="flex-1">
-          <text class="text-[#918355] text-xs block mb-2">禅修目标（分钟）</text>
-          <input
-            v-model.number="targetMinutes"
-            class="w-full h-[80rpx] px-3 rounded-xl bg-white/50 border border-[#d4af35]/20 text-sm theme-color-5"
-            type="number"
-          />
-        </view>
-        <view class="flex-1">
-          <text class="text-[#918355] text-xs block mb-2">达标 %（0–100）</text>
-          <input
-            v-model.number="passPercent"
-            class="w-full h-[80rpx] px-3 rounded-xl bg-white/50 border border-[#d4af35]/20 text-sm theme-color-5"
-            type="number"
-          />
         </view>
       </view>
     </view>
@@ -193,11 +283,18 @@
 <script setup lang="ts">
 import { onLoad } from "@dcloudio/uni-app";
 import { storeToRefs } from "pinia";
+import { computed, reactive, ref } from "vue";
 import { fetchActivityTemplates, postActivityCreateFromTemplate } from "@/assets/js/api/activity";
 import { config } from "@/assets/js/config";
 import type { ActivityCreateFromTemplateBody, ActivityTemplateItem } from "@/types/api/activity";
 import { useTeamStore } from "@/stores/team";
 import { useUserStore } from "@/stores/user";
+import { sceneTypeForTemplate } from "@/utils/activityRoomPayload";
+import {
+  clampInt,
+  parseSessionConfigDefault,
+  toBackendDateTimeString,
+} from "@/utils/activityCreateForm";
 import { unwrapApiData } from "@/utils/apiResponse";
 import { navigateBack } from "@/utils/navigation";
 import LcrBar from "@/components/lcrBar.vue";
@@ -212,14 +309,30 @@ const teamReady = ref(false);
 const templates = ref<ActivityTemplateItem[]>([]);
 const templatesLoading = ref(false);
 const selectedTemplateId = ref(0);
+/** 1 普通打卡 2 多人共修 */
+const activityType = ref<1 | 2>(1);
 const title = ref("");
 const content = ref("");
 /** 1 草稿 2 发布 */
 const publishStatus = ref(2);
-const checkinMode = ref(1);
-const targetMinutes = ref(0);
+const checkinMode = ref<1 | 2>(1);
+const targetMinutes = ref(15);
 const passPercent = ref(100);
+const isTop = ref<0 | 1>(0);
+const groupRoomNo = ref("");
+const groupMaxParticipants = ref(20);
+const rankGraceSeconds = ref(30);
 const submitLoading = ref(false);
+
+/** 当前选中模板解析出的默认（供类型联动回退） */
+const templateDefaults = reactive({
+  groupRoomNo: "",
+  groupMaxParticipants: 20,
+  rankGraceSeconds: 30,
+  checkinMode: 1 as 1 | 2,
+  targetMeditationMinutes: 15,
+  passPercent: 100,
+});
 
 const now = Date.now();
 const timeStart = ref(now + 3600000);
@@ -230,12 +343,7 @@ const showTimeEnd = ref(false);
 function formatLine(ms: number) {
   const d = new Date(ms);
   if (Number.isNaN(d.getTime())) return "请选择";
-  const y = d.getFullYear();
-  const m = d.getMonth() + 1;
-  const day = d.getDate();
-  const h = String(d.getHours()).padStart(2, "0");
-  const min = String(d.getMinutes()).padStart(2, "0");
-  return `${y}/${m}/${day} ${h}:${min}`;
+  return toBackendDateTimeString(ms).replace(/-/g, "/").replace(" ", " ");
 }
 
 const timeRangeLine = computed(() => `${formatLine(timeStart.value)} ～ ${formatLine(timeEnd.value)}`);
@@ -278,6 +386,61 @@ function onBack() {
   navigateBack();
 }
 
+function clampPassPercent(n: number): number {
+  if (!Number.isFinite(n)) return 100;
+  return Math.max(0, Math.min(100, Math.trunc(n)));
+}
+
+/** §5 活动类型联动 */
+function applyTypeLinkedFields(type: 1 | 2) {
+  if (type === 2) {
+    checkinMode.value = 2;
+    targetMinutes.value = 0;
+    passPercent.value = 100;
+    groupRoomNo.value = templateDefaults.groupRoomNo;
+    groupMaxParticipants.value = clampInt(templateDefaults.groupMaxParticipants, 0, 20);
+    rankGraceSeconds.value = clampInt(templateDefaults.rankGraceSeconds, 0, 300);
+  } else {
+    checkinMode.value = templateDefaults.checkinMode === 2 ? 2 : 1;
+    targetMinutes.value = Math.max(0, Math.trunc(templateDefaults.targetMeditationMinutes));
+    passPercent.value = clampPassPercent(templateDefaults.passPercent);
+  }
+}
+
+/** §4 模板默认值 → templateDefaults + 类型联动 */
+function applyTemplateDefaults(tpl: ActivityTemplateItem) {
+  const session = parseSessionConfigDefault(tpl.sessionConfigDefault);
+  templateDefaults.groupRoomNo = session.roomNo;
+  templateDefaults.groupMaxParticipants = session.maxParticipants;
+  templateDefaults.rankGraceSeconds = session.rankGraceSeconds;
+
+  let at = Number(tpl.activityTypeDefault);
+  if (at !== 1 && at !== 2) {
+    at = sceneTypeForTemplate(tpl.id) === "group" ? 2 : 1;
+  }
+  activityType.value = at === 2 ? 2 : 1;
+
+  templateDefaults.checkinMode = tpl.checkinModeDefault === 2 ? 2 : 1;
+  const tsec = Number(tpl.targetMeditationSecondsDefault);
+  templateDefaults.targetMeditationMinutes =
+    Number.isFinite(tsec) && tsec >= 0 ? Math.floor(tsec / 60) : 15;
+  templateDefaults.passPercent = clampPassPercent(Number(tpl.passPercentDefault ?? 100));
+
+  applyTypeLinkedFields(activityType.value);
+}
+
+function onSelectTemplate(id: number) {
+  selectedTemplateId.value = id;
+  const tpl = templates.value.find((t) => t.id === id);
+  if (tpl) applyTemplateDefaults(tpl);
+}
+
+function setActivityType(t: 1 | 2) {
+  if (activityType.value === t) return;
+  activityType.value = t;
+  applyTypeLinkedFields(t);
+}
+
 async function loadTemplates() {
   templatesLoading.value = true;
   try {
@@ -285,8 +448,12 @@ async function loadTemplates() {
     const data = unwrapApiData<ActivityTemplateItem[]>(res);
     const list = Array.isArray(data) ? data : [];
     templates.value = list;
-    if (list.length && !list.some((t) => t.id === selectedTemplateId.value)) {
-      selectedTemplateId.value = list[0]!.id;
+    if (list.length) {
+      const first = list.some((t) => t.id === selectedTemplateId.value)
+        ? list.find((t) => t.id === selectedTemplateId.value)!
+        : list[0]!;
+      selectedTemplateId.value = first.id;
+      applyTemplateDefaults(first);
     }
   } catch (e) {
     console.error("fetchActivityTemplates", e);
@@ -326,11 +493,6 @@ onLoad((query) => {
   })();
 });
 
-function clampPassPercent(n: number): number {
-  if (!Number.isFinite(n)) return 100;
-  return Math.max(0, Math.min(100, Math.trunc(n)));
-}
-
 async function onSubmit() {
   if (!teamReady.value || submitLoading.value) return;
   if (!selectedTemplateId.value) {
@@ -342,30 +504,75 @@ async function onSubmit() {
     uni.showToast({ title: "请填写标题", icon: "none" });
     return;
   }
-  const st = publishStatus.value;
-  let startIso: string | undefined;
-  let endIso: string | undefined;
+  const st = publishStatus.value === 2 ? 2 : 1;
+  let startStr = "";
+  let endStr = "";
   if (st === 2) {
     if (timeEnd.value < timeStart.value) {
       uni.showToast({ title: "请设置合法起止时间", icon: "none" });
       return;
     }
-    startIso = new Date(timeStart.value).toISOString();
-    endIso = new Date(timeEnd.value).toISOString();
+    startStr = toBackendDateTimeString(timeStart.value);
+    endStr = toBackendDateTimeString(timeEnd.value);
+    if (!startStr || !endStr) {
+      uni.showToast({ title: "请设置起止时间", icon: "none" });
+      return;
+    }
   }
+
+  const at: 1 | 2 = activityType.value === 2 ? 2 : 1;
+  if (at === 2 && st === 2) {
+    if (!Number.isFinite(teamId.value) || teamId.value <= 0) {
+      uni.showToast({ title: "多人共修须选择团队", icon: "none" });
+      return;
+    }
+  }
+
+  const graceSec = clampInt(Number(rankGraceSeconds.value) || 30, 0, 300);
+  const maxPart = clampInt(Number(groupMaxParticipants.value) || 0, 0, 20);
+  const roomTrim = groupRoomNo.value.trim();
+
   const body: ActivityCreateFromTemplateBody = {
     teamId: teamId.value,
     templateId: selectedTemplateId.value,
     title: t,
+    activityType: at,
     status: st,
-    checkinMode: checkinMode.value,
-    targetMeditationSeconds: Math.max(0, Math.trunc((Number(targetMinutes.value) || 0) * 60)),
-    passPercent: clampPassPercent(Number(passPercent.value)),
+    isTop: isTop.value === 1 ? 1 : 0,
   };
+
   const c = content.value.trim();
   if (c) body.content = c;
-  if (startIso) body.startDate = startIso;
-  if (endIso) body.endDate = endIso;
+
+  if (at === 2) {
+    body.checkinMode = 2;
+    body.targetMeditationSeconds = 0;
+    body.passPercent = 100;
+    body.sessionConfig =
+      st === 2
+        ? {
+            startMode: "scheduled",
+            roomNo: roomTrim.length ? roomTrim : null,
+            maxParticipants: maxPart,
+            scheduledStartTime: startStr,
+            scheduledEndTime: endStr,
+            rankGraceSeconds: graceSec,
+          }
+        : null;
+    if (st === 2) {
+      body.startDate = startStr;
+      body.endDate = endStr;
+    }
+  } else {
+    body.checkinMode = checkinMode.value === 2 ? 2 : 1;
+    body.targetMeditationSeconds = Math.max(0, Math.trunc((Number(targetMinutes.value) || 0) * 60));
+    body.passPercent = clampPassPercent(Number(passPercent.value));
+    body.sessionConfig = null;
+    if (st === 2) {
+      body.startDate = startStr;
+      body.endDate = endStr;
+    }
+  }
 
   submitLoading.value = true;
   try {

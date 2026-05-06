@@ -9,6 +9,9 @@ import type {
   ActivityInfoQuery,
   ActivityJoinDTO,
   ActivityPageQuery,
+  ActivityReadyDTO,
+  ActivityRoomResultQuery,
+  ActivityRoomStateQuery,
 } from "@/types/api/activity";
 
 const ACTIVITY_PAGE_PATH = "/app/activity/page";
@@ -18,6 +21,10 @@ const ACTIVITY_INFO_PATH = "/app/activity/info";
 const ACTIVITY_CHECKIN_STATS_PATH = "/app/activity/checkinStats";
 const ACTIVITY_JOIN_PATH = "/app/activity/join";
 const ACTIVITY_CHECKIN_PATH = "/app/activity/checkin";
+const ACTIVITY_READY_PATH = "/app/activity/ready";
+const ACTIVITY_SERVER_TIME_PATH = "/app/activity/serverTime";
+const ACTIVITY_ROOM_STATE_PATH = "/app/activity/roomState";
+const ACTIVITY_ROOM_RESULT_PATH = "/app/activity/roomResult";
 
 /**
  * 活动分页列表（GET，与 8.1 文档一致）；需登录。
@@ -83,4 +90,40 @@ export const postActivityJoin = (body: ActivityJoinDTO) => {
  */
 export const postActivityCheckin = (body: ActivityCheckinDTO) => {
   return post(ACTIVITY_CHECKIN_PATH, body);
+};
+
+/**
+ * 多人共修设置就绪；需登录。仅 `activityType=2`；开场后不可改；未报名会先报名。
+ *
+ * @param body `id` 活动 ID，`ready` `1` 就绪 / `0` 取消
+ */
+export const postActivityReady = (body: ActivityReadyDTO) => {
+  return post(ACTIVITY_READY_PATH, body);
+};
+
+/**
+ * 服务端当前毫秒时间戳；**无需登录**。用于与 `roomState` 倒计时交叉校正。
+ */
+export const fetchActivityServerTime = () => {
+  return get(ACTIVITY_SERVER_TIME_PATH);
+};
+
+/**
+ * 多人共修房间状态；需登录。建议 10～30s 轮询。
+ *
+ * @param query `id` 活动 ID
+ */
+export const fetchActivityRoomState = (query: ActivityRoomStateQuery) => {
+  const id = encodeURIComponent(String(query.id));
+  return get(`${ACTIVITY_ROOM_STATE_PATH}?id=${id}`);
+};
+
+/**
+ * 多人共修房间排行榜结果；需登录。结算后或进行中均可查（以后端为准）。
+ *
+ * @param query `id` 活动 ID
+ */
+export const fetchActivityRoomResult = (query: ActivityRoomResultQuery) => {
+  const id = encodeURIComponent(String(query.id));
+  return get(`${ACTIVITY_ROOM_RESULT_PATH}?id=${id}`);
 };

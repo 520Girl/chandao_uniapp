@@ -15,6 +15,20 @@ export function unwrapApiData<T = unknown>(res: unknown): T | null {
 }
 
 /**
+ * 连续剥离多层 `{ data: ... }`（兼容网关/加密外层再包一层业务包）。
+ */
+export function unwrapApiDataDeep<T = unknown>(res: unknown): T | null {
+  let cur: unknown = res;
+  for (let i = 0; i < 8; i++) {
+    const next = unwrapApiData<unknown>(cur);
+    if (next === null || next === undefined) return next as T | null;
+    if (next === cur) return next as T;
+    cur = next;
+  }
+  return cur as T;
+}
+
+/**
  * 解析数组列表：`data` 为数组，或分页/包装对象上的 `list` / `records` / `rows` / `items`。
  * @param res 接口 resolve 值
  */

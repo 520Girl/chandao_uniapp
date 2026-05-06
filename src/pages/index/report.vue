@@ -571,6 +571,7 @@ onMounted(() => {
 onShow(() => {
   reportPageShowCount.value += 1;
   if (reportPageShowCount.value > 1) {
+    void loadStatistics(statsRange.value);
     void nextTick(() => {
       chartsRemountKey.value += 1;
     });

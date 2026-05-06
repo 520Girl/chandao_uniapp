@@ -140,6 +140,17 @@ export function parseCrossPlatformDateInput(input: Date | number | string): Date
 }
 
 /**
+ * 活动是否已结束：`endDate` 早于当前时刻（无结束时间视为未结束）。
+ */
+export function isActivityExpiredByEndDate(endDate: string | null | undefined): boolean {
+  const raw = (endDate ?? "").trim();
+  if (!raw) return false;
+  const end = parseCrossPlatformDateInput(raw);
+  if (Number.isNaN(end.getTime())) return false;
+  return Date.now() > end.getTime();
+}
+
+/**
  * 时间格式化工具，支持自定义格式字符串
  * @param date 输入日期，支持 Date 对象、时间戳（毫秒）或 ISO 字符串
  * @param format 输出格式，默认为 "YYYY-MM-DD HH:mm:ss"

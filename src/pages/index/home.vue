@@ -204,10 +204,12 @@
           <view v-for="item in homeActivityCards" :key="item.id" :id="'hm-act-' + item.id"
             class="relative flex-shrink-0 w-[70vw] h-64 cloud-card shadow-2xl shadow-indigo-900/10 snap-center overflow-hidden">
             <view :class="item.bgClass" class="absolute inset-0 bg-gradient-to-tr to-transparent z-0" />
-            <view v-if="item.imgUrl" class="absolute inset-0 bg-cover bg-center opacity-30 mix-blend-overlay z-[1]"
+            <view v-if="item.imgUrl" class="absolute inset-0 bg-cover bg-center z-[1]" :class="item.bgOpacityClass"
               :style="{ backgroundImage: `url('${item.imgUrl}')` }" />
-            <view class="absolute inset-0 p-8 flex flex-col justify-end z-10"
-              :class="item.sceneType === 'dark' ? 'text-white' : ''">
+            <view
+              class="absolute inset-0 p-8 flex flex-col justify-end z-10"
+              :class="item.sceneType === 'dark' ? 'text-white' : ''"
+              @tap="onHomeActivityCardTap(item)">
               <view class="mb-3">
                 <text :class="item.btnClass"
                   class="px-3 py-1 rounded-full text-[20rpx] font-medium tracking-widest border border-white/20">
@@ -226,14 +228,27 @@
                   即刻参与
                 </view>
                 <view>
-                  <view :class="item.sceneType === 'dark' ? 'text-white/40' : 'text-[#918355]/60'"
-                    class="text-[20rpx] tracking-widest">
-                    达标：{{ item.passPercent }}%
-                  </view>
-                  <view :class="item.sceneType === 'dark' ? 'text-white/40' : 'text-[#918355]/60'"
-                    class="text-[20rpx] tracking-widest">
-                    总时长：{{ item.totalTime }}
-                  </view>
+                  <template v-if="item.sceneType !== 'group'">
+                    <view :class="item.tipClass"
+                      class="text-[20rpx] tracking-widest">
+                      达标：{{ item.passPercent }}%
+                    </view>
+                    <view :class="item.tipClass"
+                      class="text-[20rpx] tracking-widest">
+                      总时长：{{ item.totalTime }}
+                    </view>
+                    </template>
+                  <template v-else>
+                    <view :class="item.tipClass"
+                      class="text-[20rpx] tracking-widest flex items-center gap-1">
+                      <text class="iconfont icon-ic_group_add_px text-[30rpx]"></text>
+                      {{ item.maxParticipants }} 
+                    </view>
+                    <view :class="item.tipClass"
+                      class="text-[20rpx] tracking-widest">
+                      总时长：{{ item.totalTime }}
+                    </view>
+                  </template>
                 </view>
 
               </view>
@@ -290,6 +305,7 @@ import { formatDate } from '@/utils/common';
 import { mapApiStatusToLabel, normalizeDeviceStatusCode } from '@/utils/deviceMap';
 import { mapMusicListItemToRow, resolveMusicAssetUrl } from '@/utils/musicPage';
 import { reLaunchAgreementFromHome } from '@/utils/agreementNavigation';
+import { sceneTypeForTemplate } from '@/utils/activityRoomPayload';
 import { getCurrentLatLng } from '@/utils/location';
 
 /** 5 分钟为 1 档；5–300 分（5 小时） */
@@ -353,6 +369,24 @@ function openPrivacyFromHome() {
   reLaunchAgreementFromHome("privacy");
 }
 
+/**
+ * 活动场景卡：点按卡片空白区域跳转（「即刻参与」使用 @click.stop 不触发）。
+ * - group：共修等待室；- 其它：活动详情。
+ */
+function onHomeActivityCardTap(item: HomeActivityCard) {
+  if (item.sceneType === "group") {
+    const tid = item.templateId;
+    const sec = item.targetMeditationSeconds ?? 0;
+    uni.navigateTo({
+      url: `/pages/community/activity-house?id=${item.id}&templateId=${tid}&targetSec=${sec}`,
+    });
+    return;
+  }
+  uni.navigateTo({
+    url: `/pages/post/activity?id=${item.id}`,
+  });
+}
+
 const userStore = useUserStore();
 const meditationStore = useMeditationStore();
 const deviceStore = useDeviceStore();
@@ -360,6 +394,8 @@ const { devices: deviceListForHome } = storeToRefs(deviceStore);
 
 const DEVICE_HOME_POLL_MS = 5000;
 let homeDevicePollTimer: ReturnType<typeof setInterval> | null = null;
+/** 活动列表滚动定位后的复位定时器，页面销毁时需清理 */
+let activityScrollClearTimer: ReturnType<typeof setTimeout> | null = null;
 
 const homeDeviceStatus = ref<DeviceStatusAppData | null>(null);
 const homeDeviceRealtime = ref<DeviceRealtimePayload | null>(null);
@@ -692,32 +728,43 @@ const DEFAULT_SCENE_IMAGES = [
 
 const SCENE_STYLES: Record<
   SceneType,
-  { bgClass: string; h2Class: string; spanClass: string; btnClass: string }
+  { bgClass: string; h2Class: string; spanClass: string; btnClass: string ,tipClass: string,bgOpacityClass: string}
 > = {
   dark: {
     bgClass: "from-indigo-950/100 via-slate-10/60",
     h2Class: "text-white",
     spanClass: "text-white/60",
     btnClass: "bg-white/10 backdrop-blur-xl",
+    tipClass: "text-white/40",
+    bgOpacityClass: "opacity-80 mix-blend-overlay",
   },
   light: {
-    bgClass: "from-amber-50/100 via-orange-100/60",
+    bgClass: "#d3c899 via-orange-100/60",
     h2Class: "text-[#4a4538]",
     spanClass: "text-[#1a170f]/80",
     btnClass: "bg-theme-10 theme-color-1 border border-primary/10",
+    tipClass: "text-[#ffffff9e]",
+    bgOpacityClass: "opacity-70 mix-blend-overlay",
   },
   simple: {
     bgClass: "from-blue-50/50 via-white/40",
     h2Class: "text-[#4a4538]",
     spanClass: "text-[#1a170f]/80",
     btnClass: "bg-blue-500/10 text-blue-600 border border-blue-500/10",
+    tipClass: "text-[#918355]/60",
+    bgOpacityClass: "opacity-80 mix-blend-overlay",
+  },
+  group: {
+    bgClass: "bg-green-500/40",
+    h2Class: "text-[#2C4A3D]",
+    spanClass: "text-[#4F6B5C]/80",
+    btnClass: "bg-blue-500/10 text-[#234A3B] border border-blue-500/10",
+    tipClass: "text-[#4A7C66]/90",
+    bgOpacityClass: "opacity-80 mix-blend-overlay",
   },
 };
 
-function sceneTypeForTemplate(templateId: number): SceneType {
-  const m = templateId;
-  return m === 1 ? "dark" : m === 2 ? "light" : "simple";
-}
+
 
 function resolveActivityMediaUrl(raw: string | null | undefined): string {
   const u = (raw || "").trim();
@@ -774,6 +821,7 @@ function sortHomeActivities(
 
 
 function mapToHomeCard(item: ActivityPageListItem): HomeActivityCard {
+  console.log("item",item);
   const sceneType = sceneTypeForTemplate(item.templateId);
   const st = SCENE_STYLES[sceneType];
   const icon = resolveActivityMediaUrl(item.templateIcon ?? null);
@@ -791,10 +839,15 @@ function mapToHomeCard(item: ActivityPageListItem): HomeActivityCard {
     h2Class: st.h2Class,
     spanClass: st.spanClass,
     btnClass: st.btnClass,
+    tipClass: st.tipClass,
+    bgOpacityClass: st.bgOpacityClass,
     imgUrl: icon || fallbackImg,
     endTime: activityTimeBadge(item),
     totalTime: activityDurationLabel(item),
     passPercent: item.passPercent,
+    maxParticipants: item.sessionConfig?.maxParticipants
+      ? Math.max(0, item.sessionConfig.maxParticipants)
+      : 0,
   };
 }
 
@@ -820,9 +873,14 @@ async function scrollPreferredActivityIntoView() {
   const pref = meditationStore.homePreferredActivityId;
   const target =
     pref != null && cards.some((c) => c.id === pref) ? pref : cards[0].id;
+  if (activityScrollClearTimer != null) {
+    clearTimeout(activityScrollClearTimer);
+    activityScrollClearTimer = null;
+  }
   activityScrollIntoView.value = `hm-act-${target}`;
-  setTimeout(() => {
+  activityScrollClearTimer = setTimeout(() => {
     activityScrollIntoView.value = "";
+    activityScrollClearTimer = null;
   }, 500);
 }
 
@@ -1345,6 +1403,7 @@ async function confirmStartMeditationWithDevice(hasDevice: boolean) {
       : selected?.title?.trim() || "疗愈音频",
     trackUrl: selected?.url || "",
     useHardwareDevice: hasDevice,
+    postReport: "heart",
   };
   if (activity) {
     payload.activityId = activity.id;
@@ -1418,6 +1477,14 @@ function onRingTouch(e: TouchEvent) {
     .exec();
 }
 
+function disposeHomePageTimers() {
+  clearHomeDevicePoll();
+  if (activityScrollClearTimer != null) {
+    clearTimeout(activityScrollClearTimer);
+    activityScrollClearTimer = null;
+  }
+}
+
 function disposeAudio() {
   stopAudio();
 
@@ -1449,8 +1516,13 @@ function disposeAudio() {
   }
 }
 
-onUnload(disposeAudio);
-onBeforeUnmount(disposeAudio);
+function onHomePageDispose() {
+  disposeHomePageTimers();
+  disposeAudio();
+}
+
+onUnload(onHomePageDispose);
+onBeforeUnmount(onHomePageDispose);
 </script>
 
 <style scoped lang="scss">

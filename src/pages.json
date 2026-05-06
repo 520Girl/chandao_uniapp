@@ -152,6 +152,20 @@
             "navigationBarTitleText": "创建活动",
             "navigationStyle": "custom"
           }
+        },
+        {
+          "path": "activity-house",
+          "style": {
+            "navigationBarTitleText": "活动等待共修场地",
+            "navigationStyle": "custom"
+          }
+        },
+        {
+          "path": "activity-group-report",
+          "style": {
+            "navigationBarTitleText": "共修报告",
+            "navigationStyle": "custom"
+          }
         }
       ]
     },

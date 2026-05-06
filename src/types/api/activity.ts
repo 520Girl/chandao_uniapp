@@ -15,10 +15,13 @@ export interface ActivityPageQuery {
   size?: number;
   /** 指定团队时仅该团队；不传则含全局+多团队 */
   teamId?: number;
+  /** 是否包含已结束的活动，默认 0 */
+  includeExpired?: 0 | 1;
 }
 
 /**
  * 团队可发布用活动模板项（`GET /app/activity/templates` 单行）。
+ * 以下默认字段若后端返回则用于 `applyTemplateDefaults`，否则由 App 按模板 id 推断活动类型等。
  */
 export interface ActivityTemplateItem {
   id: number;
@@ -26,25 +29,48 @@ export interface ActivityTemplateItem {
   description?: string | null;
   icon?: string | null;
   allowTeamPublish?: boolean;
+  activityTypeDefault?: number | null;
+  checkinModeDefault?: number | null;
+  targetMeditationSecondsDefault?: number | null;
+  passPercentDefault?: number | null;
+  sessionConfigDefault?: string | Record<string, unknown> | null;
+}
+
+/**
+ * 多人共修 `sessionConfig`（与根级 `startDate`/`endDate` 计划时间同源）。
+ */
+export interface ActivityGroupSessionConfigPayload {
+  startMode: "scheduled";
+  roomNo: string | null;
+  maxParticipants: number;
+  scheduledStartTime: string;
+  scheduledEndTime: string;
+  rankGraceSeconds: number;
 }
 
 /**
  * `POST /app/activity/createFromTemplate` Body（团队负责人发活动）。
- * `status=2` 发布时 `startDate`、`endDate` 必填（ISO 字符串）。
+ * `status=2` 发布时 `startDate`、`endDate` 必填；`YYYY-MM-DD HH:mm:ss` 与后台一致。
  */
 export interface ActivityCreateFromTemplateBody {
   teamId: number;
   templateId: number;
   title: string;
+  /** `1` 普通打卡 / `2` 多人共修 */
+  activityType?: number;
   startDate?: string;
   endDate?: string;
   content?: string;
   /** `1` 草稿 / `2` 直接发布，默认 `2` */
   status?: number;
-  /** `1` 每日打卡 / `2` 仅一次，默认 `1` */
+  /** `1` 每日打卡 / `2` 仅一次；多人共修提交固定为 `2` */
   checkinMode?: number;
   targetMeditationSeconds?: number;
   passPercent?: number;
+  /** 普通活动传 `null`；多人共修传计划窗与房间配置 */
+  sessionConfig?: ActivityGroupSessionConfigPayload | null;
+  /** `0`/`1` 是否置顶 */
+  isTop?: number;
 }
 
 /**
@@ -68,6 +94,9 @@ export interface ActivityPageListItem {
   targetMeditationSeconds: number;
   /** 通过百分比 */
   passPercent: number;
+  sessionConfig?: {
+    maxParticipants?: number;
+  };
 }
 
 /** 分页信息 */
@@ -169,6 +198,111 @@ export interface ActivityCheckinDTO {
   city?: string;
 }
 
+/** POST `/app/activity/ready` Body（多人共修 activityType=2） */
+export interface ActivityReadyDTO {
+  /** 活动 ID */
+  id: number;
+  /** `1` 就绪 / `0` 取消就绪 */
+  ready: 0 | 1;
+}
+
+/** POST `/app/activity/ready` 的 data */
+export interface ActivityReadyResult {
+  activityId: number;
+  userId: number;
+  readyStatus: number;
+}
+
+/** GET `/app/activity/serverTime` 的 data（无需登录） */
+export interface ActivityServerTimeData {
+  serverTime: number;
+}
+
+/** GET `/app/activity/roomState` Query */
+export interface ActivityRoomStateQuery {
+  id: number;
+}
+
+/** 房间成员（`roomState.participants[]`） */
+export interface ActivityRoomParticipant {
+  userId: number;
+  readyStatus: number;
+  /** `2` 发起人/房主，`1` 普通成员 */
+  roomRole: number;
+  nickName?: string | null;
+  avatarUrl?: string | null;
+}
+
+/** GET `/app/activity/roomState` 的 data */
+export interface ActivityRoomStateData {
+  activityId: number;
+  title: string;
+  teamId?: number | null;
+  /** `0` 待开场 / `1` 进行中 / `2` 已结算 */
+  phase: number;
+  startAt?: string | null;
+  endAt?: string | null;
+  maxParticipants: number;
+  participantCount: number;
+  readyCount: number;
+  participants: ActivityRoomParticipant[];
+  lockedRosterUserIds: number[];
+  serverTime: number;
+  msUntilStart: number;
+  msUntilEnd: number;
+  inScheduledWindow: boolean;
+  rankGraceSeconds: number;
+  suggestStartMeditation: boolean;
+  suggestStopMeditation: boolean;
+  suggestPrepareSoon: boolean;
+}
+
+/** GET `/app/activity/roomResult` Query */
+export interface ActivityRoomResultQuery {
+  id: number;
+}
+
+/**
+ * 榜单单项（`roomResult` 三榜结构一致；旧版四榜接口可能多返回下列可选字段）。
+ */
+export interface ActivityRoomRankingEntry {
+  rank: number;
+  userId: number;
+  nickName: string;
+  avatarUrl?: string | null;
+  /** 统计窗内纳入汇总的 `totalDuration` 之和（秒） */
+  durationSeconds: number;
+  avgHeartRateWeighted: number;
+  avgBreathRateWeighted: number;
+  movementCount: number;
+  lastSessionEnd?: string | null;
+  /** 旧版四榜 */
+  focusScoreWeighted?: number;
+  sitCount?: number;
+  stabilityScore?: number;
+  compositeScore?: number;
+}
+
+/** `rankings`：平均心率 / 平均呼吸率 / 体动次数（各为独立排序列表） */
+export interface ActivityRoomResultRankings {
+  avgHeartRate: ActivityRoomRankingEntry[];
+  avgBreathRate: ActivityRoomRankingEntry[];
+  movementCount: ActivityRoomRankingEntry[];
+}
+
+/** GET `/app/activity/roomResult` 的 data */
+export interface ActivityRoomResultData {
+  activityId: number;
+  phase: number;
+  startAt: string;
+  endAt: string;
+  rankGraceSeconds: number;
+  rankWindowStartAt: string;
+  rankWindowEndAt: string;
+  rosterUserIds?: number[];
+  rankings: ActivityRoomResultRankings;
+}
+
 
 export interface HomeActivityCard {
   id: number;
@@ -178,15 +312,20 @@ export interface HomeActivityCard {
   title: string;
   subtitle: string;
   sceneType: SceneType;
+  /** 是否已超过 `endDate`（用于褪色样式与禁止「即刻参与」） */
+  isExpired: boolean;
   bgClass: string;
   h2Class: string;
   spanClass: string;
   btnClass: string;
+  tipClass: string;
+  bgOpacityClass: string;
   imgUrl: string;
   endTime: string;
   totalTime?: string;
   passPercent?: number;
+  maxParticipants?: number;
 }
 
 
-export type SceneType = "dark" | "light" | "simple";
+export type SceneType = "dark" | "light" | "simple" | "group";

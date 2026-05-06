@@ -21,10 +21,15 @@
         <view
           v-for="(item, index) in list"
           :key="`act-${item.id}`"
-          :class="index % 2 === 0 ? 'bg-[#ffffff80] shadow-md' : 'bg-[#d4af350d] shadow-sm'"
+          :class="rowCardClass(index, item)"
           class="relative border border-[#d4af35]/5 p-6 rounded-[2rem]"
-          @click="goActivity(item.id)"
+          @click="goActivity(item)"
         >
+          <view
+            v-if="isActivityRowExpired(item)"
+            class="absolute top-3 right-3 z-10 px-2 py-0.5 rounded-full bg-stone-500/90 text-white text-[20rpx] font-medium tracking-wide">
+            已结束
+          </view>
           <view class="flex items-center gap-3 mb-4">
             <up-image
               v-if="rowIcon(item) !== ''"
@@ -33,30 +38,45 @@
               width="90rpx"
               height="90rpx"
               shape="circle"
-              class="w-[90rpx] h-[90rpx] border-2 border-theme-3 overflow-hidden shrink-0"
+              :class="[
+                'w-[90rpx] h-[90rpx] border-2 overflow-hidden shrink-0',
+                rowIconFrameClass(item),
+                isActivityRowExpired(item) ? 'grayscale opacity-90' : '',
+              ]"
               mode="aspectFill"
             />
             <view
               v-else
-              class="w-[90rpx] h-[90rpx] rounded-full border-2 border-theme-3 flex items-center justify-center bg-primary/10 shrink-0"
+              :class="[
+                'w-[90rpx] h-[90rpx] rounded-full border-2 flex items-center justify-center shrink-0',
+                rowIconFrameClass(item),
+              ]"
             >
-              <text class="iconfont icon-huodong text-[44rpx] theme-color-1" />
+              <text
+                :class="isActivityRowExpired(item) ? 'text-stone-500' : 'theme-color-1'"
+                class="iconfont icon-huodong text-[44rpx]" />
             </view>
             <view class="min-w-0 flex-1">
-              <view class="text-sm font-bold line-clamp-1">{{ item.title || "共修活动" }}</view>
+              <view class="text-sm font-bold line-clamp-1" :class="rowTitleClass(item)">
+                {{ item.title || "共修活动" }}
+              </view>
               <view class="flex items-center gap-1 flex-wrap min-w-0">
-                <text class="iconfont icon-MapPin text-[20rpx] theme-color-8 shrink-0" />
-                <text class="text-[20rpx] theme-color-8 font-medium line-clamp-1">{{ rowSubline(item) }}</text>
                 <text
-                  class="text-[80rpx] theme-color-2 iconfont italic icon-huodong text-[#b4d2e761] absolute -right-0 -top-0 pointer-events-none"
+                  :class="isActivityRowExpired(item) ? 'text-stone-500' : 'theme-color-8'"
+                  class="iconfont icon-MapPin text-[20rpx] shrink-0" />
+                <text class="text-[20rpx] font-medium line-clamp-1" :class="rowSublineClass(item)">{{ rowSubline(item) }}</text>
+                <text
+                  :class="isActivityRowExpired(item) ? 'text-stone-400/60' : 'theme-color-2 text-[#b4d2e761]'"
+                  class="text-[80rpx] iconfont italic icon-huodong absolute -right-0 -top-0 pointer-events-none"
                 />
               </view>
             </view>
-            <text v-if="item.isTop == 1" class="iconfont icon-tuding text-[38rpx] theme-color-1 shrink-0" />
+            <text
+              v-if="item.isTop == 1"
+              :class="isActivityRowExpired(item) ? 'text-stone-500' : 'theme-color-1'"
+              class="iconfont icon-tuding text-[38rpx] shrink-0" />
           </view>
-          <text
-            class="theme-color-7 leading-relaxed italic text-[30rpx] px-2 block first-letter:text-3xl first-letter:mr-2 first-letter:float-left first-letter:font-headline first-letter:text-primary/80"
-          >
+          <text :class="rowQuoteClass(item)">
             “{{ rowQuote(item) }}”
           </text>
         </view>
@@ -67,6 +87,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed, ref } from "vue";
 import { onLoad, onReachBottom, onShow } from "@dcloudio/uni-app";
 import { fetchActivityPageGet } from "@/assets/js/api/activity";
 import { config } from "@/assets/js/config";
@@ -74,9 +95,10 @@ import type { ActivityPage, ActivityPageListItem, ActivityPageQuery } from "@/ty
 import { useTeamStore } from "@/stores/team";
 import { useUserStore } from "@/stores/user";
 import { unwrapApiData } from "@/utils/apiResponse";
-import { formatDate, formatRelativeTime } from "@/utils/common";
+import { formatDate, formatRelativeTime, isActivityExpiredByEndDate } from "@/utils/common";
 import { navigateBack } from "@/utils/navigation";
 import lcrBar from "@/components/lcrBar.vue";
+import { sceneTypeForTemplate } from '@/utils/activityRoomPayload';
 
 const PAGE_SIZE = 20;
 const teamStore = useTeamStore();
@@ -133,12 +155,61 @@ function rowQuote(item: ActivityPageListItem): string {
   return (item.content || item.title || "活动邀约").trim();
 }
 
-function goActivity(id: number) {
-  uni.navigateTo({ url: `/pages/post/activity?id=${id}` });
+function isActivityRowExpired(item: ActivityPageListItem): boolean {
+  return isActivityExpiredByEndDate(item.endDate);
+}
+
+function rowCardClass(index: number, item: ActivityPageListItem): string {
+  if (isActivityRowExpired(item)) {
+    return [
+      "border border-dashed border-stone-400/55",
+      "bg-gradient-to-br from-stone-200/80 via-stone-300/50 to-stone-400/30",
+      "shadow-none",
+      "opacity-[0.96]",
+    ].join(" ");
+  }
+  return index % 2 === 0 ? "bg-[#ffffff80] shadow-md" : "bg-[#d4af350d] shadow-sm";
+}
+
+function isGroupActivity(item: ActivityPageListItem): boolean {
+  return sceneTypeForTemplate(item.templateId) === "group";
+}
+
+/** 已结束活动：标题/副文/引文用冷灰，避免与有效活动同色 */
+function rowTitleClass(item: ActivityPageListItem): string {
+  return isActivityRowExpired(item) ? "text-stone-700/90" : "text-on-surface";
+}
+
+function rowSublineClass(item: ActivityPageListItem): string {
+  return isActivityRowExpired(item) ? "text-stone-500/90" : "theme-color-8";
+}
+
+function rowQuoteClass(item: ActivityPageListItem): string {
+  const base =
+    "leading-relaxed italic text-[30rpx] px-2 block first-letter:text-3xl first-letter:mr-2 first-letter:float-left first-letter:font-headline";
+  if (isActivityRowExpired(item)) {
+    return `${base} text-stone-600/80 first-letter:text-stone-500/90`;
+  }
+  return `${base} theme-color-7 first-letter:text-primary/80`;
+}
+
+function rowIconFrameClass(item: ActivityPageListItem): string {
+  if (isActivityRowExpired(item)) {
+    return "border-stone-400/60 bg-stone-200/50";
+  }
+  return "border-theme-3 bg-primary/10";
+}
+
+function goActivity(item: ActivityPageListItem) {
+  if (isGroupActivity(item)) {
+    uni.navigateTo({ url: `/pages/community/activity-group-report?id=${item.id}` });
+    return;
+  }
+  uni.navigateTo({ url: `/pages/post/activity?id=${item.id}` });
 }
 
 function buildQuery(p: number): ActivityPageQuery {
-  const q: ActivityPageQuery = { page: p, size: PAGE_SIZE };
+  const q: ActivityPageQuery = { page: p, size: PAGE_SIZE ,includeExpired:1};
   if (routeTeamId.value != null) q.teamId = routeTeamId.value;
   return q;
 }

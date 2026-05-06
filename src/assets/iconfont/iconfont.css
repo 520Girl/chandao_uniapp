@@ -1,8 +1,8 @@
 @font-face {
   font-family: "iconfont"; /* Project id 5133341 */
-  src: url('iconfont.woff2?t=1777602386886') format('woff2'),
-       url('iconfont.woff?t=1777602386886') format('woff'),
-       url('iconfont.ttf?t=1777602386886') format('truetype');
+  src: url('iconfont.woff2?t=1777648583518') format('woff2'),
+       url('iconfont.woff?t=1777648583518') format('woff'),
+       url('iconfont.ttf?t=1777648583518') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,26 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-nest_clock_farsight_analog_24dp_595959_FILL0_wght4:before {
+  content: "\e632";
+}
+
+.icon-next:before {
+  content: "\e62c";
+}
+
+.icon-prev:before {
+  content: "\e630";
+}
+
+.icon-pause-full:before {
+  content: "\ea8c";
+}
+
+.icon-daochu1024-15:before {
+  content: "\e618";
 }
 
 .icon-zhihuifuyou_chankangyuyuemianxing:before {

@@ -1,6 +1,6 @@
 <template>
   <view class="flex flex-col min-h-screen theme-bg cloud-pattern">
-    <lcrBar :title="inviteLanding ? '团队邀请' : '心迹报告'" :type="inviteLanding ? 'none' : 'all'" :onBack="onLcrBack"
+    <lcrBar :title="inviteLanding ? '团队邀请' : '心迹报告'" :type="inviteLanding ? 'none' : 'home'" :onBack="onLcrBack"
       :onHome="onLcrHome" />
     <view class="flex flex-col flex-1 min-h-0">
       <view class="px-8 pt-10 pb-6 text-center">

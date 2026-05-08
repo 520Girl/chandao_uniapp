@@ -6,7 +6,7 @@
         <!-- <Cloud :size="48" class="text-[#d4af35]" /> -->
         <text class="icon-yunduo iconfont text-[#d4af35] size-90 text-[100rpx]"></text>
       </view>
-      <h1 class="text-[50rpx] font-extrabold tracking-tight mb-4 italic">坐观其心</h1>
+      <h1 class="text-[50rpx] font-extrabold tracking-tight mb-4 italic">照见花满</h1>
       <text class="text-[#d4af35]/60 text-[28rpx] leading-relaxed max-w-[280px] block">
         捕捉当下的心境，回归本自安定
       </text>
@@ -24,6 +24,11 @@
       <view @click="onPhoneLogin"
         class="w-full text-[#d4af35] mt-[10rpx] text-[28rpx] font-semibold  flex items-center justify-center">
         <text>使用账号密码登录</text>
+      </view>
+      <view
+        @click="onEnterGuestExperience"
+        class="w-full text-[#918355] mt-[24rpx] text-[26rpx] font-medium flex items-center justify-center active:opacity-70">
+        <text>进入体验（暂不登录）</text>
       </view>
       <view class="flex items-center justify-center gap-3 text-[22rpx]">
          <view class="relative flex items-center cursor-pointer" @click="toggleAgree">
@@ -133,6 +138,7 @@ if (loading.value) {
       token: String(token),
       refreshToken: refreshToken != null ? String(refreshToken) : null,
       isLoggedIn: true,
+      guestMode: false,
     });
     if (user) {
       setUserInfo(user);
@@ -178,6 +184,12 @@ const onPhoneLogin = () => {
     url: `/pages/login/inputLogin${q}`,
   });
 };
+
+/** 小程序合规：未登录可先浏览首页；业务接口由 `request` 层拦截 */
+function onEnterGuestExperience() {
+  userStore.enterGuestMode();
+  uni.switchTab({ url: "/pages/index/home" });
+}
 
 function openUserAgreement() {
   navigateToAgreementFromLogin("user");

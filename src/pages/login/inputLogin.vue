@@ -9,7 +9,7 @@
                         <!-- <Cloud :size="48" class="text-[#d4af35]" /> -->
                         <text class="icon-yunduo iconfont text-[#d4af35] size-90 text-[100rpx]"></text>
                     </view>
-                    <view class="font-headline italic text-4xl text-on-surface mb-2 tracking-tight">欢迎回来</view>
+                    <view class="font-headline italic text-4xl text-on-surface mb-2 tracking-tight">照见花满</view>
                     <view class="font-label text-sm text-on-surface-variant/70 tracking-[0.1rem] uppercase">Welcome back
                     </view>
                 </view>

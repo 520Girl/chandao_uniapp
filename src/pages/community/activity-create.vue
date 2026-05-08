@@ -73,7 +73,7 @@
           </view>
         </view>
         <text v-if="activityType === 2" class="text-[22rpx] theme-color-6 mt-2 block leading-relaxed">
-          多人共修须绑定当前团队；打卡模式固定为「仅一次」；禅修目标与达标百分比由计划时间推算（提交为 0）。
+          多人共修须绑定当前团队；打卡模式固定为「仅一次」；发布时禅修目标秒数与计划时长一致（由后端按起止时间写入）。
         </text>
       </view>
 
@@ -216,27 +216,6 @@
           </view>
         </view>
       </template>
-
-      <!-- 8. 置顶 -->
-      <view class="mb-8">
-        <text class="text-[#918355] text-sm block mb-2">是否置顶</text>
-        <view class="flex gap-3">
-          <view
-            class="flex-1 py-3 rounded-2xl text-center text-sm font-medium border-2"
-            :class="isTop === 0 ? 'border-primary theme-color-1 bg-primary/5' : 'border-[#d4af35]/15 theme-color-8'"
-            @click="isTop = 0"
-          >
-            否
-          </view>
-          <view
-            class="flex-1 py-3 rounded-2xl text-center text-sm font-medium border-2"
-            :class="isTop === 1 ? 'border-primary theme-color-1 bg-primary/5' : 'border-[#d4af35]/15 theme-color-8'"
-            @click="isTop = 1"
-          >
-            是
-          </view>
-        </view>
-      </view>
     </view>
 
     <view
@@ -286,7 +265,11 @@ import { storeToRefs } from "pinia";
 import { computed, reactive, ref } from "vue";
 import { fetchActivityTemplates, postActivityCreateFromTemplate } from "@/assets/js/api/activity";
 import { config } from "@/assets/js/config";
-import type { ActivityCreateFromTemplateBody, ActivityTemplateItem } from "@/types/api/activity";
+import type {
+  ActivityCreateFromTemplateBody,
+  ActivityGroupSessionConfigPayload,
+  ActivityTemplateItem,
+} from "@/types/api/activity";
 import { useTeamStore } from "@/stores/team";
 import { useUserStore } from "@/stores/user";
 import { sceneTypeForTemplate } from "@/utils/activityRoomPayload";
@@ -294,6 +277,7 @@ import {
   clampInt,
   parseSessionConfigDefault,
   toBackendDateTimeString,
+  toIsoDateTimeString,
 } from "@/utils/activityCreateForm";
 import { unwrapApiData } from "@/utils/apiResponse";
 import { navigateBack } from "@/utils/navigation";
@@ -318,7 +302,6 @@ const publishStatus = ref(2);
 const checkinMode = ref<1 | 2>(1);
 const targetMinutes = ref(15);
 const passPercent = ref(100);
-const isTop = ref<0 | 1>(0);
 const groupRoomNo = ref("");
 const groupMaxParticipants = ref(20);
 const rankGraceSeconds = ref(30);
@@ -391,7 +374,7 @@ function clampPassPercent(n: number): number {
   return Math.max(0, Math.min(100, Math.trunc(n)));
 }
 
-/** §5 活动类型联动 */
+/** 活动类型联动 */
 function applyTypeLinkedFields(type: 1 | 2) {
   if (type === 2) {
     checkinMode.value = 2;
@@ -407,7 +390,7 @@ function applyTypeLinkedFields(type: 1 | 2) {
   }
 }
 
-/** §4 模板默认值 → templateDefaults + 类型联动 */
+/** 模板默认值 → templateDefaults + 类型联动 */
 function applyTemplateDefaults(tpl: ActivityTemplateItem) {
   const session = parseSessionConfigDefault(tpl.sessionConfigDefault);
   templateDefaults.groupRoomNo = session.roomNo;
@@ -446,7 +429,8 @@ async function loadTemplates() {
   try {
     const res = await fetchActivityTemplates();
     const data = unwrapApiData<ActivityTemplateItem[]>(res);
-    const list = Array.isArray(data) ? data : [];
+    const raw = Array.isArray(data) ? data : [];
+    const list = raw.filter((t) => t.allowTeamPublish !== false);
     templates.value = list;
     if (list.length) {
       const first = list.some((t) => t.id === selectedTemplateId.value)
@@ -504,17 +488,18 @@ async function onSubmit() {
     uni.showToast({ title: "请填写标题", icon: "none" });
     return;
   }
-  const st = publishStatus.value === 2 ? 2 : 1;
-  let startStr = "";
-  let endStr = "";
+  // status 须为 number（1/2），勿传字符串以免后端误判为草稿
+  const st: 1 | 2 = publishStatus.value === 2 ? 2 : 1;
+  let startIso = "";
+  let endIso = "";
   if (st === 2) {
     if (timeEnd.value < timeStart.value) {
       uni.showToast({ title: "请设置合法起止时间", icon: "none" });
       return;
     }
-    startStr = toBackendDateTimeString(timeStart.value);
-    endStr = toBackendDateTimeString(timeEnd.value);
-    if (!startStr || !endStr) {
+    startIso = toIsoDateTimeString(timeStart.value);
+    endIso = toIsoDateTimeString(timeEnd.value);
+    if (!startIso || !endIso) {
       uni.showToast({ title: "请设置起止时间", icon: "none" });
       return;
     }
@@ -538,7 +523,7 @@ async function onSubmit() {
     title: t,
     activityType: at,
     status: st,
-    isTop: isTop.value === 1 ? 1 : 0,
+    sessionConfig: {},
   };
 
   const c = content.value.trim();
@@ -546,31 +531,33 @@ async function onSubmit() {
 
   if (at === 2) {
     body.checkinMode = 2;
-    body.targetMeditationSeconds = 0;
     body.passPercent = 100;
-    body.sessionConfig =
-      st === 2
-        ? {
-            startMode: "scheduled",
-            roomNo: roomTrim.length ? roomTrim : null,
-            maxParticipants: maxPart,
-            scheduledStartTime: startStr,
-            scheduledEndTime: endStr,
-            rankGraceSeconds: graceSec,
-          }
-        : null;
+    const planSeconds =
+      st === 2 ? Math.max(0, Math.floor((timeEnd.value - timeStart.value) / 1000)) : 0;
+    body.targetMeditationSeconds = planSeconds;
+
+    const session: ActivityGroupSessionConfigPayload = {
+      roomNo: roomTrim.length ? roomTrim : null,
+      maxParticipants: maxPart,
+      rankGraceSeconds: graceSec,
+    };
     if (st === 2) {
-      body.startDate = startStr;
-      body.endDate = endStr;
+      session.scheduledStartTime = startIso;
+      session.scheduledEndTime = endIso;
+    }
+    body.sessionConfig = session;
+
+    if (st === 2) {
+      body.startDate = startIso;
+      body.endDate = endIso;
     }
   } else {
     body.checkinMode = checkinMode.value === 2 ? 2 : 1;
     body.targetMeditationSeconds = Math.max(0, Math.trunc((Number(targetMinutes.value) || 0) * 60));
     body.passPercent = clampPassPercent(Number(passPercent.value));
-    body.sessionConfig = null;
     if (st === 2) {
-      body.startDate = startStr;
-      body.endDate = endStr;
+      body.startDate = startIso;
+      body.endDate = endIso;
     }
   }
 

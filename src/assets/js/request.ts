@@ -4,6 +4,11 @@ import { decryptPayload, encryptPayload, shouldEncryptRequest } from "./crypto";
 import { useUserStore } from "@/stores/user";
 import type { AuthTokenPayload } from "@/types/api/user";
 import type { RequestError } from "@/types/config";
+import {
+  createGuestBlockedError,
+  isGuestBlockedError,
+  isGuestPublicApiUrl,
+} from "@/utils/guestRequest";
 
 const REFRESH_TOKEN_PATH = "/app/user/login/refreshToken";
 
@@ -59,7 +64,7 @@ function isCurrentRoute(path: string): boolean {
  */
 function isDeviceStatusOrRealtimeRequest(snapshot: Record<string, unknown>): boolean {
   const u = String(snapshot?.url ?? "");
-  return u.includes("/app/device/realtime") || u.includes("/app/device/status");
+  return u.includes("/app/device/realtime") || u.includes("/app/device/status") || u.includes("/app/activity/createFromTemplate");
 }
 
 // 请求拦截器
@@ -129,6 +134,14 @@ const responseInterceptor = (response: any) => {
 const errorHandler = async (error: any, retrySnapshot: Record<string, any>): Promise<any> => {
   console.error("请求错误:", error);
 
+  if (isGuestBlockedError(error)) {
+    uni.showToast({
+      title: error?.message || "体验模式下请登录后使用",
+      icon: "none",
+    });
+    return Promise.reject(error);
+  }
+
   if (error.statusCode === HTTP_STATUS.UNAUTHORIZED) {
     // 刷新接口自身 401 / 业务失败，或已重试过一次仍 401：不再刷新，避免死循环
     if (retrySnapshot.skipAuthRefresh === true || retrySnapshot.__tokenRetry === true) {
@@ -162,7 +175,24 @@ const errorHandler = async (error: any, retrySnapshot: Record<string, any>): Pro
       __tokenRetry: true,
     });
   } else if (error.statusCode === HTTP_STATUS.SUCCESS) {
-    console.log('error.statusCode',error.message);
+    console.log("error.statusCode", error.message);
+    // uni.showToast({
+    //   title: error.message || "请求失败",
+    //   icon: "none",
+    // });
+    // return;
+    const store = useUserStore();
+    const noToken = !String(store.token ?? "").trim();
+    /** 未登录/体验：接口返回业务失败时不要显示笼统「请求失败」，也不要 navigateBack */
+    if (noToken || store.guestMode) {
+      uni.showToast({
+        title: store.guestMode
+          ? "体验模式下请登录后使用完整功能"
+          : "请先登录",
+        icon: "none",
+      });
+      return Promise.reject(error);
+    }
     uni.showToast({
       title: error.message || "网络请求失败",
       icon: "none",
@@ -173,11 +203,23 @@ const errorHandler = async (error: any, retrySnapshot: Record<string, any>): Pro
         isCurrentRoute("/pages/login/inputLogin") ||
         isDeviceStatusOrRealtimeRequest(retrySnapshot)
       ) {
-        return;
+        return Promise.reject(error);
       }
       uni.navigateBack();
     }, 1500);
-    return;
+    return Promise.reject(error);
+  }
+
+  const storeForNet = useUserStore();
+  const noTok = !String(storeForNet.token ?? "").trim();
+  if (noTok || storeForNet.guestMode) {
+    uni.showToast({
+      title: storeForNet.guestMode
+        ? "体验模式下请登录后使用完整功能"
+        : "请先登录",
+      icon: "none",
+    });
+    return Promise.reject(error);
   }
 
   uni.showToast({
@@ -210,6 +252,13 @@ export const request = (options: any): Promise<any> => {
     // #endif
     if (!isApiDomainAllowed(requestUrl) && isAbsoluteUrl(requestUrl)) {
       reject(new Error(`请求域名不在白名单中: ${requestUrl}`));
+      return;
+    }
+
+    const userStore = useUserStore();
+    const skipGuest = retrySnapshot.skipGuestBlock === true;
+    if (userStore.guestMode && !userStore.token && !skipGuest && !isGuestPublicApiUrl(requestUrl)) {
+      reject(createGuestBlockedError());
       return;
     }
 

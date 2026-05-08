@@ -3,6 +3,15 @@
     <HomeBar title="静坐" description="一 念 静 心" :leftIcon="'icon-bell'" :messageCount="messageUnreadCount"
       titleIcon="icon-Cloudy" :handleClick="goProfile" />
 
+    <view
+      v-if="userStore.isGuestExperience"
+      class="mx-6 mt-2 px-4 py-3 rounded-2xl bg-primary/10 border border-primary/15">
+      <text class="text-[24rpx] theme-color-8 leading-relaxed block text-center">体验模式：可浏览界面与调节时长；共修活动、疗愈音乐、静坐同步等需登录后使用。</text>
+      <view class="mt-2 flex justify-center">
+        <text class="text-[26rpx] theme-color-1 font-semibold underline" @click="goLoginFromGuest">去登录</text>
+      </view>
+    </view>
+
     <view class="flex-1 px-6 flex items-center">
       <view class="flex-1 flex flex-col items-center relative overflow-y-auto no-scrollbar pt-4">
         <!-- Interactive Time Selection -->
@@ -256,6 +265,9 @@
           </view>
         </view>
       </scroll-view>
+      <view v-if="userStore.isGuestExperience" class="px-8 text-center text-[24rpx] theme-color-7 py-4 -mt-4">
+        登录后加载共修活动列表
+      </view>
       <view v-if="activitiesLoading" class="text-center text-xs theme-color-8 -mt-6 pb-2">活动加载中…</view>
       <view class="flex flex-wrap justify-center items-center gap-x-4 gap-y-1 py-3 px-2 text-[22rpx] theme-color-8">
         <text class="text-primary/90 active:opacity-80" @click="openUserAgreementFromHome">用户协议</text>
@@ -324,6 +336,10 @@ const showMeditationDevicePopup = ref(false);
 /** 非 null 表示弹窗由场景卡触发，确认后需带上 `activityId` / `activityTemplateId` */
 const pendingActivityLaunch = ref<HomeActivityCard | null>(null);
 
+const userStore = useUserStore();
+const meditationStore = useMeditationStore();
+const deviceStore = useDeviceStore();
+
 const ringProgress = computed(() => {
   const span = maxMinutes - minMinutes;
   if (span <= 0) return 0;
@@ -356,10 +372,19 @@ async function loadMessageUnreadCount() {
 
 // 跳转消息中心
 const goProfile = () => {
+  if (userStore.isGuestExperience) {
+    uni.showToast({ title: "登录后查看消息", icon: "none" });
+    uni.navigateTo({ url: "/pages/login/index" });
+    return;
+  }
   uni.navigateTo({
     url: '/pages/message/index'
   });
 };
+
+function goLoginFromGuest() {
+  uni.navigateTo({ url: "/pages/login/index" });
+}
 
 function openUserAgreementFromHome() {
   reLaunchAgreementFromHome("user");
@@ -387,9 +412,6 @@ function onHomeActivityCardTap(item: HomeActivityCard) {
   });
 }
 
-const userStore = useUserStore();
-const meditationStore = useMeditationStore();
-const deviceStore = useDeviceStore();
 const { devices: deviceListForHome } = storeToRefs(deviceStore);
 
 const DEVICE_HOME_POLL_MS = 5000;
@@ -856,6 +878,7 @@ const activitiesLoading = ref(false);
 const activityScrollIntoView = ref("");
 
 const homeActivityCards = computed((): HomeActivityCard[] => {
+  if (userStore.isGuestExperience) return [];
   const base =
     activitiesRaw.value.length > 0 ? activitiesRaw.value : FALLBACK_HOME_ACTIVITIES;
   const sorted = sortHomeActivities(
@@ -901,6 +924,10 @@ async function loadHomeActivities() {
 
 /** 从场景卡进入禅修：与右下角「开始」一致，先同步设备再弹窗选有/无设备，确认后再校验并跳转 */
 async function startMeditationFromActivity(item: HomeActivityCard) {
+  if (userStore.isGuestExperience) {
+    uni.showToast({ title: "登录后参与共修活动", icon: "none" });
+    return;
+  }
   if (userStore.isLoggedIn) {
     const can = await ensureNoActiveMeditationBeforeStart();
     if (!can) return;
@@ -1185,10 +1212,21 @@ onMounted(() => {
       /* noop */
     }
   }
-  fetchMusicPage(true);
+  if (!userStore.isGuestExperience) {
+    fetchMusicPage(true);
+  }
 });
 
 onShow(async () => {
+  if (userStore.isGuestExperience) {
+    messageUnreadCount.value = 0;
+    activitiesRaw.value = [];
+    activitiesLoading.value = false;
+    homeDeviceStatus.value = null;
+    homeDeviceRealtime.value = null;
+    clearHomeDevicePoll();
+    return;
+  }
   loadMessageUnreadCount();
   void loadHomeActivities();
   if (userStore.isLoggedIn) {
@@ -1276,6 +1314,10 @@ function stopAudio() {
 }
 
 function togglePlay(track: AudioTrack) {
+  if (userStore.isGuestExperience) {
+    uni.showToast({ title: "登录后加载并试听疗愈音乐", icon: "none" });
+    return;
+  }
   if (!track.url) {
     uni.showToast({ title: '无效音频地址', icon: 'none' });
     return;
@@ -1323,6 +1365,10 @@ function togglePlay(track: AudioTrack) {
 
 /** 拉列表 + 首台设备详情，再弹出「有/无设备」选择 */
 async function onStartMeditation() {
+  if (userStore.isGuestExperience) {
+    uni.showToast({ title: "登录后开始静坐与数据同步", icon: "none" });
+    return;
+  }
   if (userStore.isLoggedIn) {
     const can = await ensureNoActiveMeditationBeforeStart();
     if (!can) return;
@@ -1341,6 +1387,12 @@ async function onStartMeditation() {
 
 /** 有设备 / 无设备：与 `onStartMeditation` 相同校验；若来自场景卡则打卡、按计划目标分钟并附带活动 id */
 async function confirmStartMeditationWithDevice(hasDevice: boolean) {
+  if (userStore.isGuestExperience) {
+    showMeditationDevicePopup.value = false;
+    onMeditationDeviceDialogDismiss();
+    uni.showToast({ title: "登录后开始静坐", icon: "none" });
+    return;
+  }
   if (userStore.isLoggedIn) {
     const can = await ensureNoActiveMeditationBeforeStart();
     if (!can) {

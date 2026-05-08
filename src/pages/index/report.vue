@@ -166,8 +166,11 @@ import type {
   MeditationStatisticsChartBlock,
   MeditationStatisticsRange,
 } from '@/types/api/meditation';
+import { useUserStore } from '@/stores/user';
 import { unwrapApiData } from '@/utils/apiResponse';
 import { parseMeditationReportStatisticsPayload } from '@/utils/meditationReport';
+
+const userStore = useUserStore();
 
 const statsRange = ref<MeditationStatisticsRange>('week');
 
@@ -514,6 +517,10 @@ function rangePillClass(range: MeditationStatisticsRange) {
 }
 
 async function loadStatistics(range: MeditationStatisticsRange) {
+  if (!userStore.isLoggedIn) {
+    statistics.value = null;
+    return;
+  }
   const seq = ++statisticsLoadSeq;
   uni.showLoading({ title: '加载中', mask: true });
   try {
@@ -546,6 +553,10 @@ async function loadStatistics(range: MeditationStatisticsRange) {
 }
 
 function setStatisticsRange(range: MeditationStatisticsRange) {
+  if (!userStore.isLoggedIn) {
+    uni.showToast({ title: "登录后查看心迹数据", icon: "none" });
+    return;
+  }
   if (statsRange.value === range) return;
   statsRange.value = range;
   statistics.value = null;

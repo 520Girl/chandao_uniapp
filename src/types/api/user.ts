@@ -58,6 +58,11 @@ export interface UserState {
   isLoggedIn: boolean;
   loading: boolean;
   unRead: number;
+  /**
+   * 未登录体验浏览（小程序合规）；与 `token` 互斥使用场景：有 token 时应为 false。
+   * 持久化，便于下次打开仍可直接进首页。
+   */
+  guestMode: boolean;
 }
 
 /** POST `/app/user/info/updatePerson` Body（字段均可不传） */

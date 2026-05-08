@@ -15,7 +15,7 @@ export const useUserStore = defineStore('user', {
       H5Storage: localStorage, // H5平台使用localStorage
       strategies:[{
         key: 'user_store',
-        paths: ['token', 'isLoggedIn','currentUser','refreshToken'],
+        paths: ['token', 'isLoggedIn','currentUser','refreshToken', 'guestMode'],
       }]
     },
     state: (): UserState => ({
@@ -24,7 +24,8 @@ export const useUserStore = defineStore('user', {
         refreshToken: null,
         isLoggedIn: false,
         loading: false,
-        unRead: 0
+        unRead: 0,
+        guestMode: false,
     }),
 
     getters: {
@@ -36,7 +37,11 @@ export const useUserStore = defineStore('user', {
         createTime: (state): string => state.currentUser?.createTime || '',
         // 状态字段 token/isLoggedIn 不需要 getter，避免和 state 冲突。
         isAuth: (state): boolean => state.isLoggedIn,
-        unReadCount: (state): number => state.unRead
+        unReadCount: (state): number => state.unRead,
+        /** 未登录且开启体验：可浏览首页壳，业务接口在 request 层拦截 */
+        isGuestExperience(state): boolean {
+            return state.guestMode === true && !state.isLoggedIn;
+        },
     },
 
     actions: {
@@ -56,8 +61,23 @@ export const useUserStore = defineStore('user', {
                 refreshToken: null,
                 isLoggedIn: false,
                 loading: false,
-                unRead: 0
+                unRead: 0,
+                guestMode: false,
             });
+        },
+
+        enterGuestMode() {
+            this.$patch({
+                guestMode: true,
+                token: null,
+                refreshToken: null,
+                isLoggedIn: false,
+                currentUser: null,
+            });
+        },
+
+        exitGuestMode() {
+            this.guestMode = false;
         },
 
         /** 刷新 token 成功后写入；未返回新 refreshToken 时保留原 refreshToken */
@@ -70,6 +90,7 @@ export const useUserStore = defineStore('user', {
                 token: payload.token,
                 refreshToken: nextRt,
                 isLoggedIn: true,
+                guestMode: false,
             });
         },
 
@@ -113,6 +134,7 @@ export const useUserStore = defineStore('user', {
                 this.token = response.token 
                 this.refreshToken = response.refreshToken
                 this.isLoggedIn = true
+                this.guestMode = false
 
                 // 获取用户信息
                 const isSuccess = await this.fetchUserProfile()

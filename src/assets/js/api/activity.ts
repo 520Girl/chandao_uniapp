@@ -51,6 +51,8 @@ export const fetchActivityTemplates = () => {
 
 /**
  * 团队负责人从模板创建本团队活动；需登录。`teamId` 须为当前用户负责的团队。
+ * `status` 为 number（`1` 草稿 / `2` 发布）；发布时 `startDate`/`endDate` 与 `sessionConfig.scheduled*` 宜为 ISO 8601。
+ * `sessionConfig` 须为 object（普通活动可传 `{}`）。
  */
 export const postActivityCreateFromTemplate = (body: ActivityCreateFromTemplateBody) => {
   return post(ACTIVITY_CREATE_FROM_TEMPLATE_PATH, body);

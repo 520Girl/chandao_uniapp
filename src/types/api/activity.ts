@@ -37,20 +37,21 @@ export interface ActivityTemplateItem {
 }
 
 /**
- * 多人共修 `sessionConfig`（与根级 `startDate`/`endDate` 计划时间同源）。
+ * 多人共修 `sessionConfig`（与根级 `startDate`/`endDate` 计划时间同源；开场/结算可省略则由后端回退到活动起止）。
  */
 export interface ActivityGroupSessionConfigPayload {
-  startMode: "scheduled";
-  roomNo: string | null;
-  maxParticipants: number;
-  scheduledStartTime: string;
-  scheduledEndTime: string;
-  rankGraceSeconds: number;
+  roomNo?: string | null;
+  /** 0–20 */
+  maxParticipants?: number;
+  scheduledStartTime?: string;
+  scheduledEndTime?: string;
+  /** 0–300，缺省由后端按模板或默认 30 秒 */
+  rankGraceSeconds?: number;
 }
 
 /**
  * `POST /app/activity/createFromTemplate` Body（团队负责人发活动）。
- * `status=2` 发布时 `startDate`、`endDate` 必填；`YYYY-MM-DD HH:mm:ss` 与后台一致。
+ * `status` 须为 **number**（`1` 草稿 / `2` 发布）；`status=2` 时 `startDate`、`endDate` 必填（ISO 8601）。
  */
 export interface ActivityCreateFromTemplateBody {
   teamId: number;
@@ -61,16 +62,16 @@ export interface ActivityCreateFromTemplateBody {
   startDate?: string;
   endDate?: string;
   content?: string;
-  /** `1` 草稿 / `2` 直接发布，默认 `2` */
+  /** `1` 草稿 / `2` 直接发布，默认 `2`（勿传字符串） */
   status?: number;
-  /** `1` 每日打卡 / `2` 仅一次；多人共修提交固定为 `2` */
+  /** `1` 每日打卡 / `2` 仅一次；多人共修后端固定为 `2` */
   checkinMode?: number;
   targetMeditationSeconds?: number;
   passPercent?: number;
-  /** 普通活动传 `null`；多人共修传计划窗与房间配置 */
-  sessionConfig?: ActivityGroupSessionConfigPayload | null;
-  /** `0`/`1` 是否置顶 */
-  isTop?: number;
+  /**
+   * 须为 **object**（勿传 `null`）；普通打卡传 `{}`，多人共修传房间与计划窗等。
+   */
+  sessionConfig: ActivityGroupSessionConfigPayload;
 }
 
 /**

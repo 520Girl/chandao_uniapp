@@ -120,9 +120,10 @@
 		var basedata = state.basedata
 		var sortField = basedata.sortField
 		var touches = event.changedTouches[0]
+		/** 必须先同步 list 到 Vue（v-model），再 emit end；否则 @end 里读的仍是拖拽前的 sort（H5 在 touchmove 里已改 dataList，无此问题） */
+		ownerInstance.callMethod("touchend", {data: list, index: dataset.index})
 		ownerInstance.callMethod("triggerEmit", {name: 'end', event: event, index: dataset.index})
 		event.instance.removeClass("drag-item " + basedata.customDragClass)
-		ownerInstance.callMethod("touchend", {data: list, index: dataset.index})
 		ownerInstance.callMethod("switchDrag", {value: false})
 		event.instance.setStyle({
 		  'transform': 'translate3d(' + translatePageX + 'px,' + translatePageY +'px, 0)',
@@ -147,13 +148,28 @@
 		oldVal = oldVal || []
 		
 		var listDeleteCount = state.list.filter(function(item) {
-		  return item['delete'];
+			return item['delete'];
 		}).length
 		var oldValDeleteCount = oldVal.filter(function(item) {
-		  return item['delete'];
+			return item['delete'];
 		}).length
+		/** 长度未变且 firstDragging 已为 false 时，原先会直接 return，导致不刷新 transform；
+		 * 若此时 Vue 侧重置了 sort（例如列表 watch 同步），会出现多项叠在同一格。仅在 sort 未变化时可跳过。 */
+		var sortUnchanged = true
+		if (state.list.length && oldVal.length === state.list.length) {
+			for (var si = 0; si < state.list.length; si++) {
+				var oi = oldVal[si]
+				var ni = state.list[si]
+				if (!oi || !ni || oi[sortField] !== ni[sortField]) {
+					sortUnchanged = false
+					break
+				}
+			}
+		} else {
+			sortUnchanged = false
+		}
 		ownerInstance.callMethod("switchDrag", {value: false})
-		if (!state.list.length || (state.list.length == oldVal.length  && listDeleteCount == oldValDeleteCount && !firstDragging)) return
+		if (!state.list.length || (state.list.length == oldVal.length && listDeleteCount == oldValDeleteCount && !firstDragging && sortUnchanged)) return
 		firstDragging = false
 		state.itemsInstance = ownerInstance.selectAllComponents('.item')
 		state.list.forEach(function(item, index) {

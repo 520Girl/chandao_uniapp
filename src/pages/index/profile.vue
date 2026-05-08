@@ -69,7 +69,7 @@
           class="fixed inset-0 z-[100] bg-on-background/10 backdrop-blur-md flex items-center justify-center p-6"
           @click.self="closeTeamSortPanel"
         >
-          <view class="toast-like-panel relative w-full max-w-[640rpx] max-h-[85vh] overflow-y-auto rounded-[40rpx] p-4 bg-surface-container-lowest shadow-2xl">
+          <view class="toast-like-panel relative w-full max-w-[640rpx] max-h-[85vh] overflow-hidden rounded-[40rpx] p-4 bg-surface-container-lowest shadow-2xl">
             <view class="absolute inset-0 pointer-events-none cloud-pattern theme-bg opacity-90 rounded-[40rpx]" />
             <view class="absolute right-4 top-4 z-10 size-8 flex items-center justify-center rounded-full bg-black/5 active:bg-black/10" @click="closeTeamSortPanel">
               <text class="iconfont icon-close text-lg theme-color-7 text-on-surface-variant/70"></text>
@@ -302,6 +302,7 @@ const teamSortDragRef = ref<SuDragExpose | null>(null);
 watch(
   teamDragsortItems,
   () => {
+    if (teamSortVisible.value) return;
     teamSortDraft.value = teamDragsortItems.value.map((item, index) => ({
       ...item,
       sort: index,
@@ -314,9 +315,16 @@ function openTeamSortPanel() {
   if (teamReorderLoading.value) return;
   teamSortDraft.value = teamDragsortItems.value.map((item, index) => ({ ...item, sort: index }));
   teamSortVisible.value = true;
-  void nextTick(() => {
-    teamSortDragRef.value?.init?.();
+  const runDragReady = () => {
     teamSortDragRef.value?.switchDragging?.(true);
+    teamSortDragRef.value?.init?.();
+  };
+  void nextTick(() => {
+    runDragReady();
+    // #ifdef MP-WEIXIN
+    /** 弹层布局完成后再量宽高并开启拖拽，避免 WXS 拿到错误 itemRect */
+    setTimeout(runDragReady, 120);
+    // #endif
   });
 }
 

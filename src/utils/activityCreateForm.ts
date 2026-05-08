@@ -7,7 +7,7 @@ export function clampInt(n: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, Math.trunc(n)));
 }
 
-/** `YYYY-MM-DD HH:mm:ss`（本地），供根级 startDate/endDate 与多人共修 sessionConfig 同源 */
+/** `YYYY-MM-DD HH:mm:ss`（本地），用于表单展示与原生日期控件 */
 export function toBackendDateTimeString(ms: number): string {
   const d = new Date(ms);
   if (Number.isNaN(d.getTime())) return "";
@@ -18,6 +18,13 @@ export function toBackendDateTimeString(ms: number): string {
   const mi = String(d.getMinutes()).padStart(2, "0");
   const s = String(d.getSeconds()).padStart(2, "0");
   return `${y}-${mo}-${day} ${h}:${mi}:${s}`;
+}
+
+/** ISO 8601（UTC），供 `POST /app/activity/createFromTemplate` 的 `startDate`/`endDate` 与 `sessionConfig.scheduled*` */
+export function toIsoDateTimeString(ms: number): string {
+  const d = new Date(ms);
+  if (Number.isNaN(d.getTime())) return "";
+  return d.toISOString();
 }
 
 /** 详情回显：去空格、`T`→空格、截断到 19 位 */

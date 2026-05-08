@@ -189,10 +189,12 @@ import { unwrapApiData, unwrapApiPagedResult } from "@/utils/apiResponse";
 import HomeBar from "@/components/homeBar.vue";
 import { useDictStore } from "@/stores/dict";
 import { usePostDraftStore } from "@/stores/post";
+import { useUserStore } from "@/stores/user";
 
 
 type FeedLoadStatus = "loadmore" | "loading" | "nomore";
 
+const userStore = useUserStore();
 const dictStore = useDictStore();
 
 const content = ref<string>("");
@@ -507,6 +509,15 @@ onPageScroll((e) => {
 });
 
 onShow(() => {
+  /** Tab 预加载时未登录仍会进 onShow；避免无 token 请求触发「请求失败」类 toast */
+  if (!userStore.isLoggedIn) {
+    rankList.value = vacantCommunityRankStrip();
+    feedList.value = [];
+    feedPage.value = 1;
+    feedFinished.value = true;
+    feedLoadStatus.value = "nomore";
+    return;
+  }
   void dictStore.fetchPostUserState();
   void refreshCommunityLeaderboard();
   loadFeedPage(true);

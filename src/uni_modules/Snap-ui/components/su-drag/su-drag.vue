@@ -126,7 +126,10 @@
 		scrollingThreshold: props.scrollingThreshold,
 		dragging: false
 	})
-	const wrapHeight = computed(() => Math.ceil((activeDataListCount.value + (slots.after ? 1 : 0)) / props.columns) * baseData.value.itemHeight)
+	const wrapHeight = computed(() => {
+		const rowH = baseData.value.itemHeight ?? (props.itemHeight > 0 ? props.itemHeight : 0)
+		return Math.ceil((activeDataListCount.value + (slots.after ? 1 : 0)) / props.columns) * rowH
+	})
 	watch(wrapHeight, () => {
 		setTimeout(() => {
 			emit('height-change', wrapHeight.value)
@@ -394,7 +397,14 @@
 	const switchDragging = (value) => {
 		//开启触摸拖拽
 		if (!props.touchDragging) return;
-		baseData.value.dragging = Boolean(value)
+		const next = Boolean(value);
+		// #ifndef H5
+		/** 小程序 WXS 依赖 `change:baseData`：必须替换对象引用，单独改 `dragging` 可能无法传到 index.wxs，`touchstart` 会因 `touchDragging && !dragging` 直接 return */
+		baseData.value = { ...baseData.value, dragging: next };
+		// #endif
+		// #ifdef H5
+		baseData.value.dragging = next;
+		// #endif
 	}
 	
 	// #ifdef H5

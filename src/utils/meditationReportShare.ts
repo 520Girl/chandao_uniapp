@@ -328,7 +328,7 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
   const views: UviewPosterJson["views"] = [
     {
       type: "image",
-      src: "/static/MeditationReportBg.jpg",
+      src: "https://jingzuoguanzhao.cn/upload/20260507/MeditationReportBg_8044121041bb4cd2883ea4dc19e27100.jpg",
       css: {
         left: "0rpx",
         top: "0rpx",

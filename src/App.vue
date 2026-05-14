@@ -11,7 +11,7 @@ onLaunch(() => {
 onShow(() => {
   console.log("App Show");
   uni.request({
-  url: 'http://192.168.1.4:8001',
+  url: 'http://192.168.31.78:8001',
   success: (res) => { 
     console.log('原始请求成功', res)
    },

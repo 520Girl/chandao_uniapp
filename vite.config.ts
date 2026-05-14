@@ -11,7 +11,10 @@ const isApp = process.env.UNI_PLATFORM === "app";
 const devBackendTarget = process.env.VITE_DEV_BACKEND_TARGET || "http://127.0.0.1:8001";
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
+  /** 生产构建移除 console / debugger，开发环境保留便于调试 */
+  esbuild:
+    mode === "production" ? { drop: ["console", "debugger"] as const } : undefined,
   plugins: [
     uni(),
     uvwt({
@@ -73,4 +76,4 @@ export default defineConfig({
       ],
     },
   }
-});
+}));

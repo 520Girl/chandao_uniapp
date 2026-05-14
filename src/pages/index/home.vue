@@ -11,7 +11,6 @@
         <text class="text-[26rpx] theme-color-1 font-semibold underline" @click="goLoginFromGuest">去登录</text>
       </view>
     </view>
-
     <view class="flex-1 px-6 flex items-center">
       <view class="flex-1 flex flex-col items-center relative overflow-y-auto no-scrollbar pt-4">
         <!-- Interactive Time Selection -->
@@ -321,12 +320,12 @@ import { sceneTypeForTemplate } from '@/utils/activityRoomPayload';
 import { getCurrentLatLng } from '@/utils/location';
 
 /** 5 分钟为 1 档；5–300 分（5 小时） */
-const minMinutes = 5;
+const minMinutes = 1;
 const maxMinutes = 300;
-const stepMinutes = 5;
+const stepMinutes = 1;
 
 /** 默认取区间中间偏下，避免为 min 时进度条/圆环为 0 看起来像「无填充」 */
-const durationMinutes = ref(5);
+const durationMinutes = ref(1);
 const audioExpanded = ref(false);
 
 const barDragging = ref(false);

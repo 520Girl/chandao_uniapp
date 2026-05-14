@@ -1,6 +1,6 @@
 /**
  * 冥想报告：微信小程序分享给好友/朋友圈参数、H5 链接、uview-plus 海报 json。
- * 无 HTTP；供页面与 composable 调用。
+ * 无 HTTP；供页面与 composable 调用。海报底层背景图由 `VITE_MEDITATION_REPORT_POSTER_BG_URL` 配置（有默认）。
  * 海报配色：白底 + 主题金点缀，正文深灰保证对比度。
  */
 import type {
@@ -21,6 +21,15 @@ const C_TEXT_MUTED = "#4b5563";
 const C_HINT = "#6b7280";
 /** 信息区略浅于底，与白底区分层次 */
 const C_CARD = "#f9fafb";
+
+/** 未配置 `VITE_MEDITATION_REPORT_POSTER_BG_URL` 时的海报底图（与历史线上一致） */
+const DEFAULT_MEDITATION_REPORT_POSTER_BG_URL =
+  "https://jingzuoguanzhao.cn/upload/20260507/MeditationReportBg_8044121041bb4cd2883ea4dc19e27100.jpg";
+
+function resolveMeditationReportPosterBackgroundSrc(): string {
+  const v = (import.meta.env.VITE_MEDITATION_REPORT_POSTER_BG_URL || "").trim();
+  return v.length > 0 ? v : DEFAULT_MEDITATION_REPORT_POSTER_BG_URL;
+}
 
 function appendQueryPart(parts: string[], key: string, value: string | number): void {
   parts.push(`${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`);
@@ -324,11 +333,11 @@ export function buildMeditationReportPosterJson(p: MeditationReportSharePayload)
   })();
   const track = p.trackTitle?.trim();
   const trackLine = track ? `伴乐：${truncateTrackTitle(track, 16)}` : "";
-// /static/MeditationReportBg.jpg
+  const posterBgSrc = resolveMeditationReportPosterBackgroundSrc();
   const views: UviewPosterJson["views"] = [
     {
       type: "image",
-      src: "https://jingzuoguanzhao.cn/upload/20260507/MeditationReportBg_8044121041bb4cd2883ea4dc19e27100.jpg",
+      src: posterBgSrc,
       css: {
         left: "0rpx",
         top: "0rpx",

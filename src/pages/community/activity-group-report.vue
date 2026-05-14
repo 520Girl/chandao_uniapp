@@ -150,14 +150,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { onLoad } from "@dcloudio/uni-app";
+import { computed, ref, onBeforeUnmount } from "vue";
+import { onLoad, onUnload } from "@dcloudio/uni-app";
 import { fetchActivityDetail, fetchActivityRoomResult } from "@/assets/js/api/activity";
 import { config } from "@/assets/js/config";
 import lcrBar from "@/components/lcrBar.vue";
 import type { ActivityDetail, ActivityRoomRankingEntry, ActivityRoomResultData } from "@/types/api/activity";
 import { parseRoomResultFromResponse } from "@/utils/activityRoomPayload";
 import { unwrapApiData } from "@/utils/apiResponse";
+import { setLeavingMeditationForReportPage, stopMeditationBackgroundMusic } from "@/utils/meditationBackgroundMusic";
 import { navigateBack } from "@/utils/navigation";
 
 const activityId = ref(0);
@@ -306,10 +307,19 @@ function retryLoad() {
 }
 
 onLoad((q) => {
+  setLeavingMeditationForReportPage(false);
   const raw = q?.id;
   const n = typeof raw === "string" || typeof raw === "number" ? Number(raw) : NaN;
   activityId.value = Number.isFinite(n) ? n : 0;
   void load();
+});
+
+onUnload(() => {
+  stopMeditationBackgroundMusic();
+});
+
+onBeforeUnmount(() => {
+  stopMeditationBackgroundMusic();
 });
 
 const onBack = () => navigateBack();

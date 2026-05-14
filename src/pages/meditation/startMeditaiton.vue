@@ -140,6 +140,14 @@ import type {
 import { unwrapApiData } from '@/utils/apiResponse';
 import { parseMeditationReportDetailPayload } from '@/utils/meditationReport';
 import { resolveMusicAssetUrl } from '@/utils/musicPage';
+import {
+  isLeavingMeditationForReportPage,
+  playMeditationEndMusicLinearFadeIn,
+  setLeavingMeditationForReportPage,
+  startMeditationBackground,
+  stopMeditationBackgroundMusic,
+  updateMeditationBackgroundMusicMeta,
+} from '@/utils/meditationBackgroundMusic';
 
 type RealtimeStat = {
   heartRate: number;
@@ -178,61 +186,6 @@ let pollTimer: ReturnType<typeof setInterval> | null = null;
 /** 防止 `pollDelayMs` 节拍与单次请求耗时重叠导致并发 poll */
 let pollInFlight = false;
 let ended = false;
-/** 禅修进行中背景音乐（单曲循环，曲目短于禅修时长时自动重播） */
-let meditationAudio: UniApp.InnerAudioContext | null = null;
-/** 小程序端：后台音频（息屏后更稳定） */
-let meditationBgAudio: UniApp.BackgroundAudioManager | null = null;
-let bgAudioEndedHandler: (() => void) | null = null;
-let bgAudioErrorHandler: ((err: unknown) => void) | null = null;
-const END_REMINDER_HOLD_MS = 2600;
-const MEDITATION_BG_VOLUME = 0;
-const END_REMINDER_VOLUME = 0.45;
-const END_REMINDER_START_VOLUME = 0.02;
-const END_REMINDER_FADE_MS = 5200;
-const END_REMINDER_FADE_STEP_MS = 120;
-
-let endReminderFadeTimer: ReturnType<typeof setInterval> | null = null;
-
-function setAudioVolumeSafe(target: unknown, volume: number) {
-  const v = Math.min(1, Math.max(0, Number(volume)));
-  if (!Number.isFinite(v)) return;
-  const anyTarget = target as { volume?: number };
-  if (!anyTarget || typeof anyTarget !== 'object' || !('volume' in anyTarget)) return;
-  try {
-    anyTarget.volume = v;
-  } catch {
-    /* noop */
-  }
-}
-
-function clearEndReminderFadeTimer() {
-  if (!endReminderFadeTimer) return;
-  clearInterval(endReminderFadeTimer);
-  endReminderFadeTimer = null;
-}
-
-function fadeInAudioVolume(target: unknown, from: number, to: number) {
-  clearEndReminderFadeTimer();
-  const start = Math.min(1, Math.max(0, from));
-  const end = Math.min(1, Math.max(0, to));
-  if (end <= start) {
-    setAudioVolumeSafe(target, end);
-    return;
-  }
-  const stepCount = Math.max(1, Math.ceil(END_REMINDER_FADE_MS / END_REMINDER_FADE_STEP_MS));
-  const delta = (end - start) / stepCount;
-  let current = start;
-  setAudioVolumeSafe(target, current);
-  endReminderFadeTimer = setInterval(() => {
-    current += delta;
-    if (current >= end) {
-      setAudioVolumeSafe(target, end);
-      clearEndReminderFadeTimer();
-      return;
-    }
-    setAudioVolumeSafe(target, current);
-  }, END_REMINDER_FADE_STEP_MS);
-}
 
 function enableKeepScreenOn() {
   try {
@@ -250,149 +203,14 @@ function disableKeepScreenOn() {
   }
 }
 
-function disposeMeditationAudio() {
-  clearEndReminderFadeTimer();
-  // #ifdef MP-WEIXIN
-  if (meditationBgAudio) {
-    try {
-      if (bgAudioEndedHandler && typeof (meditationBgAudio as any).offEnded === 'function') {
-        (meditationBgAudio as any).offEnded(bgAudioEndedHandler);
-      }
-    } catch {
-      /* noop */
-    }
-    try {
-      if (bgAudioErrorHandler && typeof (meditationBgAudio as any).offError === 'function') {
-        (meditationBgAudio as any).offError(bgAudioErrorHandler);
-      }
-    } catch {
-      /* noop */
-    }
-    try {
-      meditationBgAudio.stop();
-    } catch {
-      /* noop */
-    }
-    meditationBgAudio = null;
-  }
-  bgAudioEndedHandler = null;
-  bgAudioErrorHandler = null;
-  // #endif
-
-  if (!meditationAudio) return;
-  try {
-    meditationAudio.stop();
-  } catch {
-    /* noop */
-  }
-  try {
-    meditationAudio.destroy();
-  } catch {
-    /* noop */
-  }
-  meditationAudio = null;
-}
-
-/**
- * 有音频地址时开始播放；`loop` + `onEnded` 兜底，避免部分端单曲播完不再响而禅修仍在进行。
- */
+/** 启动后台静音保活（`/static/silence.mp3`），与疗愈音无关；结束音乐用独立 InnerAudio。 */
 function startMeditationBgMusic() {
-  const url = resolveMusicAssetUrl(trackUrl.value);
-  if (!url) return;
-
-  disposeMeditationAudio();
-
-  // #ifdef MP-WEIXIN
-  const bg = uni.getBackgroundAudioManager();
-  meditationBgAudio = bg;
-
-  bgAudioEndedHandler = () => {
-    if (ended) return;
-    try {
-      bg.seek(0);
-      bg.play();
-    } catch {
-      /* noop */
-    }
-  };
-  bgAudioErrorHandler = (err) => {
-    console.error('禅修后台音乐', err);
-  };
-
-  bg.onEnded(bgAudioEndedHandler);
-  bg.onError(bgAudioErrorHandler);
-  setAudioVolumeSafe(bg, MEDITATION_BG_VOLUME);
-  bg.title = trackTitle.value || '禅修背景音';
-  bg.epname = '禅修';
-  bg.singer = '静心';
-  bg.coverImgUrl = '/static/logo.png';
-  bg.src = url;
-  try {
-    bg.play();
-  } catch {
-    /* noop */
-  }
-  return;
-  // #endif
-
-  const ctx = uni.createInnerAudioContext();
-  meditationAudio = ctx;
-  ctx.obeyMuteSwitch = false;
-  setAudioVolumeSafe(ctx, MEDITATION_BG_VOLUME);
-  ctx.loop = true;
-  ctx.src = url;
-  /** 与首页试听分离：独立 InnerAudioContext，从头播放（首页已 stop） */
-  ctx.onEnded(() => {
-    if (ended) return;
-    try {
-      ctx.seek(0);
-      ctx.play();
-    } catch {
-      /* noop */
-    }
+  startMeditationBackground({
+    title: trackTitle.value || '禅修静音保活',
+    epname: '禅修',
+    singer: '静心',
+    coverImgUrl: '/static/logo.png',
   });
-  ctx.onError((err) => {
-    console.error('禅修背景音乐', err);
-  });
-  ctx.play();
-}
-
-function playEndReminderAudio(): boolean {
-  const endReminderUrl = resolveMusicAssetUrl(trackUrl.value);
-  if (!endReminderUrl) return false;
-
-  // #ifdef MP-WEIXIN
-  try {
-    const bg = uni.getBackgroundAudioManager();
-    setAudioVolumeSafe(bg, END_REMINDER_START_VOLUME);
-    bg.title = '禅修完成提醒';
-    bg.epname = '禅修完成';
-    bg.singer = '静心';
-    bg.coverImgUrl = '/static/logo.png';
-    bg.src = endReminderUrl;
-    bg.play();
-    fadeInAudioVolume(bg, END_REMINDER_START_VOLUME, END_REMINDER_VOLUME);
-    return true;
-  } catch (e) {
-    console.error('playEndReminderAudio(mp)', e);
-    return false;
-  }
-  // #endif
-
-  try {
-    const ctx = meditationAudio ?? uni.createInnerAudioContext();
-    meditationAudio = ctx;
-    ctx.obeyMuteSwitch = false;
-    setAudioVolumeSafe(ctx, END_REMINDER_START_VOLUME);
-    ctx.loop = false;
-    ctx.src = endReminderUrl;
-    ctx.play();
-    fadeInAudioVolume(ctx, END_REMINDER_START_VOLUME, END_REMINDER_VOLUME);
-    return true;
-  } catch (e) {
-    console.error('playEndReminderAudio', e);
-    return false;
-  }
 }
 
 const meditationStore = useMeditationStore();
@@ -548,7 +366,7 @@ async function doOnePoll() {
     if (!raw || typeof raw.status !== 'string') return;
 
     if (raw.status === 'ended') {
-      await finishMeditationSession(false);
+      await finishMeditationSession();
       return;
     }
 
@@ -625,36 +443,62 @@ function getAvg(list: number[]) {
   return list.reduce((a, b) => a + b, 0) / list.length;
 }
 
-async function finishMeditationSession(manualStop: boolean) {
+async function finishMeditationSession() {
   if (ended) return;
   ended = true;
   disableKeepScreenOn();
   clearPollTimer();
   if (timerId) clearInterval(timerId);
   timerId = null;
-  disposeMeditationAudio();
 
-  let reportDetail: MeditationReport | null = null;
-  if (sessionNumericId.value > 0) {
-    try {
-      const endRes = await postMeditationEnd({ sessionId: sessionNumericId.value });
-      const endData = unwrapApiData<MeditationEndResult | null>(endRes);
-      const sid = Number(endData?.sessionId ?? sessionNumericId.value);
-      if (Number.isFinite(sid) && sid > 0) {
-        const detailRes = await fetchMeditationReportDetail({ sessionId: sid });
-        const rawDetail = unwrapApiData<unknown>(detailRes);
-        reportDetail = parseMeditationReportDetailPayload(rawDetail);
+  const fetchReportAndStore = async () => {
+    let reportDetail: MeditationReport | null = null;
+    if (sessionNumericId.value > 0) {
+      try {
+        const endRes = await postMeditationEnd({ sessionId: sessionNumericId.value });
+        const endData = unwrapApiData<MeditationEndResult | null>(endRes);
+        const sid = Number(endData?.sessionId ?? sessionNumericId.value);
+        if (Number.isFinite(sid) && sid > 0) {
+          const detailRes = await fetchMeditationReportDetail({ sessionId: sid });
+          const rawDetail = unwrapApiData<unknown>(detailRes);
+          reportDetail = parseMeditationReportDetailPayload(rawDetail);
+        }
+      } catch (e) {
+        console.error('postMeditationEnd / fetchMeditationReportDetail', e);
       }
-    } catch (e) {
-      console.error('postMeditationEnd / fetchMeditationReportDetail', e);
     }
-  }
-  meditationStore.setLastMeditationServerReport(reportDetail);
+    meditationStore.setLastMeditationServerReport(reportDetail);
 
-  const heartArr = statSamples.value.map((x) => x.heartRate);
-  const breathArr = statSamples.value.map((x) => x.breathRate);
-  const maxHeart = heartArr.length ? Math.max(...heartArr) : currentHeartRate.value;
-  const minHeart = heartArr.length ? Math.min(...heartArr) : currentHeartRate.value;
+    const startedIso =
+      sessionStartedAtMs > 0
+        ? new Date(sessionStartedAtMs).toISOString()
+        : new Date().toISOString();
+    meditationStore.recordLastMeditationSession({
+      startedAtIso: startedIso,
+      plannedMinutes: targetMinutes.value,
+      elapsedSec: elapsedSec.value,
+      trackId: trackId.value,
+      trackTitle: trackTitle.value,
+      trackUrl: trackUrl.value,
+      activityId: sessionActivityId,
+      activityTemplateId: sessionActivityTemplateId,
+    });
+  };
+
+  await fetchReportAndStore();
+
+  stopMeditationBackgroundMusic();
+
+  const endUrl = resolveMusicAssetUrl(trackUrl.value);
+  if (endUrl) {
+    void playMeditationEndMusicLinearFadeIn(endUrl);
+  }
+
+  setLeavingMeditationForReportPage(true);
+  updateMeditationBackgroundMusicMeta({
+    title: trackTitle.value || '禅修',
+    epname: '禅修报告',
+  });
 
   const query = [
     sessionNumericId.value > 0 ? `sessionId=${sessionNumericId.value}` : '',
@@ -662,52 +506,29 @@ async function finishMeditationSession(manualStop: boolean) {
     .filter(Boolean)
     .join('&');
 
-  const startedIso =
-    sessionStartedAtMs > 0
-      ? new Date(sessionStartedAtMs).toISOString()
-      : new Date().toISOString();
-  meditationStore.recordLastMeditationSession({
-    startedAtIso: startedIso,
-    plannedMinutes: targetMinutes.value,
-    elapsedSec: elapsedSec.value,
-    trackId: trackId.value,
-    trackTitle: trackTitle.value,
-    trackUrl: trackUrl.value,
-    activityId: sessionActivityId,
-    activityTemplateId: sessionActivityTemplateId,
-  });
-
   const goReport = () => {
-    const aid = sessionActivityId ?? meditationStore.homePreferredActivityId ?? null;
-    if (sessionPostReportKind === 'group' && aid != null && aid > 0) {
+    const aidInner = sessionActivityId ?? meditationStore.homePreferredActivityId ?? null;
+    if (sessionPostReportKind === 'group' && aidInner != null && aidInner > 0) {
       uni.redirectTo({
-        url: `/pages/community/activity-group-report?id=${aid}`,
+        url: `/pages/community/activity-group-report?id=${aidInner}`,
       });
       return;
     }
     uni.redirectTo({
-      url: `/pages/meditation/report?${query}`
+      url: `/pages/meditation/report?${query}`,
     });
   };
 
-  if (manualStop) {
-    goReport();
-    return;
-  }
-
-  const startedReminder = playEndReminderAudio();
-  const holdMs = startedReminder ? END_REMINDER_HOLD_MS : 80;
-  setTimeout(() => {
-    goReport();
-  }, holdMs);
+  goReport();
 }
 
 function onTapStop(hasDevice: boolean) {
   if (!hasDevice) return;
-  void finishMeditationSession(true);
+  void finishMeditationSession();
 }
 
 onLoad((query) => {
+  setLeavingMeditationForReportPage(false);
   const q = query || {};
   sessionStartedAtMs = Date.now();
 
@@ -818,7 +639,7 @@ async function bootstrapMeditation() {
     elapsedSec.value += 1;
     remainSec.value = Math.max(0, targetMinutes.value * 60 - elapsedSec.value);
     if (remainSec.value <= 0) {
-      void finishMeditationSession(false);
+      void finishMeditationSession();
     }
   }, 1000);
 
@@ -834,7 +655,9 @@ onUnload(() => {
   if (timerId) clearInterval(timerId);
   timerId = null;
   clearPollTimer();
-  disposeMeditationAudio();
+  if (!isLeavingMeditationForReportPage()) {
+    stopMeditationBackgroundMusic();
+  }
 });
 
 onBeforeUnmount(() => {
@@ -845,7 +668,9 @@ onBeforeUnmount(() => {
   if (timerId) clearInterval(timerId);
   timerId = null;
   clearPollTimer();
-  disposeMeditationAudio();
+  if (!isLeavingMeditationForReportPage()) {
+    stopMeditationBackgroundMusic();
+  }
 });
 </script>
 

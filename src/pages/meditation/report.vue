@@ -177,8 +177,8 @@
 </template>
 
 <script setup lang="ts">
-import { onLoad, onShow } from '@dcloudio/uni-app';
-import { computed, nextTick } from 'vue';
+import { onLoad, onShow, onUnload } from '@dcloudio/uni-app';
+import { computed, nextTick, onBeforeUnmount } from 'vue';
 import { fetchMeditationReportDetail } from '@/assets/js/api/meditation';
 import { config } from '@/assets/js/config';
 import { postUserCreatePersonalInvite, postUserCreateTeamInvite } from '@/assets/js/api/user';
@@ -194,6 +194,10 @@ import { unwrapApiData } from '@/utils/apiResponse';
 import { drawCloudBridgeCanvas } from '@/utils/common';
 import { buildJoinInvitePosterQrText, buildMeditationReportPosterJson } from '@/utils/meditationReportShare';
 import { parseMeditationReportDetailPayload } from '@/utils/meditationReport';
+import {
+  setLeavingMeditationForReportPage,
+  stopMeditationBackgroundMusic,
+} from '@/utils/meditationBackgroundMusic';
 import { navigateBack } from '@/utils/navigation';
 
 const meditationStore = useMeditationStore();
@@ -864,6 +868,7 @@ function hideInviteShareMenu() {
 }
 
 onLoad((query) => {
+  setLeavingMeditationForReportPage(false);
   const q = (query || {}) as Record<string, unknown>;
   inviteCode.value = parseInviteSceneRaw(q.scene);
   void initReport(q);
@@ -894,6 +899,14 @@ function onLcrHome() {
 // 保留你原本“70%”展示逻辑：画图进度跟随该值
 onReady(() => {
   drawCloudBridgeCanvas(harmonyProgress.value);
+});
+
+onUnload(() => {
+  stopMeditationBackgroundMusic();
+});
+
+onBeforeUnmount(() => {
+  stopMeditationBackgroundMusic();
 });
 </script>
 

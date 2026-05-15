@@ -183,6 +183,33 @@ export interface MeditationReport {
 /** 与 5.4 历史单条结构一致（别名） */
 export type MeditationReportHistoryItem = MeditationReport;
 
+/** `GET /app/meditation/report/history` 分页查询参数 */
+export interface MeditationReportHistoryQuery {
+  /** 页码，从 1 开始 */
+  page?: number;
+  /** 每页条数 */
+  size?: number;
+}
+
+/**
+ * 历史列表单行（列表接口可能只返回摘要字段；点进详情仍用 `sessionId` 拉 `report/detail`）。
+ */
+export interface MeditationReportHistoryListItem {
+  sessionId: number;
+  id?: number;
+  /** 总时长（秒） */
+  totalDuration?: number;
+  createTime?: string;
+  summaryText?: string;
+}
+
+/** `GET /app/meditation/report/history` 出参 */
+export interface MeditationReportHistoryResult {
+  list: MeditationReportHistoryListItem[];
+  /** 总条数；缺省时前端用「本页是否满页」推断是否还有下一页 */
+  total?: number;
+}
+
 /** `GET /app/meditation/report/statistics` 的 `range` 查询；缺省后端按 `week` */
 export type MeditationStatisticsRange = "day" | "week" | "month";
 

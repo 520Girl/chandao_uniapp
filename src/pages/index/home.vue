@@ -320,12 +320,12 @@ import { sceneTypeForTemplate } from '@/utils/activityRoomPayload';
 import { getCurrentLatLng } from '@/utils/location';
 
 /** 5 分钟为 1 档；5–300 分（5 小时） */
-const minMinutes = 1;
+const minMinutes = 5;
 const maxMinutes = 300;
-const stepMinutes = 1;
+const stepMinutes = 5;
 
 /** 默认取区间中间偏下，避免为 min 时进度条/圆环为 0 看起来像「无填充」 */
-const durationMinutes = ref(1);
+const durationMinutes = ref(5);
 const audioExpanded = ref(false);
 
 const barDragging = ref(false);
@@ -1247,9 +1247,6 @@ onHide(() => {
 const playingId = ref<string | null>(null);
 const selectedTrackId = ref<string | null>(null);
 let innerAudio: UniApp.InnerAudioContext | null = null;
-let previewBgAudio: UniApp.BackgroundAudioManager | null = null;
-let previewBgEndedHandler: (() => void) | null = null;
-let previewBgErrorHandler: ((err: unknown) => void) | null = null;
 
 const currentTrackTitle = computed(() => {
   const selectedId = selectedTrackId.value || playingId.value;
@@ -1272,38 +1269,7 @@ function ensureAudio() {
   return innerAudio;
 }
 
-function ensurePreviewBackgroundAudio() {
-  // #ifdef MP-WEIXIN
-  if (previewBgAudio) return previewBgAudio;
-  const bg = uni.getBackgroundAudioManager();
-  previewBgAudio = bg;
-  previewBgEndedHandler = () => {
-    playingId.value = null;
-  };
-  previewBgErrorHandler = (err) => {
-    console.error('background audio error', err);
-    playingId.value = null;
-    uni.showToast({ title: '音频无法播放，请检查网络或更换地址', icon: 'none' });
-  };
-  bg.onEnded(previewBgEndedHandler);
-  bg.onError(previewBgErrorHandler);
-  return bg;
-  // #endif
-
-  return null;
-}
-
 function stopAudio() {
-  // #ifdef MP-WEIXIN
-  if (previewBgAudio) {
-    try {
-      previewBgAudio.stop();
-    } catch {
-      /* noop */
-    }
-  }
-  // #endif
-
   if (!innerAudio) return;
   try {
     innerAudio.stop();
@@ -1323,33 +1289,10 @@ function togglePlay(track: AudioTrack) {
   }
   selectedTrackId.value = track.id;
 
-  // #ifdef MP-WEIXIN
-  const bg = ensurePreviewBackgroundAudio();
-  if (!bg) return;
-  if (playingId.value === track.id) {
-    try {
-      bg.pause();
-    } catch {
-      /* noop */
-    }
-    playingId.value = null;
-    return;
-  }
-  stopAudio();
-  bg.title = track.title || '疗愈音乐';
-  bg.epname = '疗愈音乐';
-  bg.singer = '静心';
-  bg.coverImgUrl = '/static/logo.png';
-  bg.src = track.url;
-  playingId.value = track.id;
-  try {
-    bg.play();
-  } catch {
-    /* noop */
-  }
-  return;
-  // #endif
-
+  /**
+   * 试听统一走 InnerAudio，与禅修页的 `BackgroundAudioManager` 静音保活解耦，
+   * 避免与 `uni.getBackgroundAudioManager()` 单例争抢导致通知栏/音源反复切换。
+   */
   const ctx = ensureAudio();
   if (playingId.value === track.id) {
     ctx.pause();
@@ -1538,28 +1481,6 @@ function disposeHomePageTimers() {
 
 function disposeAudio() {
   stopAudio();
-
-  // #ifdef MP-WEIXIN
-  if (previewBgAudio) {
-    try {
-      if (previewBgEndedHandler && typeof (previewBgAudio as any).offEnded === 'function') {
-        (previewBgAudio as any).offEnded(previewBgEndedHandler);
-      }
-    } catch {
-      /* noop */
-    }
-    try {
-      if (previewBgErrorHandler && typeof (previewBgAudio as any).offError === 'function') {
-        (previewBgAudio as any).offError(previewBgErrorHandler);
-      }
-    } catch {
-      /* noop */
-    }
-  }
-  previewBgAudio = null;
-  previewBgEndedHandler = null;
-  previewBgErrorHandler = null;
-  // #endif
 
   if (innerAudio) {
     innerAudio.destroy();

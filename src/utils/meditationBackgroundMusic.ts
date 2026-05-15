@@ -3,7 +3,7 @@
  *
  * - **后台常驻**：仅 `uni.getBackgroundAudioManager()` 单例，循环静音切片（`VITE_MEDITATION_SILENCE_URL` 或包内 `/static/silence.mp3`），`volume` 恒为 0；
  *   事件与定时器反复强制静音，应对单例被重置、误触通知栏等。
- * - **结束音乐**：仅 `uni.createInnerAudioContext()` 独立实例；0 起线性渐强，4s 内 0→0.8（每 50ms +0.01），播完销毁。
+ * - **结束音乐**：仅 `uni.createInnerAudioContext()` 独立实例；0 起渐强（约 10s 内 0→0.8，smoothstep 减轻台阶感），播完销毁。
  *
  * 对外入口：`startMeditationBackground` / `stopMeditationBackground`（`stopMeditationBackgroundMusic` 为别名）。
  */
@@ -17,10 +17,12 @@ export const MEDITATION_SILENCE_SRC =
   envSilenceSrc.length > 0 ? envSilenceSrc : "/static/silence.mp3";
 
 const BG_MUTE = 0;
-const END_VOL_STEP = 0.01;
-const END_VOL_TICK_MS = 50;
+/** 结束音渐强总时长（毫秒），略长可减轻「抖」感 */
+const END_RAMP_MS = 10000;
+/** 渐强音量 tick 间隔 */
+const END_VOL_TICK_MS = 80;
 const END_VOL_MAX = 0.8;
-const END_RAMP_STEPS = 80;
+const END_RAMP_STEPS = Math.max(24, Math.ceil(END_RAMP_MS / END_VOL_TICK_MS));
 const BG_FORCE_MUTE_DELAY_MS = 100;
 const BG_VOLUME_GUARD_MS = 1000;
 
@@ -391,7 +393,7 @@ export function stopMeditationBackground(): void {
 export const stopMeditationBackgroundMusic = stopMeditationBackground;
 
 /**
- * 使用独立 `InnerAudioContext` 播放结束曲目：初始 0 音量，每 50ms 线性 +0.01，4s 达 0.8，自然结束后销毁。
+ * 使用独立 `InnerAudioContext` 播放结束曲目：初始 0 音量，按 `END_RAMP_MS` 渐强至 `END_VOL_MAX`（smoothstep），自然结束后销毁。
  *
  * @param src 疗愈音等完整可播 URL
  */
@@ -425,7 +427,10 @@ export function playMeditationEndMusicLinearFadeIn(src: string): Promise<void> {
       clearEndMusicFadeTimer();
       endMusicFadeTimer = setInterval(() => {
         step += 1;
-        const v = Math.min(END_VOL_MAX, step * END_VOL_STEP);
+        const t = Math.min(1, step / END_RAMP_STEPS);
+        /** smoothstep：两端变化更缓，减轻音量台阶抖动 */
+        const k = t * t * (3 - 2 * t);
+        const v = Math.min(END_VOL_MAX, END_VOL_MAX * k);
         setAudioVolumeSafe(ctx, v);
         if (step >= END_RAMP_STEPS) {
           clearEndMusicFadeTimer();

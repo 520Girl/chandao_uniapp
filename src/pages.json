@@ -36,6 +36,13 @@
       }
     },
     {
+      "path": "pages/index/report-history",
+      "style": {
+        "navigationBarTitleText": "历史心迹",
+        "navigationStyle": "custom"
+      }
+    },
+    {
       "path": "pages/index/community",
       "style": {
         "navigationBarTitleText": "社区",

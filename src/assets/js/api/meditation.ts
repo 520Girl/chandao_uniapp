@@ -5,8 +5,8 @@ import { get, post } from "../request";
 import type {
   MeditationEndDTO,
   MeditationPollDTO,
+  MeditationReportHistoryQuery,
   MeditationReportStatisticsQuery,
-  MeditationSessionActiveData,
   MeditationStartDTO,
 } from "@/types/api/meditation";
 
@@ -16,6 +16,7 @@ const MEDITATION_END = "/app/meditation/end";
 const MEDITATION_REPORT_DETAIL = "/app/meditation/report/detail";
 const MEDITATION_REPORT_STATISTICS = "/app/meditation/report/statistics";
 const MEDITATION_SESSION_ACTIVE = "/app/meditation/session/active";
+const MEDITATION_REPORT_HISTORY = "/app/meditation/report/history";
 
 /**
  * 开始冥想（设备 / 无设备）；需登录。
@@ -65,6 +66,16 @@ export const fetchMeditationReportDetail = (query: { sessionId: number }) => {
  */
 export const fetchMeditationReportStatistics = (query?: MeditationReportStatisticsQuery) => {
   return get(MEDITATION_REPORT_STATISTICS, query ?? {});
+};
+
+/**
+ * 冥想报告历史分页；需登录。
+ *
+ * @param query `page` 从 1 起，`size` 每页条数（与后端约定，前端默认 10）
+ * @returns 业务包，`data` 为列表容器；兼容 `list` / `records` / `rows` 等字段（见 `parseMeditationReportHistoryPayload`）
+ */
+export const fetchMeditationReportHistory = (query?: MeditationReportHistoryQuery) => {
+  return get(MEDITATION_REPORT_HISTORY, query ?? {});
 };
 
 /**

@@ -4,6 +4,8 @@
 import type {
   MeditationChartSeriesItem,
   MeditationReport,
+  MeditationReportHistoryListItem,
+  MeditationReportHistoryResult,
   MeditationReportSection,
   MeditationStatisticsCompareChartData,
   MeditationStatisticsCompareMetricBlock,
@@ -325,5 +327,54 @@ export function parseMeditationReportStatisticsPayload(raw: unknown): Meditation
     durationChartData,
     compareChartData,
     latestSessionId,
+  };
+}
+
+function parseHistoryListItem(raw: unknown): MeditationReportHistoryListItem | null {
+  if (raw == null || typeof raw !== "object") return null;
+  const o = raw as Record<string, unknown>;
+  const sessionId = Number(o.sessionId ?? o.session_id);
+  if (!Number.isFinite(sessionId) || sessionId <= 0) return null;
+  const id = Number(o.id);
+  return {
+    sessionId,
+    id: Number.isFinite(id) && id > 0 ? id : undefined,
+    totalDuration: pickNum(o, ["totalDuration", "total_duration"]),
+    createTime: String(o.createTime ?? o.create_time ?? "").trim() || undefined,
+    summaryText: String(o.summaryText ?? o.summary_text ?? "").trim() || undefined,
+  };
+}
+
+/**
+ * 解析 `GET /app/meditation/report/history` 的 `data`（或已 unwrap 的对象）。
+ * 兼容 `list` / `records` / `rows`、或直接数组；`total` / `count` / `totalCount`。
+ */
+export function parseMeditationReportHistoryPayload(raw: unknown): MeditationReportHistoryResult {
+  const empty: MeditationReportHistoryResult = { list: [], total: 0 };
+  if (raw == null) return empty;
+  if (Array.isArray(raw)) {
+    const list = raw
+      .map((row) => parseHistoryListItem(row))
+      .filter((x): x is MeditationReportHistoryListItem => x != null);
+    return { list, total: list.length };
+  }
+  if (typeof raw !== "object") return empty;
+  const root = raw as Record<string, unknown>;
+  const arrRaw = root.list ?? root.records ?? root.rows ?? root.items;
+  const nested = root.data;
+  const arr = Array.isArray(arrRaw)
+    ? arrRaw
+    : Array.isArray(nested)
+      ? (nested as unknown[])
+      : null;
+  if (!arr) return empty;
+  const list = arr
+    .map((row) => parseHistoryListItem(row))
+    .filter((x): x is MeditationReportHistoryListItem => x != null);
+  const totalRaw = root.total ?? root.Total ?? root.count ?? root.totalCount ?? root.total_count;
+  const total = Number(totalRaw);
+  return {
+    list,
+    total: Number.isFinite(total) && total >= 0 ? total : undefined,
   };
 }

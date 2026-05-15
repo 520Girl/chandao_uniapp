@@ -27,8 +27,9 @@
                             </view>
                         </view>
                     </view>
-                    <!-- Right Card: Monthly Trend -->
+                    <!-- Right Card: period summary → history -->
                     <view
+                        @click="handlePeriodHistoryClick"
                         class="relative bg-theme-13 rounded-3xl p-5 space-y-3 flex flex-col justify-between aspect-square min-w-0 overflow-hidden">
                         <view class="absolute -right-4 -top-4 text-primary/10 select-none">
                             <text class="icon-pingfenxiangguanli  iconfont text-8xl"></text>
@@ -568,6 +569,16 @@ const handleLatestSessionClick = () => {
     url: `/pages/meditation/report?sessionId=${statistics.value?.currentPeriod?.latestSessionId}`,
   });
 };
+
+function handlePeriodHistoryClick() {
+  if (!userStore.isLoggedIn) {
+    uni.showToast({ title: '登录后查看心迹数据', icon: 'none' });
+    return;
+  }
+  uni.navigateTo({
+    url: '/pages/index/report-history',
+  });
+}
 
 function gotoRank() {
   uni.navigateTo({

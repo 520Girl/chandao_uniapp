@@ -346,7 +346,7 @@ function openAddDeviceToast() {
     toastParams.fields = [
         { key: 'model', label: '设备昵称', placeholder: '设置设备昵称', defaultValue: '', required: true },
         { key: 'sn', label: '序列号 SN', placeholder: '请输入设备 SN', defaultValue: '', required: true },
-        { key: 'mac', label: 'MAC 地址', placeholder: '如 AA:BB:CC:DD:EE:FF', defaultValue: '', required: true }
+        { key: 'mac', label: 'MAC 地址', placeholder: '如 AA:BB:CC:DD 非必须', defaultValue: '', required: false }
     ];
     showToast.value = true;
 }
@@ -376,10 +376,15 @@ async function onToastConfirm(value: Record<string, string>) {
     const sn = (value.sn ?? '').trim();
     const model = (value.model ?? '').trim();
     const mac = (value.mac ?? '').trim();
+    const payload = {
+        sn,
+        model,
+        ...(mac ? { mac } : {})
+    };
     if (submitLoading.value) return;
     submitLoading.value = true;
     try {
-        await addDevice({ sn, model, mac });
+        await addDevice(payload);
         showSuccessToast('绑定成功');
         await deviceStore.refreshList(MAX_DEVICES);
     } catch (e) {

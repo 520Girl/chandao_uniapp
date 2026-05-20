@@ -77,6 +77,17 @@
                       class="iconfont icon-lixian text-[40rpx] text-gray-500 shrink-0"
                       aria-hidden="true"
                     />
+                    <view
+                      v-if="homeStatusBarIcon === 'offline'"
+                      class="shrink-0 p-1 rounded-full active:opacity-80 flex items-center justify-center"
+                      :class="deviceSnapshotLoading ? 'opacity-90 pointer-events-none' : ''"
+                      @click.stop="loadHomeDeviceStatusAndRealtime"
+                    >
+                      <text
+                        class="iconfont icon-saomiaoshebeishuaxin text-[40rpx] text-[#f58f17] block leading-none"
+                        :class="{ 'device-refresh-scan-icon--spinning': deviceSnapshotLoading }"
+                      />
+                    </view>
                     <text
                       v-else-if="homeStatusBarIcon === 'ready'"
                       class="iconfont icon-rengongfuwuyijiuxu text-[40rpx] text-[green] shrink-0"
@@ -230,10 +241,16 @@
                 item.subtitle
               }}</view>
               <view class="flex items-center justify-between">
-                <view hover-class="opacity-90"
-                  class="px-[48rpx] py-[20rpx] bg-theme-1 text-white rounded-full text-[20rpx] font-bold uppercase tracking-widest shadow-lg shadow-primary/20 backdrop-blur-sm"
-                  @click.stop="startMeditationFromActivity(item)">
-                  即刻参与
+                <view
+                  hover-class="opacity-90"
+                  :class="[
+                    'px-[48rpx] py-[20rpx] rounded-full text-[20rpx] font-bold uppercase tracking-widest shadow-lg backdrop-blur-sm',
+                    item.isExpired
+                      ? 'bg-stone-400/80 text-white/90 shadow-none'
+                      : 'bg-theme-1 text-white shadow-primary/20',
+                  ]"
+                  @click.stop="onHomeActivityAction(item)">
+                  {{ homeActivityActionLabel(item) }}
                 </view>
                 <view>
                   <template v-if="item.sceneType !== 'group'">
@@ -272,6 +289,8 @@
         <text class="text-primary/90 active:opacity-80" @click="openUserAgreementFromHome">用户协议</text>
         <text class="opacity-30">|</text>
         <text class="text-primary/90 active:opacity-80" @click="openPrivacyFromHome">隐私政策</text>
+        <text class="opacity-30">|</text>
+        <text class="text-primary/90 active:opacity-80" @click="openBusinessCooperationDialog">商务合作</text>
       </view>
     </view>
     <!-- //开始按钮 -->
@@ -286,13 +305,26 @@
       cancel-text="无设备" confirm-text="有设备" :mask-closable="true" :show-close="true"
       @cancel="confirmStartMeditationWithDevice(false)" @confirm="confirmStartMeditationWithDevice(true)"
       @dismiss="onMeditationDeviceDialogDismiss" />
+
+    <ConfirmDialog
+      v-model:show="showBusinessCooperationDialog"
+      title="商务合作"
+      message="技术/商务咨询\n何师兄：13088099321（微信同号）"
+      cancel-text="关闭"
+      confirm-text="复制号码"
+      :mask-closable="true"
+      :show-close="true"
+      @cancel="showBusinessCooperationDialog = false"
+      @confirm="onBusinessCooperationConfirm"
+      @dismiss="showBusinessCooperationDialog = false"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
 import { getCurrentInstance, nextTick } from 'vue';
 import { storeToRefs } from 'pinia';
-import { fetchActivityPage, postActivityCheckin } from '@/assets/js/api/activity';
+import { fetchActivityPage, postActivityCheckin, postActivityJoin } from '@/assets/js/api/activity';
 import { fetchDeviceStatus, postDeviceRealtime } from '@/assets/js/api/device';
 import { fetchMessageUnreadCount } from '@/assets/js/api/message';
 import { getMusicPage } from '@/assets/js/api/user';
@@ -312,26 +344,35 @@ import type {
 import type { DeviceRealtimePayload, DeviceStatusAppData } from '@/types/api/device';
 import type { MusicPageData } from '@/types/api/music';
 import { unwrapApiData } from '@/utils/apiResponse';
-import { formatDate } from '@/utils/common';
+import { formatDate, isActivityExpiredByEndDate } from '@/utils/common';
 import { mapApiStatusToLabel, normalizeDeviceStatusCode } from '@/utils/deviceMap';
+import { preemptBackgroundAudioBeforeMeditation } from '@/utils/meditationBackgroundMusic';
 import { mapMusicListItemToRow, resolveMusicAssetUrl } from '@/utils/musicPage';
 import { reLaunchAgreementFromHome } from '@/utils/agreementNavigation';
 import { sceneTypeForTemplate } from '@/utils/activityRoomPayload';
 import { getCurrentLatLng } from '@/utils/location';
 
-/** 5 分钟为 1 档；5–300 分（5 小时） */
-const minMinutes = 5;
-const maxMinutes = 300;
-const stepMinutes = 5;
+/** 首页禅修时长档位（分钟）：由 `VITE_HOME_MEDITATION_SLOT_MINUTES` 控制，开发 1 / 生产 5 */
+function resolveHomeMeditationSlotMinutes(): number {
+  const raw = (import.meta.env.VITE_HOME_MEDITATION_SLOT_MINUTES || "").trim();
+  const n = Number(raw);
+  if (Number.isFinite(n) && n >= 1) return Math.floor(n);
+  return import.meta.env.PROD ? 5 : 1;
+}
 
-/** 默认取区间中间偏下，避免为 min 时进度条/圆环为 0 看起来像「无填充」 */
-const durationMinutes = ref(5);
+const homeMeditationSlotMinutes = resolveHomeMeditationSlotMinutes();
+const minMinutes = homeMeditationSlotMinutes;
+const maxMinutes = 300;
+const stepMinutes = homeMeditationSlotMinutes;
+
+const durationMinutes = ref(homeMeditationSlotMinutes);
 const audioExpanded = ref(false);
 
 const barDragging = ref(false);
 
 /** 右下角开始禅修：先选有/无设备 */
 const showMeditationDevicePopup = ref(false);
+const showBusinessCooperationDialog = ref(false);
 /** 非 null 表示弹窗由场景卡触发，确认后需带上 `activityId` / `activityTemplateId` */
 const pendingActivityLaunch = ref<HomeActivityCard | null>(null);
 
@@ -393,22 +434,71 @@ function openPrivacyFromHome() {
   reLaunchAgreementFromHome("privacy");
 }
 
+function openBusinessCooperationDialog() {
+  showBusinessCooperationDialog.value = true;
+}
+
+function onBusinessCooperationConfirm() {
+  uni.setClipboardData({
+    data: "13088099321",
+    success: () => {
+      uni.showToast({ title: "号码已复制", icon: "none" });
+    },
+  });
+}
+
 /**
  * 活动场景卡：点按卡片空白区域跳转（「即刻参与」使用 @click.stop 不触发）。
  * - group：共修等待室；- 其它：活动详情。
  */
-function onHomeActivityCardTap(item: HomeActivityCard) {
+function homeActivityDetailUrl(item: HomeActivityCard): string {
   if (item.sceneType === "group") {
     const tid = item.templateId;
     const sec = item.targetMeditationSeconds ?? 0;
-    uni.navigateTo({
-      url: `/pages/community/activity-house?id=${item.id}&templateId=${tid}&targetSec=${sec}`,
-    });
-    return;
+    return `/pages/community/activity-house?id=${item.id}&templateId=${tid}&targetSec=${sec}`;
   }
-  uni.navigateTo({
-    url: `/pages/post/activity?id=${item.id}`,
-  });
+  const q = [`id=${item.id}`];
+  if (item.isJoined) q.push("joined=1");
+  return `/pages/post/activity?${q.join("&")}`;
+}
+
+function onHomeActivityCardTap(item: HomeActivityCard) {
+  uni.navigateTo({ url: homeActivityDetailUrl(item) });
+}
+
+function homeActivityActionLabel(item: HomeActivityCard): string {
+  if (item.isExpired) return "已结束";
+  return item.isJoined ? "即刻参与" : "参加活动";
+}
+
+function markActivityJoinedInList(activityId: number) {
+  const row = activitiesRaw.value.find((a) => a.id === activityId);
+  if (row) row.isJoined = true;
+}
+
+/** 未报名时先加入，再进入禅修流程 */
+async function onHomeActivityAction(item: HomeActivityCard) {
+  if (item.isExpired) return;
+  if (!item.isJoined) {
+    if (userStore.isGuestExperience) {
+      uni.showToast({ title: "登录后参与活动", icon: "none" });
+      return;
+    }
+    uni.showLoading({ title: "报名中…", mask: true });
+    try {
+      await postActivityJoin({ id: item.id });
+      markActivityJoinedInList(item.id);
+      item.isJoined = true;
+      uni.showToast({ title: "报名成功", icon: "success" });
+    } catch (e) {
+      console.error("postActivityJoin", e);
+      uni.showToast({ title: "报名失败", icon: "none" });
+      return;
+    } finally {
+      uni.hideLoading();
+    }
+  }
+  await startMeditationFromActivity(item);
 }
 
 const { devices: deviceListForHome } = storeToRefs(deviceStore);
@@ -841,12 +931,28 @@ function sortHomeActivities(
 
 
 
+function sceneTypeForListItem(item: ActivityPageListItem): SceneType {
+  if (item.activityType === 2) return "group";
+  return sceneTypeForTemplate(item.templateId);
+}
+
+function resolveListItemIsJoined(item: ActivityPageListItem): boolean {
+  const v: unknown = item.isJoined;
+  return v === true || v === 1 || v === "1";
+}
+
+function resolveListItemIsExpired(item: ActivityPageListItem): boolean {
+  if (item.isExpired === true) return true;
+  if (item.isExpired === false) return false;
+  return isActivityExpiredByEndDate(item.endDate);
+}
+
 function mapToHomeCard(item: ActivityPageListItem): HomeActivityCard {
-  console.log("item",item);
-  const sceneType = sceneTypeForTemplate(item.templateId);
+  const sceneType = sceneTypeForListItem(item);
   const st = SCENE_STYLES[sceneType];
   const icon = resolveActivityMediaUrl(item.templateIcon ?? null);
   const fallbackImg = DEFAULT_SCENE_IMAGES[Math.abs(item.templateId) % DEFAULT_SCENE_IMAGES.length];
+  const isExpired = resolveListItemIsExpired(item);
   return {
     id: item.id,
     templateId: item.templateId,
@@ -856,6 +962,8 @@ function mapToHomeCard(item: ActivityPageListItem): HomeActivityCard {
     title: item.title?.trim() || "共修活动",
     subtitle: (item.content || "").trim() || "安住当下，与社群一同共修。",
     sceneType,
+    isExpired,
+    isJoined: resolveListItemIsJoined(item),
     bgClass: st.bgClass,
     h2Class: st.h2Class,
     spanClass: st.spanClass,
@@ -909,7 +1017,11 @@ async function scrollPreferredActivityIntoView() {
 async function loadHomeActivities() {
   activitiesLoading.value = true;
   try {
-    const res = await fetchActivityPage({ page: 1, size: 7 });
+    const res = await fetchActivityPage({
+      page: 1,
+      size: 7,
+      onlyJoined: 0,
+    });
     const data = unwrapApiData<ActivityPage>(res);
     activitiesRaw.value = data?.list?.length ? data.list : [];
   } catch (e) {
@@ -1406,6 +1518,7 @@ async function confirmStartMeditationWithDevice(hasDevice: boolean) {
   pendingActivityLaunch.value = null;
 
   meditationStore.applyNextMeditationLaunch(payload);
+  preemptBackgroundAudioBeforeMeditation();
   uni.navigateTo({
     url: "/pages/meditation/startMeditaiton",
   });

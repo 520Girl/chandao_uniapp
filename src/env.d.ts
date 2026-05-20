@@ -24,6 +24,10 @@ interface ImportMetaEnv {
    * 小程序/H5 导出海报时需可访问；留空则使用代码内与线上一致的默认地址。
    */
   readonly VITE_MEDITATION_REPORT_POSTER_BG_URL?: string;
+  /**
+   * 首页禅修时长：最小值、步进、默认选中（分钟）。开发建议 1，生产建议 5。
+   */
+  readonly VITE_HOME_MEDITATION_SLOT_MINUTES?: string;
 }
 
 interface ImportMeta {

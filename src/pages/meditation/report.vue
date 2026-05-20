@@ -1,8 +1,11 @@
 <template>
   <view class="flex flex-col min-h-screen theme-bg cloud-pattern">
-    <lcrBar :title="inviteLanding ? '团队邀请' : '心迹报告'" :type="inviteLanding ? 'none' : 'home'" :onBack="onLcrBack"
+    <lcrBar :title="pageBarTitle" :type="inviteLanding ? 'none' : 'home'" :onBack="onLcrBack"
       :onHome="onLcrHome" />
     <view class="flex flex-col flex-1 min-h-0">
+      <view v-if="visitorMode && sharerDisplayLine" class="px-6 pt-4 text-center">
+        <view class="text-[24rpx] text-[#3c3728]/65">{{ sharerDisplayLine }}</view>
+      </view>
       <view class="px-8 pt-10 pb-6 text-center">
         <view class="theme-color-5 text-[60rpx] font-medium leading-snug">
           今日，你照见 <text class="font-bold text-primary">{{ elapsedMin }}</text> 分{{ elapsedRemainSec }}秒
@@ -162,7 +165,7 @@
         <text class="text-[26rpx] font-medium text-[#3c3728] mb-1">以舒适为宜，不勉强、不贪长。</text>
       </view>
     </view>
-    <view class="fixed bottom-24 right-8 z-20">
+    <view v-if="showShareFab" class="fixed bottom-24 right-8 z-20">
       <button
         class="size-14 bg-theme-2 text-white rounded-full shadow-xl flex items-center justify-center hover:scale-105 transition-transform"
         @click="openShareSheet">
@@ -170,8 +173,8 @@
         <text v-else class="iconfont icon-jiarutuandui text-[50rpx]"></text>
       </button>
     </view>
-    <up-poster v-if="!inviteLanding" ref="posterRef" :json="posterJson" />
-    <up-action-sheet v-if="!inviteLanding" v-model:show="shareSheetVisible" title="分享" :actions="shareSheetActions"
+    <up-poster v-if="showShareFab" ref="posterRef" :json="posterJson" />
+    <up-action-sheet v-if="showShareFab" v-model:show="shareSheetVisible" title="分享" :actions="shareSheetActions"
       cancel-text="取消" @select="onShareSheetSelect" />
   </view>
 </template>
@@ -179,7 +182,11 @@
 <script setup lang="ts">
 import { onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { computed, nextTick, onBeforeUnmount } from 'vue';
-import { fetchMeditationReportDetail } from '@/assets/js/api/meditation';
+import {
+  fetchMeditationReportDetail,
+  fetchMeditationReportShare,
+  postMeditationReportShareToken,
+} from '@/assets/js/api/meditation';
 import { config } from '@/assets/js/config';
 import { postUserCreatePersonalInvite, postUserCreateTeamInvite } from '@/assets/js/api/user';
 import lcrBar from '@/components/lcrBar.vue';
@@ -187,13 +194,21 @@ import { useMeditationReportShare, type UviewPosterInstance } from '@/composable
 import { useMeditationStore } from '@/stores/meditation';
 import { useTeamStore } from '@/stores/team';
 import { useUserStore } from '@/stores/user';
-import type { MeditationReport, MeditationReportSection } from '@/types/api/meditation';
+import type {
+  MeditationReport,
+  MeditationReportSection,
+  MeditationReportShareTokenData,
+  MeditationReportSharer,
+} from '@/types/api/meditation';
 import type { UserInviteCreatedData } from '@/types/api/user';
 import type { MeditationReportSharePayload } from '@/types/pages/meditationShare';
 import { unwrapApiData } from '@/utils/apiResponse';
 import { drawCloudBridgeCanvas } from '@/utils/common';
 import { buildJoinInvitePosterQrText, buildMeditationReportPosterJson } from '@/utils/meditationReportShare';
-import { parseMeditationReportDetailPayload } from '@/utils/meditationReport';
+import {
+  parseMeditationReportDetailPayload,
+  parseMeditationReportSharePayload,
+} from '@/utils/meditationReport';
 import {
   setLeavingMeditationForReportPage,
   stopMeditationBackgroundMusic,
@@ -225,6 +240,26 @@ const trackTitle = ref('');
 /** 小程序 scene 解析出的邀请码（非邀请落地时为空） */
 const inviteCode = ref('');
 const inviteLanding = computed(() => inviteCode.value.trim().length > 0);
+
+/** 好友通过 `shareToken` 打开（免登录） */
+const visitorMode = ref(false);
+const sharerInfo = ref<MeditationReportSharer | null>(null);
+/** 本人分享前换取的 `shareToken`，用于微信分享 path / H5 链接 */
+const cachedShareToken = ref<string | null>(null);
+
+const pageBarTitle = computed(() => {
+  if (inviteLanding.value) return "团队邀请";
+  if (visitorMode.value) return "好友心迹";
+  return "心迹报告";
+});
+
+const sharerDisplayLine = computed(() => {
+  const name = sharerInfo.value?.nickName?.trim();
+  if (!name) return "";
+  return `${name} 的冥想报告`;
+});
+
+const showShareFab = computed(() => !inviteLanding.value && !visitorMode.value);
 
 /** 接口拉取或 Store 注入的完整报告 */
 const reportFromApi = ref<MeditationReport | null>(null);
@@ -267,7 +302,7 @@ function resolvePosterAvatarUrl(raw: string | null | undefined): string {
   return `${root}${path}`;
 }
 
-function getSharePayload(): MeditationReportSharePayload {
+function buildSharePayloadBase(): MeditationReportSharePayload {
   const extra = reportPosterExtras.value;
   const r = reportFromApi.value;
   return {
@@ -280,6 +315,7 @@ function getSharePayload(): MeditationReportSharePayload {
     manualStop: manualStop.value,
     trackTitle: trackTitle.value,
     sessionId: effectiveSessionId.value,
+    shareToken: cachedShareToken.value,
     h5LandingBaseUrl: import.meta.env.VITE_H5_SHARE_BASE,
     posterUserName: userStore.nickName,
     posterUserAvatarUrl: resolvePosterAvatarUrl(userStore.avatarUrl),
@@ -299,6 +335,44 @@ function getSharePayload(): MeditationReportSharePayload {
       ? { posterBottomQrImageUrl: extra.posterBottomQrImageUrl }
       : {}),
   };
+}
+
+function getSharePayload(): MeditationReportSharePayload {
+  return buildSharePayloadBase();
+}
+
+/**
+ * 分享前换取 `shareToken`（微信 `onShareAppMessage` 等异步场景）。
+ */
+async function getSharePayloadForShare(): Promise<MeditationReportSharePayload> {
+  await ensureShareToken();
+  return buildSharePayloadBase();
+}
+
+/**
+ * 为当前会话生成或复用分享令牌。
+ * @param refresh `true` 时使旧分享链接失效
+ */
+async function ensureShareToken(refresh = false): Promise<string | null> {
+  const sid = effectiveSessionId.value;
+  if (!userStore.isLoggedIn || sid == null || sid <= 0) {
+    return null;
+  }
+  if (!refresh && cachedShareToken.value) {
+    return cachedShareToken.value;
+  }
+  try {
+    const res = await postMeditationReportShareToken({ sessionId: sid, refresh });
+    const data = unwrapApiData<MeditationReportShareTokenData>(res);
+    const token = data?.shareToken?.trim() || null;
+    cachedShareToken.value = token;
+    return token;
+  } catch (e) {
+    console.error("postMeditationReportShareToken", e);
+    const msg = e instanceof Error ? e.message : "无法生成分享链接";
+    uni.showToast({ title: msg, icon: "none" });
+    return null;
+  }
 }
 
 function resetReportPosterExtras() {
@@ -349,7 +423,9 @@ const {
   openFriendShareGuide,
   openTimelineShareGuide,
   copyH5ShareLink,
-} = useMeditationReportShare(posterRef, getSharePayload);
+} = useMeditationReportShare(posterRef, getSharePayload, {
+  getPayloadAsync: getSharePayloadForShare,
+});
 
 const shareSheetActions = computed(() => {
   const rows: { name: string; value: string }[] = [];
@@ -389,6 +465,7 @@ async function openShareSheet() {
     } catch {
       /* ignore */
     }
+    await ensureShareToken();
   }
   shareSheetVisible.value = true;
 }
@@ -802,27 +879,79 @@ function applyReportToView(r: MeditationReport) {
   void nextTick(() => drawCloudBridgeCanvas(harmonyProgress.value));
 }
 
+async function loadReportByShareToken(token: string) {
+  visitorMode.value = true;
+  sharerInfo.value = null;
+  uni.showLoading({ title: "加载报告…", mask: true });
+  try {
+    const res = await fetchMeditationReportShare({ token });
+    const raw = unwrapApiData<unknown>(res);
+    const data = parseMeditationReportSharePayload(raw);
+    if (data) {
+      sharerInfo.value = data.sharer ?? null;
+      urlSessionId.value = data.sessionId;
+      applyReportToView(data);
+      return;
+    }
+    uni.showModal({
+      title: "分享链接无效",
+      content: "链接已失效或报告不存在，请让好友重新分享。",
+      showCancel: false,
+      success: () => {
+        uni.switchTab({ url: "/pages/index/home" });
+      },
+    });
+  } catch (e) {
+    console.error("fetchMeditationReportShare", e);
+    const msg = e instanceof Error ? e.message : "加载失败";
+    uni.showModal({
+      title: "无法打开分享",
+      content: msg,
+      showCancel: false,
+      success: () => {
+        uni.switchTab({ url: "/pages/index/home" });
+      },
+    });
+  } finally {
+    uni.hideLoading();
+  }
+}
+
 async function initReport(q: Record<string, unknown>) {
+  const shareToken = String(q.token ?? "").trim();
+  if (shareToken) {
+    await loadReportByShareToken(shareToken);
+    return;
+  }
+
   duration.value = toNum(q.duration, 15);
-  manualStop.value = String(q.manualStop || '0') === '1';
-  trackTitle.value = decodeURIComponent(String(q.trackTitle || ''));
+  manualStop.value = String(q.manualStop || "0") === "1";
+  trackTitle.value = decodeURIComponent(String(q.trackTitle || ""));
 
   const rawSid = q.sessionId;
-  const sid = rawSid != null && String(rawSid) !== '' ? Number(rawSid) : NaN;
+  const sid = rawSid != null && String(rawSid) !== "" ? Number(rawSid) : NaN;
   urlSessionId.value = Number.isFinite(sid) && sid > 0 ? sid : null;
 
   if (Number.isFinite(sid) && sid > 0) {
-    uni.showLoading({ title: '加载报告…', mask: true });
+    if (!userStore.isLoggedIn) {
+      uni.showToast({ title: "请使用好友分享的链接查看", icon: "none" });
+      setTimeout(() => {
+        uni.switchTab({ url: "/pages/index/home" });
+      }, 2000);
+      return;
+    }
+    uni.showLoading({ title: "加载报告…", mask: true });
     try {
       const res = await fetchMeditationReportDetail({ sessionId: sid });
       const raw = unwrapApiData<unknown>(res);
       const data = parseMeditationReportDetailPayload(raw);
       if (data) {
         applyReportToView(data);
+        void ensureShareToken();
         return;
       }
     } catch (e) {
-      console.error('fetchMeditationReportDetail', e);
+      console.error("fetchMeditationReportDetail", e);
     } finally {
       uni.hideLoading();
     }
@@ -832,6 +961,7 @@ async function initReport(q: Record<string, unknown>) {
   if (cached) {
     const normalized = parseMeditationReportDetailPayload(cached as unknown) ?? cached;
     applyReportToView(normalized);
+    void ensureShareToken();
     return;
   }
 
@@ -857,10 +987,10 @@ function parseInviteSceneRaw(raw: unknown): string {
   }
 }
 
-function hideInviteShareMenu() {
+function hideShareMenuForPage() {
   // #ifdef MP-WEIXIN
   try {
-    uni.hideShareMenu({ hideShareItems: ['shareAppMessage', 'shareTimeline'] });
+    uni.hideShareMenu({ hideShareItems: ["shareAppMessage", "shareTimeline"] });
   } catch {
     /* 基础库差异 */
   }
@@ -872,17 +1002,24 @@ onLoad((query) => {
   const q = (query || {}) as Record<string, unknown>;
   inviteCode.value = parseInviteSceneRaw(q.scene);
   void initReport(q);
-  hideInviteShareMenu();
+  if (inviteCode.value.trim() || String(q.token ?? "").trim()) {
+    hideShareMenuForPage();
+  }
 });
 
 onShow(() => {
-  if (!inviteCode.value.trim()) return;
-  hideInviteShareMenu();
+  if (visitorMode.value || inviteCode.value.trim()) {
+    hideShareMenuForPage();
+  }
 });
 
 function onLcrBack() {
   if (inviteLanding.value) {
-    uni.showToast({ title: '请完成加入或登录', icon: 'none' });
+    uni.showToast({ title: "请完成加入或登录", icon: "none" });
+    return;
+  }
+  if (visitorMode.value) {
+    uni.switchTab({ url: "/pages/index/home" });
     return;
   }
   navigateBack();
@@ -890,10 +1027,10 @@ function onLcrBack() {
 
 function onLcrHome() {
   if (inviteLanding.value) {
-    uni.showToast({ title: '请完成加入或登录', icon: 'none' });
+    uni.showToast({ title: "请完成加入或登录", icon: "none" });
     return;
   }
-  uni.switchTab({ url: '/pages/index/home' });
+  uni.switchTab({ url: "/pages/index/home" });
 }
 
 // 保留你原本“70%”展示逻辑：画图进度跟随该值

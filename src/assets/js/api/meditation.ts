@@ -6,6 +6,7 @@ import type {
   MeditationEndDTO,
   MeditationPollDTO,
   MeditationReportHistoryQuery,
+  MeditationReportShareTokenBody,
   MeditationReportStatisticsQuery,
   MeditationStartDTO,
 } from "@/types/api/meditation";
@@ -17,6 +18,8 @@ const MEDITATION_REPORT_DETAIL = "/app/meditation/report/detail";
 const MEDITATION_REPORT_STATISTICS = "/app/meditation/report/statistics";
 const MEDITATION_SESSION_ACTIVE = "/app/meditation/session/active";
 const MEDITATION_REPORT_HISTORY = "/app/meditation/report/history";
+const MEDITATION_REPORT_SHARE_TOKEN = "/app/meditation/report/shareToken";
+const MEDITATION_REPORT_SHARE = "/app/meditation/report/share";
 
 /**
  * 开始冥想（设备 / 无设备）；需登录。
@@ -56,6 +59,26 @@ export const endMeditation = (body: MeditationEndDTO) => {
  */
 export const fetchMeditationReportDetail = (query: { sessionId: number }) => {
   return get(MEDITATION_REPORT_DETAIL, query);
+};
+
+/**
+ * 生成冥想报告分享令牌（本人）；用于小程序分享 path，勿仅传 `sessionId`。
+ *
+ * @param body `sessionId` 必填；`refresh` 为 `true` 时旧链接失效
+ * @returns 业务包，`data` 含 `shareToken`、`sessionId`、`reportId`
+ */
+export const postMeditationReportShareToken = (body: MeditationReportShareTokenBody) => {
+  return post(MEDITATION_REPORT_SHARE_TOKEN, body);
+};
+
+/**
+ * 分享页报告详情（免登录，`IGNORE_TOKEN`）。
+ *
+ * @param query `token` 为 `shareToken`
+ * @returns 业务包，`data` 为 `MeditationReportShareData`
+ */
+export const fetchMeditationReportShare = (query: { token: string }) => {
+  return get(MEDITATION_REPORT_SHARE, query, { skipGuestBlock: true });
 };
 
 /**

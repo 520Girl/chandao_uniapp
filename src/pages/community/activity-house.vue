@@ -749,6 +749,7 @@ async function confirmStartMeditationWithDevice(hasDevice: boolean) {
   };
   meditationStore.applyNextMeditationLaunch(payload);
   showMeditationDevicePopup.value = false;
+  stopHouseMusic();
   uni.navigateTo({
     url: "/pages/meditation/startMeditaiton",
   });

@@ -332,6 +332,13 @@
             "enableShareAppMessage": true,
             "enableShareTimeline": true
           }
+        },
+        {
+          "path": "report-share",
+          "style": {
+            "navigationBarTitleText": "冥想报告",
+            "navigationStyle": "custom"
+          }
         }
       ]
     },

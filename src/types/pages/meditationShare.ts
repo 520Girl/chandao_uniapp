@@ -20,6 +20,10 @@ export interface MeditationReportSharePayload {
   /** 服务端会话 ID；无则仅带统计参数 */
   sessionId: number | null;
   /**
+   * 分享令牌（`POST shareToken`）；小程序好友/朋友圈与 H5 链接优先带 `token` 落地分享页。
+   */
+  shareToken?: string | null;
+  /**
    * H5 落地根地址（含协议、无尾斜杠），用于海报二维码内容；
    * 未配置时小程序端用「路径+query」文本，H5 端用当前 `location.origin`（仅浏览器）。
    */

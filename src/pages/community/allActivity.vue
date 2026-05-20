@@ -209,7 +209,12 @@ function goActivity(item: ActivityPageListItem) {
 }
 
 function buildQuery(p: number): ActivityPageQuery {
-  const q: ActivityPageQuery = { page: p, size: PAGE_SIZE ,includeExpired:1};
+  const q: ActivityPageQuery = {
+    page: p,
+    size: PAGE_SIZE,
+    includeExpired: 1,
+    onlyJoined: 0,
+  };
   if (routeTeamId.value != null) q.teamId = routeTeamId.value;
   return q;
 }

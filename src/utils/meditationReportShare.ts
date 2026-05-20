@@ -9,6 +9,24 @@ import type {
 } from "@/types/pages/meditationShare";
 
 const REPORT_PATH = "/pages/meditation/report";
+/** 免登录分享落地页（与微信分享 path 一致） */
+const REPORT_SHARE_PATH = "/pages/meditation/report-share";
+
+function appendShareTokenQuery(parts: string[], token: string): void {
+  appendQueryPart(parts, "token", token);
+}
+
+/**
+ * 小程序分享 path / H5 hash 路径（优先 `shareToken`）。
+ */
+export function buildMeditationReportShareLandingPath(p: MeditationReportSharePayload): string {
+  const token = p.shareToken?.trim();
+  if (token) {
+    return `${REPORT_SHARE_PATH}?token=${encodeURIComponent(token)}`;
+  }
+  const qs = buildMeditationReportShareQueryString(p);
+  return `${REPORT_PATH}?${qs}`;
+}
 
 /** 画布与主底 */
 const C_BG = "#ffffff";
@@ -61,11 +79,10 @@ export function buildMeditationReportShareQueryString(p: MeditationReportSharePa
 export function buildMeditationReportFriendShare(
   p: MeditationReportSharePayload,
 ): { title: string; path: string } {
-  const qs = buildMeditationReportShareQueryString(p);
   const title = `我完成了 ${Math.floor(p.elapsedSec / 60)} 分冥想，平均心率 ${p.avgHeart} BPM`;
   return {
     title,
-    path: `${REPORT_PATH}?${qs}`,
+    path: buildMeditationReportShareLandingPath(p),
   };
 }
 
@@ -77,7 +94,14 @@ export function buildMeditationReportFriendShare(
 export function buildMeditationReportTimelineShare(
   p: MeditationReportSharePayload,
 ): { title: string; query: string; imageUrl?: string } {
-  const qs = buildMeditationReportShareQueryString(p);
+  const token = p.shareToken?.trim();
+  const qs = token
+    ? (() => {
+        const parts: string[] = [];
+        appendShareTokenQuery(parts, token);
+        return parts.join("&");
+      })()
+    : buildMeditationReportShareQueryString(p);
   const raw = (p.timelineImageUrl ?? import.meta.env.VITE_MP_TIMELINE_SHARE_IMAGE ?? "").trim();
   const out: { title: string; query: string; imageUrl?: string } = {
     title: `冥想 ${Math.floor(p.elapsedSec / 60)} 分钟｜平均心率 ${p.avgHeart} BPM`,
@@ -99,8 +123,8 @@ export function buildMeditationReportH5Url(
   p: MeditationReportSharePayload,
 ): string {
   const root = base.replace(/\/$/, "");
-  const qs = buildMeditationReportShareQueryString(p);
-  return `${root}/#${REPORT_PATH}?${qs}`;
+  const landing = buildMeditationReportShareLandingPath(p);
+  return `${root}/#${landing}`;
 }
 
 const JOIN_PATH = "/pages/index/join";
@@ -122,20 +146,20 @@ export function buildJoinInvitePosterQrText(inviteCode: string, h5Base?: string)
 }
 
 function resolvePosterQrText(p: MeditationReportSharePayload): string {
-  const qs = buildMeditationReportShareQueryString(p);
   if (p.h5LandingBaseUrl?.trim()) {
     return buildMeditationReportH5Url(p.h5LandingBaseUrl.trim(), p);
   }
+  const landing = buildMeditationReportShareLandingPath(p);
   try {
     const plat = uni.getSystemInfoSync().uniPlatform || "";
     if (plat === "web" && typeof window !== "undefined" && window.location?.origin) {
       const path = window.location.pathname || "/";
-      return `${window.location.origin}${path}#${REPORT_PATH}?${qs}`;
+      return `${window.location.origin}${path}#${landing.replace(/^\//, "")}`;
     }
   } catch {
     /* 非 H5 或 getSystemInfoSync 不可用时走路径文本 */
   }
-  return `${REPORT_PATH}?${qs}`;
+  return landing.startsWith("/") ? landing : `/${landing}`;
 }
 
 function truncateTrackTitle(title: string, maxLen: number): string {

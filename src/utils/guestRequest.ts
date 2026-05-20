@@ -8,6 +8,7 @@ const GUEST_ALLOWED_URL_SUBSTRINGS = [
   "/app/user/login/mini",
   "/app/user/login/refreshToken",
   "/app/base/comm/uploadMode",
+  "/app/meditation/report/share",
 ] as const;
 
 export function isGuestPublicApiUrl(fullUrl: string): boolean {

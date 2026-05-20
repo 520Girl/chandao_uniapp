@@ -18,6 +18,8 @@ export interface ShopProductListItem {
   id: number;
   name: string;
   price: number;
+  /** 商品图片（新字段），后端可能返回数组或 JSON 字符串 */
+  images?: string[] | string;
   mainImage?: string;
   intro?: string;
   /** 是否佣金商品等，含义以后端为准 */

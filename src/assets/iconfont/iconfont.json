@@ -6,6 +6,13 @@
   "description": "",
   "glyphs": [
     {
+      "icon_id": "902057",
+      "name": "分享 (2)",
+      "font_class": "fenxiang2",
+      "unicode": "e63e",
+      "unicode_decimal": 58942
+    },
+    {
       "icon_id": "46700667",
       "name": "截止时间",
       "font_class": "nest_clock_farsight_analog_24dp_595959_FILL0_wght4",

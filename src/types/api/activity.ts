@@ -17,6 +17,10 @@ export interface ActivityPageQuery {
   teamId?: number;
   /** 是否包含已结束的活动，默认 0 */
   includeExpired?: 0 | 1;
+  /**
+   * `1`（默认）：仅已报名活动；`0`：可见范围内全部已发布活动（活动广场/首页），并返回 `isJoined`。
+   */
+  onlyJoined?: 0 | 1;
 }
 
 /**
@@ -87,17 +91,29 @@ export interface ActivityPageListItem {
   isTop: number;
   templateId: number;
   teamId?: number | null;
-  /** 打卡模式，业务码以后端为准 */
+  /** `1` 每日打卡 / `2` 仅一次 */
   checkinMode: number;
+  /** `1` 普通打卡 / `2` 多人共修 */
+  activityType?: number;
+  /** 共修：`0` 待开场 / `1` 进行中 / `2` 已结算 */
+  groupSessionPhase?: number;
   templateName?: string | null;
   templateIcon?: string | null;
   /** 目标冥想时间（秒） */
   targetMeditationSeconds: number;
-  /** 通过百分比 */
+  /** 通过百分比 0–100 */
   passPercent: number;
   sessionConfig?: {
     maxParticipants?: number;
+    rankGraceSeconds?: number;
+    [key: string]: unknown;
   };
+  /** 是否已结束（`includeExpired=1` 时列表可能含已结束项） */
+  isExpired?: boolean;
+  /** 当前用户是否已报名（非已拒绝）；`onlyJoined=1` 时恒为 `true` */
+  isJoined?: boolean;
+  /** 参与人数（不含已拒绝） */
+  participantCount?: number;
 }
 
 /** 分页信息 */
@@ -313,8 +329,10 @@ export interface HomeActivityCard {
   title: string;
   subtitle: string;
   sceneType: SceneType;
-  /** 是否已超过 `endDate`（用于褪色样式与禁止「即刻参与」） */
+  /** 是否已超过 `endDate`（用于褪色样式与禁止参与） */
   isExpired: boolean;
+  /** 当前用户是否已报名（`onlyJoined=0` 时由接口返回） */
+  isJoined: boolean;
   bgClass: string;
   h2Class: string;
   spanClass: string;

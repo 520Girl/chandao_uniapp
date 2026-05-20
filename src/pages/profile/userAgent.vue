@@ -142,7 +142,9 @@
                     我已阅读并同意
                 </button>
                 <view class="mt-6 font-label text-[20rpx] text-on-surface-variant/60 uppercase tracking-widest">
-                    最后修改：2025年12月
+                    <view>最后修改：2025年12月</view> 
+                      <a class="font-headline italic text-lg text-primary underline underline-offset-4 decoration-primary/30"
+                    href="mailto:815842080@qq.comqq.com">技术/商务咨询  何师兄：13088099321（微信同号）</a>
                 </view>
             </view>
         </view>

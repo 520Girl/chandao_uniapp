@@ -1,13 +1,11 @@
 /**
- * 微信小程序禅修音频策略（与业务音轨严格隔离）：
+ * 禅修音频（与疗愈音轨隔离）：
  *
- * - **后台常驻**：仅 `uni.getBackgroundAudioManager()` 单例，循环静音切片（`VITE_MEDITATION_SILENCE_URL` 或包内 `/static/silence.mp3`），`volume` 恒为 0；
- *   事件与定时器反复强制静音，应对单例被重置、误触通知栏等。
- * - **结束音乐**：仅 `uni.createInnerAudioContext()` 独立实例；0 起渐强（约 10s 内 0→0.8，smoothstep 减轻台阶感），播完销毁。
- *
- * 对外入口：`startMeditationBackground` / `stopMeditationBackground`（`stopMeditationBackgroundMusic` 为别名）。
+ * - **进行中（微信）**：`BackgroundAudioManager` 仅播「全数字静音」切片（`VITE_MEDITATION_SILENCE_URL`，建议约 4 分钟）。
+ *   微信后台音频 **无 volume 属性**，不能靠 `volume=0` 静音，素材本身必须无声；`onCanplay` 后再 `play`，避免换源时带出上一首疗愈音。
+ * - **进行中（H5/App）**：`InnerAudio` + `loop=true` + `volume=0`。
+ * - **结束**：独立 `InnerAudioContext` 渐强疗愈音（约 10s）；与跳转报告页并行，不等待播完。
  */
-
 const envSilenceSrc = (import.meta.env.VITE_MEDITATION_SILENCE_URL || "").trim();
 
 /**
@@ -17,20 +15,22 @@ export const MEDITATION_SILENCE_SRC =
   envSilenceSrc.length > 0 ? envSilenceSrc : "/static/silence.mp3";
 
 const BG_MUTE = 0;
-/** 结束音渐强总时长（毫秒），略长可减轻「抖」感 */
+/** 结束音渐强总时长（毫秒） */
 const END_RAMP_MS = 10000;
-/** 渐强音量 tick 间隔 */
 const END_VOL_TICK_MS = 80;
 const END_VOL_MAX = 0.8;
 const END_RAMP_STEPS = Math.max(24, Math.ceil(END_RAMP_MS / END_VOL_TICK_MS));
 const BG_FORCE_MUTE_DELAY_MS = 100;
+/** 仅 H5/App 静音 InnerAudio 使用；微信 BGM 无 volume，勿依赖 */
 const BG_VOLUME_GUARD_MS = 1000;
+const WX_SILENCE_PLAY_FALLBACK_MS = 480;
 
+type MeditationAudioPhase = "idle" | "active" | "ending";
+
+let meditationAudioPhase: MeditationAudioPhase = "idle";
 let bgOpToken = 0;
-
 let bgVolumeGuardTimer: ReturnType<typeof setInterval> | null = null;
 
-/** 小程序：后台静音循环句柄引用（与 `uni.getBackgroundAudioManager()` 为同一单例，仅用于 off） */
 // #ifdef MP-WEIXIN
 let wxBgLastHandlers: {
   onPlay: () => void;
@@ -43,12 +43,12 @@ let wxBgLastHandlers: {
 } | null = null;
 // #endif
 
-/** 非微信：用 InnerAudio 模拟静音保活 */
+// #ifndef MP-WEIXIN
 let silenceInner: UniApp.InnerAudioContext | null = null;
 let silenceInnerEnded: (() => void) | null = null;
 let silenceInnerError: ((e: unknown) => void) | null = null;
+// #endif
 
-/** 结束音乐（业务） */
 let endMusicCtx: UniApp.InnerAudioContext | null = null;
 let endMusicFadeTimer: ReturnType<typeof setInterval> | null = null;
 let endMusicHandlers: {
@@ -56,6 +56,10 @@ let endMusicHandlers: {
   onEnded: () => void;
   onError: (e: unknown) => void;
 } | null = null;
+
+function isMeditationSilenceActive(): boolean {
+  return meditationAudioPhase === "active";
+}
 
 function setAudioVolumeSafe(target: unknown, volume: number) {
   const v = Math.min(1, Math.max(0, Number(volume)));
@@ -102,31 +106,61 @@ function destroyEndMusicInner() {
 
 function scheduleBgForceMute(token: number) {
   setTimeout(() => {
-    if (token !== bgOpToken) return;
-    // #ifdef MP-WEIXIN
-    setAudioVolumeSafe(uni.getBackgroundAudioManager(), BG_MUTE);
-    // #endif
-    // #ifndef MP-WEIXIN
+    if (token !== bgOpToken || !isMeditationSilenceActive()) return;
     if (silenceInner) setAudioVolumeSafe(silenceInner, BG_MUTE);
-    // #endif
   }, BG_FORCE_MUTE_DELAY_MS);
 }
 
 function startBgVolumeGuard(token: number) {
   clearBgVolumeGuard();
+  // #ifndef MP-WEIXIN
   bgVolumeGuardTimer = setInterval(() => {
-    if (token !== bgOpToken) return;
-    // #ifdef MP-WEIXIN
-    setAudioVolumeSafe(uni.getBackgroundAudioManager(), BG_MUTE);
-    scheduleBgForceMute(token);
-    // #endif
-    // #ifndef MP-WEIXIN
+    if (token !== bgOpToken || !isMeditationSilenceActive()) return;
     if (silenceInner) {
       setAudioVolumeSafe(silenceInner, BG_MUTE);
       scheduleBgForceMute(token);
     }
-    // #endif
   }, BG_VOLUME_GUARD_MS);
+  // #endif
+}
+
+// #ifdef MP-WEIXIN
+/** 抢占全局 BGM 单例，避免共修房/旧逻辑残留的疗愈音在换源瞬间被听到 */
+function hardStopWxBackgroundAudio(): void {
+  try {
+    uni.getBackgroundAudioManager().stop();
+  } catch {
+    /* noop */
+  }
+}
+// #endif
+
+/**
+ * 进入禅修页前调用：停止其它页面占用的微信后台音频（疗愈试听等）。
+ */
+export function preemptBackgroundAudioBeforeMeditation(): void {
+  // #ifdef MP-WEIXIN
+  hardStopWxBackgroundAudio();
+  // #endif
+}
+
+/** 仅停后台静音保活，不销毁结束疗愈音（模块级 InnerAudio） */
+function stopMeditationSilenceOnly(): void {
+  bgOpToken += 1;
+  clearBgVolumeGuard();
+
+  // #ifdef MP-WEIXIN
+  detachWxBackgroundHandlers();
+  try {
+    uni.getBackgroundAudioManager().stop();
+  } catch {
+    /* noop */
+  }
+  // #endif
+
+  // #ifndef MP-WEIXIN
+  destroySilenceInner();
+  // #endif
 }
 
 // #ifdef MP-WEIXIN
@@ -135,7 +169,15 @@ function detachWxBackgroundHandlers() {
   const h = wxBgLastHandlers;
   if (!h) return;
   try {
-    const anyBg = bg as any;
+    const anyBg = bg as {
+      offPlay?: (fn: () => void) => void;
+      offEnded?: (fn: () => void) => void;
+      offError?: (fn: (e: unknown) => void) => void;
+      offCanplay?: (fn: () => void) => void;
+      offSeeked?: (fn: () => void) => void;
+      offPause?: (fn: () => void) => void;
+      offWaiting?: (fn: () => void) => void;
+    };
     if (h.onPlay && typeof anyBg.offPlay === "function") anyBg.offPlay(h.onPlay);
     if (h.onEnded && typeof anyBg.offEnded === "function") anyBg.offEnded(h.onEnded);
     if (h.onError && typeof anyBg.offError === "function") anyBg.offError(h.onError);
@@ -152,10 +194,22 @@ function detachWxBackgroundHandlers() {
 let wxRecoverLock = false;
 
 function recoverWxSilenceLoop(token: number) {
-  if (token !== bgOpToken || wxRecoverLock) return;
+  if (!isMeditationSilenceActive() || token !== bgOpToken || wxRecoverLock) return;
   wxRecoverLock = true;
   try {
     const bg = uni.getBackgroundAudioManager();
+    setAudioVolumeSafe(bg, BG_MUTE);
+    try {
+      const anyBg = bg as { seek?: (pos: number) => void; play?: () => void };
+      if (typeof anyBg.seek === "function") {
+        anyBg.seek(0);
+        scheduleBgForceMute(token);
+        anyBg.play?.();
+        return;
+      }
+    } catch {
+      /* 走硬恢复 */
+    }
     try {
       bg.stop();
     } catch {
@@ -181,60 +235,67 @@ function wireWxBackgroundSilence(meta: {
   coverImgUrl?: string;
   token: number;
 }) {
+  hardStopWxBackgroundAudio();
   detachWxBackgroundHandlers();
   const bg = uni.getBackgroundAudioManager();
   const token = meta.token;
+  let playStarted = false;
 
-  const armMute = () => {
-    setAudioVolumeSafe(bg, BG_MUTE);
-    scheduleBgForceMute(token);
+  const tryStartSilencePlay = () => {
+    if (playStarted || !isMeditationSilenceActive() || token !== bgOpToken) return;
+    playStarted = true;
+    try {
+      bg.play();
+    } catch {
+      /* noop */
+    }
   };
 
-  const onPlay = () => armMute();
-  const onCanplay =
-    typeof (bg as any).onCanplay === "function"
-      ? () => {
-          if (token !== bgOpToken) return;
-          armMute();
-        }
-      : undefined;
-  const onSeeked =
-    typeof (bg as any).onSeeked === "function"
-      ? () => {
-          if (token !== bgOpToken) return;
-          armMute();
-        }
-      : undefined;
+  const onPlay = () => {
+    if (!isMeditationSilenceActive() || token !== bgOpToken) return;
+  };
+  const onCanplay = () => {
+    if (!isMeditationSilenceActive() || token !== bgOpToken) return;
+    tryStartSilencePlay();
+  };
+  const onSeeked = () => {
+    if (!isMeditationSilenceActive() || token !== bgOpToken) return;
+  };
   const onEnded = () => {
-    if (token !== bgOpToken) return;
+    if (!isMeditationSilenceActive() || token !== bgOpToken) return;
     recoverWxSilenceLoop(token);
   };
   const onError = (err: unknown) => {
     console.error("禅修后台静音", err);
-    if (token !== bgOpToken) return;
+    if (!isMeditationSilenceActive() || token !== bgOpToken) return;
+    playStarted = false;
     recoverWxSilenceLoop(token);
   };
   const onPause = () => {
-    if (token !== bgOpToken) return;
+    if (!isMeditationSilenceActive() || token !== bgOpToken) return;
     try {
-      setAudioVolumeSafe(bg, BG_MUTE);
       bg.play();
     } catch {
       /* noop */
     }
   };
   const onWaiting = () => {
-    if (token !== bgOpToken) return;
-    armMute();
+    /* noop */
   };
 
   bg.onPlay(onPlay);
   bg.onEnded(onEnded);
   bg.onError(onError);
-  if (typeof (bg as any).onCanplay === "function" && onCanplay) (bg as any).onCanplay(onCanplay);
-  if (typeof (bg as any).onSeeked === "function" && onSeeked) (bg as any).onSeeked(onSeeked);
-  if (typeof (bg as any).onPause === "function") (bg as any).onPause(onPause);
-  if (typeof (bg as any).onWaiting === "function") (bg as any).onWaiting(onWaiting);
+  const anyBg = bg as {
+    onCanplay?: (fn: () => void) => void;
+    onSeeked?: (fn: () => void) => void;
+    onPause?: (fn: () => void) => void;
+    onWaiting?: (fn: () => void) => void;
+  };
+  if (typeof anyBg.onCanplay === "function") anyBg.onCanplay(onCanplay);
+  if (typeof anyBg.onSeeked === "function") anyBg.onSeeked(onSeeked);
+  if (typeof anyBg.onPause === "function") anyBg.onPause(onPause);
+  if (typeof anyBg.onWaiting === "function") anyBg.onWaiting(onWaiting);
 
   wxBgLastHandlers = {
     onPlay,
@@ -251,16 +312,7 @@ function wireWxBackgroundSilence(meta: {
   bg.singer = meta.singer ?? "静心";
   bg.coverImgUrl = meta.coverImgUrl ?? "/static/logo.png";
   bg.src = MEDITATION_SILENCE_SRC;
-  armMute();
-  try {
-    bg.play();
-  } catch {
-    /* noop */
-  }
-  armMute();
-  setTimeout(armMute, 120);
-  setTimeout(armMute, 400);
-  setTimeout(armMute, 1200);
+  setTimeout(() => tryStartSilencePlay(), WX_SILENCE_PLAY_FALLBACK_MS);
 }
 // #endif
 
@@ -289,18 +341,29 @@ function wireSilenceInnerLoop(token: number) {
   silenceInner = ctx;
   ctx.obeyMuteSwitch = false;
   ctx.loop = true;
-  ctx.src = MEDITATION_SILENCE_SRC;
+  ctx.volume = BG_MUTE;
+  let playStarted = false;
   const arm = () => {
-    if (token !== bgOpToken) return;
+    if (!isMeditationSilenceActive() || token !== bgOpToken) return;
     setAudioVolumeSafe(ctx, BG_MUTE);
     scheduleBgForceMute(token);
   };
-  arm();
+  const tryPlay = () => {
+    if (playStarted || !isMeditationSilenceActive() || token !== bgOpToken) return;
+    playStarted = true;
+    arm();
+    try {
+      ctx.play();
+    } catch {
+      /* noop */
+    }
+  };
   silenceInnerEnded = () => {
-    if (token !== bgOpToken) return;
+    if (!isMeditationSilenceActive() || token !== bgOpToken) return;
+    playStarted = false;
     try {
       ctx.seek(0);
-      ctx.play();
+      tryPlay();
     } catch {
       /* noop */
     }
@@ -308,29 +371,33 @@ function wireSilenceInnerLoop(token: number) {
   };
   silenceInnerError = (err: unknown) => {
     console.error("禅修静音 InnerAudio", err);
-    if (token !== bgOpToken) return;
+    if (!isMeditationSilenceActive() || token !== bgOpToken) return;
+    playStarted = false;
     try {
       ctx.src = MEDITATION_SILENCE_SRC;
       arm();
-      ctx.play();
+      tryPlay();
     } catch {
       /* noop */
     }
   };
   ctx.onEnded(silenceInnerEnded);
   ctx.onError(silenceInnerError);
-  if (typeof (ctx as any).onPlay === "function") {
-    (ctx as any).onPlay(arm);
+  if (typeof (ctx as { onPlay?: (fn: () => void) => void }).onPlay === "function") {
+    (ctx as { onPlay: (fn: () => void) => void }).onPlay(arm);
   }
-  if (typeof (ctx as any).onCanplay === "function") {
-    (ctx as any).onCanplay(arm);
+  if (typeof (ctx as { onCanplay?: (fn: () => void) => void }).onCanplay === "function") {
+    (ctx as { onCanplay: (fn: () => void) => void }).onCanplay(() => {
+      arm();
+      tryPlay();
+    });
   }
-  if (typeof (ctx as any).onSeeked === "function") {
-    (ctx as any).onSeeked(arm);
+  if (typeof (ctx as { onSeeked?: (fn: () => void) => void }).onSeeked === "function") {
+    (ctx as { onSeeked: (fn: () => void) => void }).onSeeked(arm);
   }
-  setTimeout(arm, 120);
-  setTimeout(arm, 400);
-  ctx.play();
+  ctx.src = MEDITATION_SILENCE_SRC;
+  arm();
+  setTimeout(() => tryPlay(), WX_SILENCE_PLAY_FALLBACK_MS);
 }
 // #endif
 
@@ -342,11 +409,14 @@ export type MeditationBackgroundMeta = {
 };
 
 /**
- * 启动后台静音保活（微信小程序：`BackgroundAudioManager` + `MEDITATION_SILENCE_SRC` + volume=0）。
- * 会先 `stopMeditationBackground` 清理上一会话，避免单例状态污染。
+ * 启动后台静音保活（会先完整清理上一会话）。
  */
 export function startMeditationBackground(meta?: MeditationBackgroundMeta): void {
+  // #ifdef MP-WEIXIN
+  hardStopWxBackgroundAudio();
+  // #endif
   stopMeditationBackground();
+  meditationAudioPhase = "active";
   bgOpToken += 1;
   const token = bgOpToken;
 
@@ -368,9 +438,18 @@ export function startMeditationBackground(meta?: MeditationBackgroundMeta): void
 }
 
 /**
- * 停止后台静音与结束音乐实例，清除定时器与监听（防泄漏）。
+ * 禅修正常结束：停静音保活并解除监听，**不**销毁正在渐强的结束音；可与跳转报告并行调用。
+ */
+export function prepareMeditationSessionEnd(): void {
+  meditationAudioPhase = "ending";
+  stopMeditationSilenceOnly();
+}
+
+/**
+ * 停止静音与结束音乐，清除全部监听（异常退出、未跳转报告时）。
  */
 export function stopMeditationBackground(): void {
+  meditationAudioPhase = "idle";
   bgOpToken += 1;
   clearBgVolumeGuard();
   destroyEndMusicInner();
@@ -389,13 +468,13 @@ export function stopMeditationBackground(): void {
   // #endif
 }
 
-/** @deprecated 与 `stopMeditationBackground` 相同，兼容旧引用 */
+/** @deprecated 与 `stopMeditationBackground` 相同 */
 export const stopMeditationBackgroundMusic = stopMeditationBackground;
 
 /**
- * 使用独立 `InnerAudioContext` 播放结束曲目：初始 0 音量，按 `END_RAMP_MS` 渐强至 `END_VOL_MAX`（smoothstep），自然结束后销毁。
+ * 独立 InnerAudio 播放结束疗愈音（0→渐强），不阻塞；页面 `redirectTo` 后可继续播放。
  *
- * @param src 疗愈音等完整可播 URL
+ * @param src 疗愈音完整 URL
  */
 export function playMeditationEndMusicLinearFadeIn(src: string): Promise<void> {
   const url = (src || "").trim();
@@ -428,7 +507,6 @@ export function playMeditationEndMusicLinearFadeIn(src: string): Promise<void> {
       endMusicFadeTimer = setInterval(() => {
         step += 1;
         const t = Math.min(1, step / END_RAMP_STEPS);
-        /** smoothstep：两端变化更缓，减轻音量台阶抖动 */
         const k = t * t * (3 - 2 * t);
         const v = Math.min(END_VOL_MAX, END_VOL_MAX * k);
         setAudioVolumeSafe(ctx, v);
@@ -439,10 +517,7 @@ export function playMeditationEndMusicLinearFadeIn(src: string): Promise<void> {
       }, END_VOL_TICK_MS);
     };
 
-    const onEnded = () => {
-      finish();
-    };
-
+    const onEnded = () => finish();
     const onError = (e: unknown) => {
       console.error("禅修结束音乐", e);
       finish();
@@ -474,7 +549,7 @@ export function playMeditationEndMusicLinearFadeIn(src: string): Promise<void> {
   });
 }
 
-/** 兼容旧 API：不再用疗愈音做后台，等同 `startMeditationBackground` */
+/** 兼容旧 API：仅用静音保活，不使用疗愈音 URL */
 export function startMutedMeditationBackgroundMusic(params: {
   src: string;
   title: string;
@@ -491,12 +566,11 @@ export function startMutedMeditationBackgroundMusic(params: {
   });
 }
 
-/** 已废弃：结束音乐改走 `playMeditationEndMusicLinearFadeIn` */
+/** @deprecated */
 export function fadeMeditationBackgroundMusicVolume(): Promise<void> {
   return Promise.resolve();
 }
 
-/** 正常结束并 `redirectTo` 报告页时为 true，避免禅修页 `onUnload` 误停跨页的结束音乐 */
 let leavingMeditationForReportPage = false;
 
 export function setLeavingMeditationForReportPage(value: boolean): void {
@@ -508,6 +582,7 @@ export function isLeavingMeditationForReportPage(): boolean {
 }
 
 export function updateMeditationBackgroundMusicMeta(meta: { title?: string; epname?: string }): void {
+  if (meditationAudioPhase !== "active") return;
   // #ifdef MP-WEIXIN
   const bg = uni.getBackgroundAudioManager();
   if (meta.title != null) bg.title = meta.title;

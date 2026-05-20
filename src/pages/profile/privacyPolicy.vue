@@ -177,9 +177,9 @@
             </view>
 
             <view class="px-8 pt-0 pb-24 text-center">
-                <p class="font-body text-xs text-outline mb-4">对本隐私政策有疑问？</p>
+                <view class="font-body text-xs text-outline mb-4">对本隐私政策有疑问？</view>
                 <a class="font-headline italic text-lg text-primary underline underline-offset-4 decoration-primary/30"
-                    href="mailto:presence@yunxi.app">admin@yunxi.app</a>
+                    href="mailto:815842080@qq.comqq.com">技术/商务咨询  何师兄：13088099321（微信同号）</a>
             </view>
         </view>
     </view>

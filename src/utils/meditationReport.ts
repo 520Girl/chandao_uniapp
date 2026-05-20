@@ -4,6 +4,8 @@
 import type {
   MeditationChartSeriesItem,
   MeditationReport,
+  MeditationReportShareData,
+  MeditationReportSharer,
   MeditationReportHistoryListItem,
   MeditationReportHistoryResult,
   MeditationReportSection,
@@ -86,6 +88,33 @@ export function parseMeditationReportDetailPayload(raw: unknown): MeditationRepo
   }
 
   return { ...o, sessionId, id, sections } as unknown as MeditationReport;
+}
+
+function parseSharer(raw: unknown): MeditationReportSharer | undefined {
+  if (raw == null || typeof raw !== "object") return undefined;
+  const o = raw as Record<string, unknown>;
+  const nickName = String(o.nickName ?? o.nick_name ?? "").trim();
+  const avatarUrl = String(o.avatarUrl ?? o.avatar_url ?? "").trim();
+  if (!nickName && !avatarUrl) return undefined;
+  return {
+    ...(nickName ? { nickName } : {}),
+    ...(avatarUrl ? { avatarUrl } : {}),
+  };
+}
+
+/**
+ * 解析 `GET /app/meditation/report/share` 的 `data`（免登录分享页）。
+ *
+ * @param raw 接口 `data` 或 `unwrapApiData` 后的对象
+ * @returns 报告 + 分享者；无效时 `null`
+ */
+export function parseMeditationReportSharePayload(raw: unknown): MeditationReportShareData | null {
+  if (raw == null || typeof raw !== "object") return null;
+  const report = parseMeditationReportDetailPayload(raw);
+  if (!report) return null;
+  const o = raw as Record<string, unknown>;
+  const sharer = parseSharer(o.sharer);
+  return sharer ? { ...report, sharer } : report;
 }
 
 function isFiniteNumberArray(a: unknown): a is number[] {

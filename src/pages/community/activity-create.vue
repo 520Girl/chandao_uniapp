@@ -191,7 +191,7 @@
           <input
             v-model="groupRoomNo"
             class="w-full h-[88rpx] px-4 rounded-2xl bg-white/50 border border-[#d4af35]/20 text-base theme-color-5"
-            placeholder="留空则提交为 null"
+            placeholder="不填可正常使用"
             type="text"
           />
         </view>

@@ -21,7 +21,7 @@ export interface Device extends addDeviceParams {
 export interface addDeviceParams {
     sn: string;
     model: string;
-    mac: string;
+  mac?: string;
 }
 
 type DeviceInterfaceInfo = {

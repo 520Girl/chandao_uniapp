@@ -47,43 +47,8 @@
           <up-list-item v-for="p in products" :key="p.id" :anchor="String(p.id)">
             <view
               class="group flex flex-col bg-white rounded-[80rpx] overflow-hidden shadow-md border border-transparent mb-6">
-              <view class="relative w-full overflow-hidden shop-swiper-host">
-                <swiper
-                  class="shop-native-swiper"
-                  :style="{ height: PRODUCT_SWIPER_HEIGHT }"
-                  previous-margin="30rpx"
-                  next-margin="30rpx"
-                  circular
-                  :autoplay="false"
-                  :current="getProductSwiperCurrentIndex(p.id)"
-                  @change="handleProductSwiperChange(p.id, $event)"
-                  @tap="previewProductImages(productImages(p), getProductSwiperCurrentIndex(p.id))"
-                >
-                  <swiper-item
-                    v-for="(imgSrc, imgIdx) in productImages(p)"
-                    :key="`${p.id}-${imgIdx}`"
-                    class="shop-native-swiper__item"
-                  >
-                    <image
-                      class="shop-native-swiper__image"
-                      :src="imgSrc"
-                      mode="aspectFill"
-                      :lazy-load="true"
-                    />
-                  </swiper-item>
-                </swiper>
-                <view
-                  v-if="productImages(p).length > 1"
-                  class="indicator-num pointer-events-none"
-                >
-                  <text class="indicator-num__text">{{
-                    getProductSwiperIndicatorText(
-                      p.id,
-                      getProductSwiperCurrentIndex(p.id),
-                      productImages(p).length,
-                    )
-                  }}</text>
-                </view>
+              <view class="relative aspect-[4/3] overflow-hidden">
+                <image :src="p.mainImage || '/static/770-800x600.jpg'" class="w-full h-full" mode="aspectFill" />
                 <view
                   v-if="productTag(p)"
                   class="absolute top-[32rpx] left-[32rpx] bg-theme-1 text-white text-[20rpx] uppercase tracking-widest font-bold px-[24rpx] py-[8rpx] rounded-full">
@@ -121,7 +86,6 @@ import { fetchShopProductPage } from '@/assets/js/api/shopProduct';
 import ShopBar from '@/components/shopBar.vue';
 import type { ShopProductListItem } from '@/types/api/shop';
 import { unwrapApiPageList } from '@/utils/apiResponse';
-import { config } from '@/assets/js/config';
 import { navigateTo } from '@/utils/navigation';
 
 /** 预留：与注释模板里分类条对应 */
@@ -139,88 +103,9 @@ const page = ref(1);
 const listLoading = ref(false);
 const loadFinished = ref(false);
 const loadStatus = ref<LoadMoreStatus>('loadmore');
-const productSwiperCurrentIndex = reactive<Record<number, number>>({});
-
-/** 小程序 swiper 需明确高度；百分比在 aspect 容器内常为 0 导致不显示 */
-const PRODUCT_SWIPER_HEIGHT = "480rpx";
 
 function formatPrice(n: number) {
   return (Number(n) || 0).toFixed(2);
-}
-
-function resolveMediaUrl(raw: unknown): string {
-  const s = String(raw ?? "").trim();
-  if (!s) return "";
-  if (/^https?:\/\//i.test(s)) return s;
-  if (s.startsWith("//")) return `https:${s}`;
-  if (s.startsWith("/static/")) return s;
-  const path = s.startsWith("/") ? s : `/${s}`;
-  const base = (path.startsWith("/upload") ? config.uploadURL : config.baseURL).replace(/\/+$/, "");
-  return `${base}${path}`;
-}
-
-function resolveImageListItem(raw: unknown): string {
-  if (raw == null) return "";
-  if (typeof raw === "string") return resolveMediaUrl(raw);
-  if (typeof raw === "object") {
-    const o = raw as Record<string, unknown>;
-    return resolveMediaUrl(o.url ?? o.src ?? o.image ?? o.path ?? o.mainImage);
-  }
-  return "";
-}
-
-function parseImagesField(images: unknown): string[] {
-  if (Array.isArray(images)) {
-    return images.map(resolveImageListItem).filter((x) => x.length > 0);
-  }
-  if (typeof images === 'string') {
-    const text = images.trim();
-    if (!text) return [];
-    try {
-      const parsed = JSON.parse(text) as unknown;
-      if (Array.isArray(parsed)) {
-        return parsed.map(resolveImageListItem).filter((x) => x.length > 0);
-      }
-    } catch {
-      return [resolveMediaUrl(text)].filter((x) => x.length > 0);
-    }
-  }
-  return [];
-}
-
-type ShopProductWithImages = ShopProductListItem & { images?: unknown };
-
-function productImages(p: ShopProductListItem): string[] {
-  const imgs = parseImagesField((p as ShopProductWithImages).images);
-  if (imgs.length > 0) return imgs;
-  const fallback = resolveMediaUrl(p.mainImage || '/static/770-800x600.jpg');
-  return fallback ? [fallback] : [];
-}
-
-function previewProductImages(urls: string[], current: number) {
-  if (!urls.length) return;
-  uni.previewImage({ urls, current: urls[current] || urls[0] });
-}
-
-function getProductSwiperCurrentIndex(productId: number) {
-  return productSwiperCurrentIndex[productId] ?? 0;
-}
-
-function getProductSwiperIndicatorText(productId: number, currentNum: unknown, total: number) {
-  const current = Number(currentNum);
-  const fallback = getProductSwiperCurrentIndex(productId);
-  const safeCurrent = Number.isFinite(current) && current >= 0 ? current : fallback;
-  return `${safeCurrent + 1}/${total}`;
-}
-
-function onProductSwiperChange(productId: number, event: unknown) {
-  const detail = event as { detail?: { current?: number } } & { current?: number };
-  const current = Number(detail?.detail?.current ?? detail?.current ?? 0);
-  productSwiperCurrentIndex[productId] = Number.isFinite(current) && current >= 0 ? current : 0;
-}
-
-function handleProductSwiperChange(productId: number, event: unknown) {
-  onProductSwiperChange(productId, event);
 }
 
 /** 角标：当前无独立 tag 字段时由佣金标识推导，后续可改为后端 tag */
@@ -306,44 +191,5 @@ onMounted(() => {
 
 .shop-up-list {
   height: 100%;
-}
-
-.shop-swiper-host {
-  height: 480rpx;
-}
-
-.shop-native-swiper {
-  width: 100%;
-}
-
-.shop-native-swiper__item {
-  width: 100%;
-  height: 100%;
-  box-sizing: border-box;
-}
-
-.shop-native-swiper__image {
-  width: 100%;
-  height: 480rpx;
-  display: block;
-  border-radius: 10rpx;
-}
-
-.indicator-num {
-  position: absolute;
-  right: 24rpx;
-  bottom: 24rpx;
-  z-index: 5;
-  padding: 8rpx 16rpx;
-  border-radius: 9999rpx;
-  background: rgba(0, 0, 0, 0.38);
-  backdrop-filter: blur(8px);
-}
-
-.indicator-num__text {
-  color: #ffffff;
-  font-size: 20rpx;
-  font-weight: 600;
-  letter-spacing: 0.08em;
 }
 </style>

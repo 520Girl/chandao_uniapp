@@ -233,7 +233,7 @@
       </view>
       <!-- Version Info -->
       <view class="text-center pt-4">
-        <view class="font-label text-[18rpx] uppercase tracking-[0.3rem] text-primary/70">坐观其心 v2.4.1</view>
+        <view class="font-label text-[18rpx] uppercase tracking-[0.3rem] text-primary/70">照见花开 v1.1.9</view>
       </view>
     </view>
   </view>

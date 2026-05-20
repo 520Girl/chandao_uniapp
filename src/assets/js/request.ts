@@ -58,13 +58,35 @@ function isCurrentRoute(path: string): boolean {
   return normalized === path;
 }
 
+/** 冥想报告分享访客页（免登录 `report/share`），失败时不应跳转登录 */
+function isMeditationReportShareVisitorPage(): boolean {
+  const pages = getCurrentPages();
+  const page = pages[pages.length - 1] as {
+    route?: string;
+    options?: Record<string, string | undefined>;
+  };
+  const route = page?.route ?? "";
+  const opts = page?.options ?? {};
+  if (route.includes("meditation/report-share")) return true;
+  if (route.includes("meditation/report") && String(opts.token ?? "").trim()) return true;
+  return false;
+}
+
+function isMeditationReportSharePublicRequest(snapshot: Record<string, unknown>): boolean {
+  return String(snapshot?.url ?? "").includes("/app/meditation/report/share");
+}
+
 /**
  * 设备轮询类请求（首页等定时拉取）。业务失败时仅提示，不应 `navigateBack` 误关当前页。
  * @param snapshot `request` 调用时的 options，含完整 `url`
  */
 function isDeviceStatusOrRealtimeRequest(snapshot: Record<string, unknown>): boolean {
   const u = String(snapshot?.url ?? "");
-  return u.includes("/app/device/realtime") || u.includes("/app/device/status") || u.includes("/app/activity/createFromTemplate");
+  return u.includes("/app/device/realtime") || 
+  u.includes("/app/device/status") || 
+  u.includes("/app/activity/createFromTemplate") || 
+  u.includes("/app/meditation/report/detail") || 
+  u.includes("/app/meditation/report/statistics");
 }
 
 // 请求拦截器
@@ -144,6 +166,14 @@ const errorHandler = async (error: any, retrySnapshot: Record<string, any>): Pro
 
   if (error.statusCode === HTTP_STATUS.UNAUTHORIZED) {
     // 刷新接口自身 401 / 业务失败，或已重试过一次仍 401：不再刷新，避免死循环
+    if (isMeditationReportSharePublicRequest(retrySnapshot) || isMeditationReportShareVisitorPage()) {
+      uni.showToast({
+        title: error?.message || "分享链接无效或已失效",
+        icon: "none",
+      });
+      return Promise.reject(error);
+    }
+
     if (retrySnapshot.skipAuthRefresh === true || retrySnapshot.__tokenRetry === true) {
       const store = useUserStore();
       store.clearUser();
@@ -161,11 +191,13 @@ const errorHandler = async (error: any, retrySnapshot: Record<string, any>): Pro
         title: "登录已过期，请重新登录",
         icon: "none",
       });
-      setTimeout(() => {
-        uni.reLaunch({
-          url: "/pages/login/index",
-        });
-      }, 1500)
+      if (!isMeditationReportShareVisitorPage()) {
+        setTimeout(() => {
+          uni.reLaunch({
+            url: "/pages/login/index",
+          });
+        }, 1500);
+      }
       return Promise.reject(error);
     }
 
@@ -201,6 +233,7 @@ const errorHandler = async (error: any, retrySnapshot: Record<string, any>): Pro
       if (
         isCurrentRoute("/pages/index/join") ||
         isCurrentRoute("/pages/login/inputLogin") ||
+        isMeditationReportShareVisitorPage() ||
         isDeviceStatusOrRealtimeRequest(retrySnapshot)
       ) {
         return Promise.reject(error);
@@ -228,7 +261,7 @@ const errorHandler = async (error: any, retrySnapshot: Record<string, any>): Pro
   });
 
   setTimeout(() => {
-    if (isCurrentRoute("/pages/index/join")) return;
+    if (isCurrentRoute("/pages/index/join") || isMeditationReportShareVisitorPage()) return;
     uni.reLaunch({
       url: "/pages/login/index",
     });

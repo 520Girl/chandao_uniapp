@@ -1,6 +1,6 @@
 <template>
     <view class="flex flex-col min-h-screen w-full max-w-full overflow-x-hidden box-border pb-32 theme-bg meditation-page">
-        <HomeBar :title="'心迹'" description="观 照 身 心" :titleIcon="'icon-xinshuai'" :leftIcon="'icon-Trophy'" :handleClick="gotoRank" />
+        <HomeBar :title="'心迹'" description="观 照 身 心" :titleIcon="'icon-xinshuai'" :leftIcon="'icon-fenxiang2'" :handleClick="gotoRank" />
 
         <view class="flex-1 w-full max-w-full min-w-0 box-border px-6 flex flex-col">
             <view class="w-full max-w-full min-w-0 pt-6 space-y-8 box-border">
@@ -65,13 +65,15 @@
                     <view class="bg-white/30 rounded-[32px] p-4 w-full max-w-full min-w-0 overflow-hidden box-border">
                         <view class="w-full max-w-full min-w-0 box-border" style="height: 190px">
                             <qiun-data-charts
+                                ref="durationChartRef"
                                 :key="'dur-' + chartsRemountKey"
                                 type="column"
                                 canvas-id="weeklyDurationChart"
                                 :canvas2d="true"
                                 background="transparent"
                                 :chart-data="durationChartData"
-                                :opts="durationOpts" />
+                                :opts="durationOpts"
+                                @getImage="(e: ChartGetImageParams) => onQiunChartGetImage('weeklyDurationChart', e)" />
                         </view>
                     </view>
                 </view>
@@ -97,6 +99,7 @@
                       <view class="px-1 text-xs tracking-widest text-on-surface-variant/60">平均心率对比</view>
                       <view class="w-full max-w-full min-w-0 box-border" style="height: 168px">
                         <qiun-data-charts
+                          ref="heartChartRef"
                           :key="'cmp-heart-' + chartsRemountKey"
                           type="line"
                           canvas-id="weeklyCompareHeartChart"
@@ -105,7 +108,8 @@
                           :tap-legend="true"
                           tooltip-format="statisticsCompareTooltip"
                           :chart-data="heartRateCompareChartData"
-                          :opts="compareHeartRateOpts" />
+                          :opts="compareHeartRateOpts"
+                          @getImage="(e: ChartGetImageParams) => onQiunChartGetImage('weeklyCompareHeartChart', e)" />
                       </view>
                     </view>
                     <view
@@ -113,6 +117,7 @@
                       <view class="px-1 text-xs tracking-widest text-on-surface-variant/60">平均呼吸率对比</view>
                       <view class="w-full max-w-full min-w-0 box-border" style="height: 168px">
                         <qiun-data-charts
+                          ref="breathChartRef"
                           :key="'cmp-breath-' + chartsRemountKey"
                           type="line"
                           canvas-id="weeklyCompareBreathChart"
@@ -121,7 +126,8 @@
                           :tap-legend="true"
                           tooltip-format="statisticsCompareTooltip"
                           :chart-data="breathRateCompareChartData"
-                          :opts="compareBreathRateOpts" />
+                          :opts="compareBreathRateOpts"
+                          @getImage="(e: ChartGetImageParams) => onQiunChartGetImage('weeklyCompareBreathChart', e)" />
                       </view>
                     </view>
                     <view
@@ -137,7 +143,8 @@
                           :tap-legend="true"
                           tooltip-format="statisticsCompareTooltip"
                           :chart-data="movementCompareChartData"
-                          :opts="compareBarOpts" />
+                          :opts="compareBarOpts"
+                          />
                       </view>
                     </view>
                     </view>
@@ -154,12 +161,23 @@
                 </view>
             </view>
         </view>
+        <view class="heart-trace-poster-host" aria-hidden="true">
+            <up-poster ref="posterRef" :json="posterJson" />
+        </view>
+        <up-action-sheet
+            v-model:show="shareSheetVisible"
+            title="分享"
+            :actions="shareSheetActions"
+            cancel-text="取消"
+            @select="onShareSheetSelect" />
     </view>
 </template>
 
 <script setup lang="ts">
 import { fetchMeditationReportStatistics } from '@/assets/js/api/meditation';
 import HomeBar from '@/components/homeBar.vue';
+import { useHeartTracePosterShare } from '@/composables/useHeartTracePosterShare';
+import type { UviewPosterInstance } from '@/composables/useMeditationReportShare';
 import type {
   MeditationStatisticsCompareChartData,
   MeditationStatisticsCompareMetricBlock,
@@ -167,13 +185,27 @@ import type {
   MeditationStatisticsChartBlock,
   MeditationStatisticsRange,
 } from '@/types/api/meditation';
+import type { HeartTraceChartImages, HeartTracePosterPayload } from '@/types/pages/heartTraceShare';
 import { useUserStore } from '@/stores/user';
 import { unwrapApiData } from '@/utils/apiResponse';
+import {
+  captureQiunChartImageWithMeta,
+  onQiunChartGetImage,
+  type ChartGetImageParams,
+} from '@/utils/heartTraceChartExport';
+import { onLoad } from '@dcloudio/uni-app';
 import { parseMeditationReportStatisticsPayload } from '@/utils/meditationReport';
 
 const userStore = useUserStore();
 
-const statsRange = ref<MeditationStatisticsRange>('week');
+type QiunChartExpose = { getImage?: () => void };
+
+const posterRef = ref<UviewPosterInstance | null>(null);
+const durationChartRef = ref<QiunChartExpose | null>(null);
+const heartChartRef = ref<QiunChartExpose | null>(null);
+const breathChartRef = ref<QiunChartExpose | null>(null);
+const statsRange = ref<MeditationStatisticsRange>("week");
+const shareSheetVisible = ref(false);
 
 const FALLBACK_DURATION: MeditationStatisticsChartBlock = {
   categories: ['-'],
@@ -580,11 +612,128 @@ function handlePeriodHistoryClick() {
   });
 }
 
+/** 顶栏左侧分享入口（`HomeBar` `handleClick`） */
 function gotoRank() {
-  uni.navigateTo({
-    url: '/pages/profile/rank',
-  });
+  openShareSheet();
 }
+
+function rangeLabelForPoster(): string {
+  const r = statsRange.value;
+  if (r === "day") return "日";
+  if (r === "month") return "月";
+  return "周";
+}
+
+async function captureHeartTraceChartImages(): Promise<HeartTraceChartImages> {
+  await nextTick();
+  await new Promise<void>((r) => setTimeout(r, 280));
+  const [duration, heartRate, breathRate] = await Promise.all([
+    captureQiunChartImageWithMeta(durationChartRef.value, "weeklyDurationChart"),
+    captureQiunChartImageWithMeta(heartChartRef.value, "weeklyCompareHeartChart"),
+    captureQiunChartImageWithMeta(breathChartRef.value, "weeklyCompareBreathChart"),
+  ]);
+  return {
+    duration: duration ?? undefined,
+    heartRate: heartRate ?? undefined,
+    breathRate: breathRate ?? undefined,
+  };
+}
+
+async function buildHeartTracePosterPayload(): Promise<HeartTracePosterPayload> {
+  const chartImages = await captureHeartTraceChartImages();
+  return {
+    range: statsRange.value,
+    rangeLabel: rangeLabelForPoster(),
+    latestSessionMinutes: latestSessionMinutesDisplay.value,
+    latestSessionSubline: latestSessionSubline.value,
+    periodSummaryTitle: periodSummaryTitle.value,
+    periodSummaryMinutes: String(periodSummaryMinutes.value),
+    periodSummaryMinutesSubline: periodSummaryMinutesSubline.value,
+    periodCardSubline: periodCardSubline.value,
+    chartImages,
+  };
+}
+
+function getWechatSharePayload() {
+  return {
+    range: statsRange.value,
+    rangeLabel: rangeLabelForPoster(),
+    periodSummaryMinutes: String(periodSummaryMinutes.value),
+    latestSessionMinutes: latestSessionMinutesDisplay.value,
+  };
+}
+
+const {
+  posterJson,
+  generateAndOfferPoster,
+  openFriendShareGuide,
+  openTimelineShareGuide,
+  copyH5ShareLink,
+} = useHeartTracePosterShare(posterRef, buildHeartTracePosterPayload, {
+  getWechatSharePayload,
+});
+
+const shareSheetActions = computed(() => {
+  const rows: { name: string; value: string }[] = [];
+  // #ifdef MP-WEIXIN
+  rows.push(
+    { name: "分享给微信好友或群", value: "friend" },
+    { name: "分享到微信朋友圈", value: "timeline" },
+  );
+  // #endif
+  rows.push({ name: "生成分享海报", value: "poster" });
+  // #ifdef H5
+  rows.push({ name: "复制页面链接", value: "copyLink" });
+  // #endif
+  return rows;
+});
+
+function openShareSheet() {
+  if (!userStore.isLoggedIn) {
+    uni.showToast({ title: "登录后分享心迹", icon: "none" });
+    return;
+  }
+  if (!statistics.value) {
+    uni.showToast({ title: "数据加载中，请稍候", icon: "none" });
+    return;
+  }
+  shareSheetVisible.value = true;
+}
+
+async function onShareSheetSelect(item: { name: string; value?: string }) {
+  const v = item.value;
+  if (v === "poster") {
+    await generateAndOfferPoster();
+    return;
+  }
+  if (v === "friend") {
+    openFriendShareGuide();
+    return;
+  }
+  if (v === "timeline") {
+    openTimelineShareGuide();
+    return;
+  }
+  if (v === "copyLink") {
+    const base = import.meta.env.VITE_H5_SHARE_BASE?.trim();
+    if (!base) {
+      uni.showToast({ title: "请在环境变量配置 VITE_H5_SHARE_BASE", icon: "none" });
+      return;
+    }
+    await copyH5ShareLink(base);
+  }
+}
+
+function parseSharedRange(raw: unknown): MeditationStatisticsRange | null {
+  const s = String(raw ?? "").trim();
+  if (s === "day" || s === "week" || s === "month") return s;
+  return null;
+}
+
+onLoad((options) => {
+  const range = parseSharedRange(options?.range);
+  if (range) statsRange.value = range;
+});
 
 onMounted(() => {
   void loadStatistics(statsRange.value);
@@ -697,5 +846,17 @@ onShow(() => {
 
 .tabular-nums {
     font-variant-numeric: tabular-nums;
+}
+
+.heart-trace-poster-host {
+    position: fixed;
+    left: -9999px;
+    top: 0;
+    width: 750rpx;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+    z-index: -1;
 }
 </style>

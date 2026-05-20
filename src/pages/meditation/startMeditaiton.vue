@@ -25,7 +25,7 @@
                         <view
                             class="w-full bg-surface-container-low px-4 py-2.5 rounded-[40rpx] flex items-center justify-center gap-2 shadow-sm border border-primary/5">
                             <view class="iconfont icon-heart-fill text-[36rpx] text-[#e500003b] shrink-0" />
-                            <text class="font-label text-[28rpx] text-on-surface-variant font-semibold tabular-nums">{{ formatPhysio2(currentHeartRate) }} bpm</text>
+                          <text class="font-label text-[28rpx] text-on-surface-variant font-semibold tabular-nums">{{ heartRateText }} bpm</text>
                         </view>
                     </view>
                     <view class="flex flex-col items-center space-y-2 w-[300rpx]">
@@ -36,7 +36,7 @@
                         <view
                             class="w-full bg-surface-container-low px-4 py-2.5 rounded-[40rpx] flex items-center justify-center gap-2 shadow-sm border border-primary/5">
                             <view class="iconfont icon-wind text-[36rpx] theme-color-1 shrink-0" />
-                            <text class="font-label text-[28rpx] text-on-surface-variant font-semibold tabular-nums">{{ formatPhysio2(currentBreathRate) }} brpm</text>
+                          <text class="font-label text-[28rpx] text-on-surface-variant font-semibold tabular-nums">{{ breathRateText }} brpm</text>
                         </view>
                     </view>
                 </view>
@@ -65,14 +65,19 @@
                     <view
                         class="rounded-[36rpx] px-2.5 py-3 flex items-center gap-2.5 border transition-colors duration-300"
                         :class="
-                            currentIsBed
+                        !hasMeditationDevice
+                          ? 'border-theme-12 bg-surface-container-low/90'
+                          : currentIsBed
                                 ? 'border-emerald-400/40 bg-emerald-500/[0.1]'
                                 : 'border-orange-300/45 bg-orange-500/[0.1]'
                         ">
                         <view
                             class="size-[88rpx] rounded-2xl flex items-center justify-center shrink-0 bg-white/70 dark:bg-white/10 border border-black/5">
+                        <view
+                          v-if="!hasMeditationDevice"
+                          class="iconfont icon-sensors text-[48rpx] leading-none theme-color-1 opacity-70" />
                             <view
-                                v-if="currentIsBed"
+                          v-else-if="currentIsBed"
                                 class="iconfont icon-zhihuifuyou_chankangyuyuemianxing text-[48rpx] leading-none text-emerald-600" />
                             <view
                                 v-else
@@ -81,7 +86,7 @@
                         <view class="flex flex-col min-w-0 flex-1">
                             <text class="font-label text-[18rpx] tracking-[0.12em] text-outline uppercase">体姿</text>
                             <text class="text-[26rpx] font-semibold text-on-surface leading-tight mt-0.5">
-                                {{ currentIsBed ? '在座' : '离座' }}
+                          {{ postureText }}
                             </text>
                         </view>
                     </view>
@@ -143,10 +148,10 @@ import { resolveMusicAssetUrl } from '@/utils/musicPage';
 import {
   isLeavingMeditationForReportPage,
   playMeditationEndMusicLinearFadeIn,
+  prepareMeditationSessionEnd,
   setLeavingMeditationForReportPage,
   startMeditationBackground,
   stopMeditationBackgroundMusic,
-  updateMeditationBackgroundMusicMeta,
 } from '@/utils/meditationBackgroundMusic';
 
 type RealtimeStat = {
@@ -238,6 +243,19 @@ const breathPhaseText = computed(() => {
   const cycle = elapsedSec.value % 8;
   if (cycle < 4) return '吸气';
   return '呼气';
+});
+
+const heartRateText = computed(() =>
+  hasMeditationDevice.value ? formatPhysio2(currentHeartRate.value) : '0',
+);
+
+const breathRateText = computed(() =>
+  hasMeditationDevice.value ? formatPhysio2(currentBreathRate.value) : '0',
+);
+
+const postureText = computed(() => {
+  if (!hasMeditationDevice.value) return '无状态';
+  return currentIsBed.value ? '在座' : '离座';
 });
 
 const beatScale = computed(() => {
@@ -378,6 +396,20 @@ async function doOnePoll() {
         remainSec.value = Math.max(0, cap - elapsedSec.value);
       }
 
+      if (!hasMeditationDevice.value) {
+        currentHeartRate.value = 0;
+        currentBreathRate.value = 0;
+        currentIsBed.value = false;
+        currentIsBodyMovement.value = false;
+        statSamples.value.push({
+          heartRate: 0,
+          breathRate: 0,
+          isBed: false,
+          isBodyMovement: false,
+        });
+        return;
+      }
+
       const respEmpty = raw.resp == null;
       const deviceStatusId = Number(raw.deviceStatusId);
 
@@ -407,10 +439,16 @@ async function doOnePoll() {
   } catch (e) {
     console.error('pollMeditation', e);
     if (!hasMeditationDevice.value) {
-      const latest = mockRealtime();
-      currentHeartRate.value = latest.heartRate;
-      currentBreathRate.value = latest.breathRate;
-      statSamples.value.push(latest);
+      currentHeartRate.value = 0;
+      currentBreathRate.value = 0;
+      currentIsBed.value = false;
+      currentIsBodyMovement.value = false;
+      statSamples.value.push({
+        heartRate: 0,
+        breathRate: 0,
+        isBed: false,
+        isBodyMovement: false,
+      });
     }
   }
 }
@@ -487,18 +525,13 @@ async function finishMeditationSession() {
 
   await fetchReportAndStore();
 
-  stopMeditationBackgroundMusic();
+  prepareMeditationSessionEnd();
+  setLeavingMeditationForReportPage(true);
 
   const endUrl = resolveMusicAssetUrl(trackUrl.value);
   if (endUrl) {
     void playMeditationEndMusicLinearFadeIn(endUrl);
   }
-
-  setLeavingMeditationForReportPage(true);
-  updateMeditationBackgroundMusicMeta({
-    title: trackTitle.value || '禅修',
-    epname: '禅修报告',
-  });
 
   const query = [
     sessionNumericId.value > 0 ? `sessionId=${sessionNumericId.value}` : '',
@@ -539,6 +572,13 @@ onLoad((query) => {
     hasMeditationDevice.value = false;
   } else if (rawD === '1' || rawD === 1) {
     hasMeditationDevice.value = true;
+  }
+
+  if (!hasMeditationDevice.value) {
+    currentHeartRate.value = 0;
+    currentBreathRate.value = 0;
+    currentIsBed.value = false;
+    currentIsBodyMovement.value = false;
   }
 
   /** 时长、音乐、活动：优先 Pinia（复用 last* / homePreferred*），query 仅作外链兼容 */

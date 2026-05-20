@@ -29,7 +29,7 @@ const ACTIVITY_ROOM_RESULT_PATH = "/app/activity/roomResult";
 /**
  * 活动分页列表（GET，与 8.1 文档一致）；需登录。
  *
- * @param query `page` 默认 1，`size` 默认 20 最大 100；`teamId` 可选
+ * @param query `page` / `size` / `teamId` / `includeExpired` / `onlyJoined`（`0` 活动广场展示全部并带 `isJoined`）
  */
 export const fetchActivityPageGet = (query?: ActivityPageQuery) => {
   return get(ACTIVITY_PAGE_PATH, query ?? {});

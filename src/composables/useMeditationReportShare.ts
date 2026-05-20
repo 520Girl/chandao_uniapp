@@ -25,6 +25,8 @@ export type UseMeditationReportShareOptions = {
    * @default true
    */
   registerWechatShare?: boolean;
+  /** 微信转发前异步准备（如换取 `shareToken`）；朋友圈仍用同步 `getPayload`（需已缓存 token） */
+  getPayloadAsync?: () => Promise<MeditationReportSharePayload>;
 };
 
 /**
@@ -38,11 +40,15 @@ export function useMeditationReportShare(
   options?: UseMeditationReportShareOptions,
 ) {
   const registerWechatShare = options?.registerWechatShare !== false;
+  const getPayloadAsync = options?.getPayloadAsync;
 
-  const posterJson = shallowRef<UviewPosterJson>(buildMeditationReportPosterJson(getPayload()));
+  const posterJson = shallowRef<UviewPosterJson>({ css: { width: "750rpx", height: "1333rpx" }, views: [] });
 
   if (registerWechatShare) {
-    onShareAppMessage(() => buildMeditationReportFriendShare(getPayload()));
+    onShareAppMessage(() => {
+      const load = getPayloadAsync ?? (async () => getPayload());
+      return load().then((p) => buildMeditationReportFriendShare(p));
+    });
     onShareTimeline(() => buildMeditationReportTimelineShare(getPayload()));
 
     onShow(() => {
@@ -65,7 +71,8 @@ export function useMeditationReportShare(
    * @returns 临时文件路径；失败返回 `null`
    */
   async function generatePosterImagePath(): Promise<string | null> {
-    posterJson.value = buildMeditationReportPosterJson(getPayload());
+    const payload = getPayloadAsync ? await getPayloadAsync() : getPayload();
+    posterJson.value = buildMeditationReportPosterJson(payload);
     await nextTick();
     await nextTick();
     // #ifdef MP-WEIXIN
@@ -120,7 +127,8 @@ export function useMeditationReportShare(
    * @param baseUrl 站点根 URL
    */
   async function copyH5ShareLink(baseUrl: string): Promise<void> {
-    const url = buildMeditationReportH5Url(baseUrl.replace(/\/$/, ""), getPayload());
+    const payload = getPayloadAsync ? await getPayloadAsync() : getPayload();
+    const url = buildMeditationReportH5Url(baseUrl.replace(/\/$/, ""), payload);
     // #ifdef H5
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
       try {

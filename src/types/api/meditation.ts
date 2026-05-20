@@ -183,6 +183,34 @@ export interface MeditationReport {
 /** 与 5.4 历史单条结构一致（别名） */
 export type MeditationReportHistoryItem = MeditationReport;
 
+/** `POST /app/meditation/report/shareToken` 入参 */
+export interface MeditationReportShareTokenBody {
+  sessionId: number;
+  /** `true` 时重新生成令牌，旧分享链接失效 */
+  refresh?: boolean;
+}
+
+/** `POST /app/meditation/report/shareToken` 出参 */
+export interface MeditationReportShareTokenData {
+  shareToken: string;
+  sessionId: number;
+  reportId: number;
+}
+
+/** 分享页展示：分享者信息 */
+export interface MeditationReportSharer {
+  nickName?: string;
+  avatarUrl?: string;
+}
+
+/**
+ * `GET /app/meditation/report/share` 出参（免登录）。
+ * 报告字段与 `MeditationReport` 基本一致；`totalDays` 等为库表快照。
+ */
+export interface MeditationReportShareData extends MeditationReport {
+  sharer?: MeditationReportSharer;
+}
+
 /** `GET /app/meditation/report/history` 分页查询参数 */
 export interface MeditationReportHistoryQuery {
   /** 页码，从 1 开始 */

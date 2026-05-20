@@ -1,8 +1,8 @@
 @font-face {
   font-family: "iconfont"; /* Project id 5133341 */
-  src: url('iconfont.woff2?t=1777648583518') format('woff2'),
-       url('iconfont.woff?t=1777648583518') format('woff'),
-       url('iconfont.ttf?t=1777648583518') format('truetype');
+  src: url('iconfont.woff2?t=1779082670135') format('woff2'),
+       url('iconfont.woff?t=1779082670135') format('woff'),
+       url('iconfont.ttf?t=1779082670135') format('truetype');
 }
 
 .iconfont {
@@ -11,6 +11,10 @@
   font-style: normal;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+.icon-fenxiang2:before {
+  content: "\e63e";
 }
 
 .icon-nest_clock_farsight_analog_24dp_595959_FILL0_wght4:before {

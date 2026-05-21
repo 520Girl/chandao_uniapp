@@ -1284,6 +1284,13 @@ function loadMoreMusic() {
   }
 }
 
+/** 开始禅修前确保疗愈列表已拉取，避免 `trackUrl` 为空导致结束无疗愈音 */
+async function ensureMusicTracksForMeditation(): Promise<void> {
+  if (userStore.isGuestExperience) return;
+  if (audioTracks.value.length > 0) return;
+  await fetchMusicPage(true);
+}
+
 /** 列表加载后尽量选中上次禅修使用的音乐（按 trackId，其次 url） */
 function applyLastMeditationTrackSelection() {
   if (!audioTracks.value.length) return;
@@ -1345,6 +1352,9 @@ onShow(async () => {
     void meditationStore.fetchActiveSession();
     void loadHomeDeviceStatusAndRealtime();
     startHomeDevicePoll();
+    if (!audioTracks.value.length && !musicFetching.value) {
+      void fetchMusicPage(true);
+    }
   } else {
     homeDeviceStatus.value = null;
     homeDeviceRealtime.value = null;
@@ -1493,21 +1503,24 @@ async function confirmStartMeditationWithDevice(hasDevice: boolean) {
     }
   }
 
+  await ensureMusicTracksForMeditation();
+
   const selected =
     audioTracks.value.find((x) => x.id === selectedTrackId.value) ||
     audioTracks.value.find((x) => x.id === playingId.value) ||
     audioTracks.value[0];
+  const fallbackTrackUrl = meditationStore.lastMeditationTrackUrl?.trim() || "";
   stopAudio();
   playingId.value = null;
 
   const plannedMinutes = minutesForActivityLaunch(activity);
   const payload: NextMeditationLaunchPayload = {
     durationMinutes: plannedMinutes,
-    trackId: selected?.id ? String(selected.id) : "",
+    trackId: selected?.id ? String(selected.id) : meditationStore.lastMeditationTrackId || "",
     trackTitle: activity
       ? selected?.title?.trim() || activity.title
-      : selected?.title?.trim() || "疗愈音频",
-    trackUrl: selected?.url || "",
+      : selected?.title?.trim() || meditationStore.lastMeditationTrackTitle || "疗愈音频",
+    trackUrl: selected?.url?.trim() || fallbackTrackUrl,
     useHardwareDevice: hasDevice,
     postReport: "heart",
   };

@@ -1,6 +1,8 @@
 /**
  * 冥想报告详情与统计：详情 `data`、统计 `data` 的解析与字段兼容（含 snake_case）。
  */
+import { fetchMeditationReportDetail } from "@/assets/js/api/meditation";
+import { unwrapApiData } from "@/utils/apiResponse";
 import type {
   MeditationChartSeriesItem,
   MeditationReport,
@@ -47,10 +49,11 @@ export function parseMeditationReportDetailPayload(raw: unknown): MeditationRepo
   }
 
   const sessionId = Number(o.sessionId ?? o.session_id);
-  const id = Number(o.id);
-  if (!Number.isFinite(sessionId) || sessionId <= 0 || !Number.isFinite(id)) {
+  if (!Number.isFinite(sessionId) || sessionId <= 0) {
     return null;
   }
+  const idRaw = Number(o.id ?? o.reportId ?? o.report_id);
+  const id = Number.isFinite(idRaw) && idRaw > 0 ? idRaw : sessionId;
 
   let sectionsUnknown: unknown = o.sections;
   if (typeof sectionsUnknown === "string") {
@@ -88,6 +91,44 @@ export function parseMeditationReportDetailPayload(raw: unknown): MeditationRepo
   }
 
   return { ...o, sessionId, id, sections } as unknown as MeditationReport;
+}
+
+const REPORT_DETAIL_RETRY_DEFAULTS = { maxAttempts: 6, intervalMs: 500 };
+
+function sleepMs(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * 结束禅修后拉报告详情：后端生成报告可能有延迟，短间隔重试避免空报告页。
+ *
+ * @param sessionId 会话 ID
+ * @param options `maxAttempts` 默认 6；`intervalMs` 默认 500
+ */
+export async function loadMeditationReportDetailWithRetry(
+  sessionId: number,
+  options?: { maxAttempts?: number; intervalMs?: number },
+): Promise<MeditationReport | null> {
+  const sid = Math.floor(Number(sessionId));
+  if (!Number.isFinite(sid) || sid <= 0) return null;
+
+  const maxAttempts = Math.max(1, options?.maxAttempts ?? REPORT_DETAIL_RETRY_DEFAULTS.maxAttempts);
+  const intervalMs = Math.max(200, options?.intervalMs ?? REPORT_DETAIL_RETRY_DEFAULTS.intervalMs);
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    try {
+      const res = await fetchMeditationReportDetail({ sessionId: sid });
+      const raw = unwrapApiData<unknown>(res);
+      const parsed = parseMeditationReportDetailPayload(raw);
+      if (parsed) return parsed;
+    } catch (e) {
+      console.error("loadMeditationReportDetailWithRetry", e);
+    }
+    if (attempt < maxAttempts - 1) {
+      await sleepMs(intervalMs);
+    }
+  }
+  return null;
 }
 
 function parseSharer(raw: unknown): MeditationReportSharer | undefined {

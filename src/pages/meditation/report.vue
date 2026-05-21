@@ -183,7 +183,6 @@
 import { onLoad, onShow, onUnload } from '@dcloudio/uni-app';
 import { computed, nextTick, onBeforeUnmount } from 'vue';
 import {
-  fetchMeditationReportDetail,
   fetchMeditationReportShare,
   postMeditationReportShareToken,
 } from '@/assets/js/api/meditation';
@@ -206,6 +205,7 @@ import { unwrapApiData } from '@/utils/apiResponse';
 import { drawCloudBridgeCanvas } from '@/utils/common';
 import { buildJoinInvitePosterQrText, buildMeditationReportPosterJson } from '@/utils/meditationReportShare';
 import {
+  loadMeditationReportDetailWithRetry,
   parseMeditationReportDetailPayload,
   parseMeditationReportSharePayload,
 } from '@/utils/meditationReport';
@@ -942,16 +942,14 @@ async function initReport(q: Record<string, unknown>) {
     }
     uni.showLoading({ title: "加载报告…", mask: true });
     try {
-      const res = await fetchMeditationReportDetail({ sessionId: sid });
-      const raw = unwrapApiData<unknown>(res);
-      const data = parseMeditationReportDetailPayload(raw);
+      const data = await loadMeditationReportDetailWithRetry(sid);
       if (data) {
         applyReportToView(data);
         void ensureShareToken();
         return;
       }
     } catch (e) {
-      console.error("fetchMeditationReportDetail", e);
+      console.error("loadMeditationReportDetailWithRetry", e);
     } finally {
       uni.hideLoading();
     }
@@ -975,6 +973,13 @@ async function initReport(q: Record<string, unknown>) {
   maxHeart.value = toNum(q.maxHeart, avgHeart.value + 6);
   minHeart.value = toNum(q.minHeart, avgHeart.value - 6);
   void nextTick(() => drawCloudBridgeCanvas(harmonyProgress.value));
+  if (urlSessionId.value != null && urlSessionId.value > 0 && !reportFromApi.value) {
+    uni.showToast({
+      title: "报告生成中，部分数据为本次禅修估算",
+      icon: "none",
+      duration: 2800,
+    });
+  }
 }
 function parseInviteSceneRaw(raw: unknown): string {
   if (raw == null) return '';
@@ -1039,6 +1044,7 @@ onReady(() => {
 });
 
 onUnload(() => {
+  /** 结束疗愈音在报告页继续播；离开报告页再停 */
   stopMeditationBackgroundMusic();
 });
 

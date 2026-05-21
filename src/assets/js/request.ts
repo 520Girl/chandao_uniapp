@@ -77,16 +77,36 @@ function isMeditationReportSharePublicRequest(snapshot: Record<string, unknown>)
 }
 
 /**
- * 设备轮询类请求（首页等定时拉取）。业务失败时仅提示，不应 `navigateBack` 误关当前页。
+ * 业务失败（HTTP 200 + code≠1000）时仅 toast，不自动 `navigateBack` 的请求。
+ * 含设备轮询、禅修结束/轮询/报告详情等，避免静坐结束流程被全局拦截器打断。
+ *
  * @param snapshot `request` 调用时的 options，含完整 `url`
  */
-function isDeviceStatusOrRealtimeRequest(snapshot: Record<string, unknown>): boolean {
+function shouldSkipNavigateBackOnBizError(snapshot: Record<string, unknown>): boolean {
   const u = String(snapshot?.url ?? "");
-  return u.includes("/app/device/realtime") || 
-  u.includes("/app/device/status") || 
-  u.includes("/app/activity/createFromTemplate") || 
-  u.includes("/app/meditation/report/detail") || 
-  u.includes("/app/meditation/report/statistics");
+  return (
+    u.includes("/app/device/realtime") ||
+    u.includes("/app/device/status") ||
+    u.includes("/app/activity/createFromTemplate") ||
+    u.includes("/app/meditation/report/detail") ||
+    u.includes("/app/meditation/report/statistics") ||
+    u.includes("/app/meditation/end") ||
+    u.includes("/app/meditation/poll") ||
+    u.includes("/app/meditation/start") ||
+    u.includes("/app/meditation/session/active")
+  );
+}
+
+/** 静坐页 / 报告页：接口失败时由页面自行兜底，勿 `navigateBack` 回首页 */
+function isMeditationSessionOrReportPage(): boolean {
+  const pages = getCurrentPages();
+  const page = pages[pages.length - 1] as { route?: string } | undefined;
+  const route = page?.route ?? "";
+  return (
+    route.includes("meditation/startMeditaiton") ||
+    route.includes("meditation/report") ||
+    route.includes("meditation/report-share")
+  );
 }
 
 // 请求拦截器
@@ -234,7 +254,8 @@ const errorHandler = async (error: any, retrySnapshot: Record<string, any>): Pro
         isCurrentRoute("/pages/index/join") ||
         isCurrentRoute("/pages/login/inputLogin") ||
         isMeditationReportShareVisitorPage() ||
-        isDeviceStatusOrRealtimeRequest(retrySnapshot)
+        isMeditationSessionOrReportPage() ||
+        shouldSkipNavigateBackOnBizError(retrySnapshot)
       ) {
         return Promise.reject(error);
       }
@@ -261,7 +282,13 @@ const errorHandler = async (error: any, retrySnapshot: Record<string, any>): Pro
   });
 
   setTimeout(() => {
-    if (isCurrentRoute("/pages/index/join") || isMeditationReportShareVisitorPage()) return;
+    if (
+      isCurrentRoute("/pages/index/join") ||
+      isMeditationReportShareVisitorPage() ||
+      isMeditationSessionOrReportPage()
+    ) {
+      return;
+    }
     uni.reLaunch({
       url: "/pages/login/index",
     });

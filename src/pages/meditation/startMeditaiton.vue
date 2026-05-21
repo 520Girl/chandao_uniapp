@@ -126,7 +126,6 @@
 <script setup lang="ts">
 import {
   endMeditation as postMeditationEnd,
-  fetchMeditationReportDetail,
   pollMeditation,
   startMeditation,
 } from '@/assets/js/api/meditation';
@@ -143,7 +142,7 @@ import type {
   MeditationPollRespDataItem,
 } from '@/types/api/meditation';
 import { unwrapApiData } from '@/utils/apiResponse';
-import { parseMeditationReportDetailPayload } from '@/utils/meditationReport';
+import { loadMeditationReportDetailWithRetry } from '@/utils/meditationReport';
 import { resolveMusicAssetUrl } from '@/utils/musicPage';
 import {
   isLeavingMeditationForReportPage,
@@ -481,6 +480,37 @@ function getAvg(list: number[]) {
   return list.reduce((a, b) => a + b, 0) / list.length;
 }
 
+/** 结束疗愈音：当前会话 URL → Pinia 上次音乐（首页列表未加载时兜底） */
+function resolveEndMusicSrc(): string {
+  const fromSession = resolveMusicAssetUrl(trackUrl.value);
+  if (fromSession) return fromSession;
+  return resolveMusicAssetUrl(meditationStore.lastMeditationTrackUrl || '');
+}
+
+function buildReportLandingQueryParts(): string[] {
+  const parts: string[] = [];
+  if (sessionNumericId.value > 0) {
+    parts.push(`sessionId=${sessionNumericId.value}`);
+  }
+  parts.push(`duration=${targetMinutes.value}`);
+  parts.push(`elapsedSec=${elapsedSec.value}`);
+  parts.push(`manualStop=${remainSec.value > 0 ? '1' : '0'}`);
+  if (trackTitle.value.trim()) {
+    parts.push(`trackTitle=${encodeURIComponent(trackTitle.value.trim())}`);
+  }
+  const hrSamples = statSamples.value.map((s) => s.heartRate).filter((n) => Number.isFinite(n) && n > 0);
+  const brSamples = statSamples.value.map((s) => s.breathRate).filter((n) => Number.isFinite(n) && n > 0);
+  if (hrSamples.length) {
+    parts.push(`avgHeart=${Math.round(getAvg(hrSamples))}`);
+    parts.push(`maxHeart=${Math.round(Math.max(...hrSamples))}`);
+    parts.push(`minHeart=${Math.round(Math.min(...hrSamples))}`);
+  }
+  if (brSamples.length) {
+    parts.push(`avgBreath=${Math.round(getAvg(brSamples) * 100) / 100}`);
+  }
+  return parts;
+}
+
 async function finishMeditationSession() {
   if (ended) return;
   ended = true;
@@ -497,9 +527,7 @@ async function finishMeditationSession() {
         const endData = unwrapApiData<MeditationEndResult | null>(endRes);
         const sid = Number(endData?.sessionId ?? sessionNumericId.value);
         if (Number.isFinite(sid) && sid > 0) {
-          const detailRes = await fetchMeditationReportDetail({ sessionId: sid });
-          const rawDetail = unwrapApiData<unknown>(detailRes);
-          reportDetail = parseMeditationReportDetailPayload(rawDetail);
+          reportDetail = await loadMeditationReportDetailWithRetry(sid);
         }
       } catch (e) {
         console.error('postMeditationEnd / fetchMeditationReportDetail', e);
@@ -528,16 +556,12 @@ async function finishMeditationSession() {
   prepareMeditationSessionEnd();
   setLeavingMeditationForReportPage(true);
 
-  const endUrl = resolveMusicAssetUrl(trackUrl.value);
+  const endUrl = resolveEndMusicSrc();
   if (endUrl) {
     void playMeditationEndMusicLinearFadeIn(endUrl);
   }
 
-  const query = [
-    sessionNumericId.value > 0 ? `sessionId=${sessionNumericId.value}` : '',
-  ]
-    .filter(Boolean)
-    .join('&');
+  const query = buildReportLandingQueryParts().join('&');
 
   const goReport = () => {
     const aidInner = sessionActivityId ?? meditationStore.homePreferredActivityId ?? null;
@@ -609,6 +633,9 @@ onLoad((query) => {
       q.trackUrl != null && String(q.trackUrl) !== ''
         ? String(q.trackUrl)
         : meditationStore.lastMeditationTrackUrl || '';
+  }
+  if (!trackUrl.value.trim() && meditationStore.lastMeditationTrackUrl) {
+    trackUrl.value = meditationStore.lastMeditationTrackUrl;
   }
   const qAid = q.activityId;
   const qTid = q.activityTemplateId;
